@@ -112,6 +112,7 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
                     return Err(err);
                 }
                 eprintln!("系统 screen 执行失败，回退到内置 screen: {err}");
+                eprintln!("{}", system_screen_fallback_hint());
             }
         }
 
@@ -262,6 +263,13 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
             io::ErrorKind::Other,
             format!("内置 screen 退出码: {exit_code}"),
         )))
+    }
+}
+fn system_screen_fallback_hint() -> &'static str {
+    if cfg!(windows) {
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback（或先修复 WSL/screen 安装）。"
+    } else {
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。"
     }
 }
 fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {

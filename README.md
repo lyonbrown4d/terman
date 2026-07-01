@@ -25,6 +25,7 @@ terman screen --system
 terman screen --system -S dev
 terman screen --system --detach
 terman screen --system --no-fallback
+# 默认行为：system 失败会自动回退到内置 screen；如需禁用请加 --no-fallback
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
 
@@ -40,3 +41,4 @@ terman tmux --detached new -s dev
 
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+
