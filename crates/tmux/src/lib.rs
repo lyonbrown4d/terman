@@ -127,8 +127,11 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
         hints.push(
             "attach 指定了会话但命令返回 1，常见因为目标会话不存在。请先运行 terman tmux list-sessions，确认会话名后重试。".to_string(),
         );
+    } else if is_tmux_new_session_command(args) && exit_code == 1 {
+        hints.push(
+            "新建会话命令返回 1，常见为会话名冲突或会话无法创建。建议先运行 terman tmux list-sessions 确认现有会话，再换名重试。".to_string(),
+        );
     }
-
     if hints.is_empty() {
         let default_hint = match (kind, exit_code) {
             (TmuxKind::Wsl, 1) => {
@@ -183,6 +186,11 @@ fn tmux_attach_has_target(args: &[String]) -> bool {
             || arg.starts_with("--target-session=")
     })
 }
+
+fn is_tmux_new_session_command(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "new" || arg == "new-session")
+}
+
 fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
     if args.wsl {
         if !cfg!(windows) {
