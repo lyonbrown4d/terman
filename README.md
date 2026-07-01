@@ -35,6 +35,7 @@ terman tmux new -s dev
 terman tmux attach -t dev
 terman tmux --detached
 terman tmux --detached new -s dev
+tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
 ```
 
 ## 备注
