@@ -14,6 +14,10 @@ pub struct TmuxArgs {
     #[arg(long)]
     pub detached: bool,
 
+    /// 强制使用 WSL tmux（仅 Windows）。
+    #[arg(long)]
+    pub wsl: bool,
+
     /// Directly passed arguments for tmux.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -31,7 +35,7 @@ struct TmuxLaunch {
 }
 
 pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
-    let launch = resolve_tmux_launch()?;
+    let launch = resolve_tmux_launch(&args)?;
     validate_tmux_launch(&launch)?;
 
     let mut cmd = Command::new(&launch.cmd);
@@ -106,7 +110,29 @@ fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
         }
     }
 }
-fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
+fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
+    if args.wsl {
+        if !cfg!(windows) {
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "--wsl 仅在 Windows 下可用。",
+            )));
+        }
+
+        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
+            return Ok(TmuxLaunch {
+                cmd: path,
+                kind: TmuxKind::Wsl,
+                extra_args: vec![String::from("-e"), String::from("tmux")],
+            });
+        }
+
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            "未检测到 wsl。请先安装或启用 Windows 的 WSL。",
+        )));
+    }
+
     if let Some(path) = which_binary("tmux") {
         return Ok(TmuxLaunch {
             cmd: path,
@@ -132,7 +158,6 @@ fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
         tmux_not_found_hint(),
     )))
 }
-
 fn tmux_not_found_hint() -> &'static str {
     if cfg!(windows) {
         "未检测到 tmux。可选方案：1) 使用 WSL 安装 tmux（推荐）：wsl -e sudo apt install tmux；2) 安装 Windows tmux（如 Scoop 安装）：scoop install tmux；3) 先使用 terman screen 继续工作。"

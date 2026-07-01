@@ -35,6 +35,8 @@ terman tmux new -s dev
 terman tmux attach -t dev
 terman tmux --detached
 terman tmux --detached new -s dev
+terman tmux --wsl new -s dev
+# Windows 可通过 --wsl 强制使用 WSL tmux
 tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
 ```
 
