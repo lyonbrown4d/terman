@@ -63,6 +63,20 @@ terman tmux --help
 #   名称冲突：terman tmux new -s demo
 #   再复现冲突：terman tmux new -s demo
 
+
+# 可复制复现脚本（bash）
+```bash
+# 会话不存在复现
+terman tmux attach -t missing-session
+if [ $? -ne 0 ]; then
+  echo "会话不存在，先执行 list-sessions 确认后重试"
+fi
+
+# 会话名冲突复现
+terman tmux new -s demo
+terman tmux new -s demo
+```
+
 # Windows 可通过 --wsl 强制使用 WSL tmux
 tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
 失败时会给出常见场景建议（如 attach 未显式指定会话）。
