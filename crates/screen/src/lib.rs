@@ -23,7 +23,7 @@ use which::which;
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman screen\n  - terman screen --system\n  - terman screen --system -S dev\n  - terman screen --system --detach\n  - terman screen --system --no-fallback",
+    after_help = "常见用法示例：\n  - terman screen\n  - terman screen --system\n  - terman screen --system -S dev\n  - terman screen --system --detach\n  - terman screen --system --wsl\n  - terman screen --system --no-fallback",
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
