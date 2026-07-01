@@ -25,6 +25,11 @@ terman screen --system
 terman screen --system -S dev
 terman screen --system --detach
 terman screen --system --no-fallback
+# 系统 screen 常见返回码
+#   1: 参数错误或会话不存在
+#   2: 环境变量/权限类异常
+#   126: executable 无法执行
+#   127: executable 未找到
 # 默认行为：system 失败会自动回退到内置 screen；如需禁用请加 --no-fallback
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
