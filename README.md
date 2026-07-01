@@ -37,6 +37,10 @@ terman screen --system --no-fallback
 #   126: executable 无法执行（如权限不足）
 #   127: executable 未找到（Windows 建议优先尝试 `--wsl`）
 #   130: 用户中断（Ctrl-C）
+# tmux 排查建议
+#   发现 attach 报错且不确定会话：terman tmux list-sessions
+#   明确指定会话再重试：terman tmux attach -t <session-name>
+#   仅 Windows 需要回退到 WSL 时加 --wsl：terman tmux --wsl new -s <session>
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
 terman screen --help

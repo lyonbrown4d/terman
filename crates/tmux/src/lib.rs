@@ -165,7 +165,12 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
 
 fn is_tmux_attach_without_target(args: &[String]) -> bool {
     let has_attach = args.iter().any(|arg| arg == "attach" || arg == "attach-session");
-    let has_target = args.iter().any(|arg| arg == "-t" || arg == "--target-session");
+    let has_target = args.iter().any(|arg| {
+        arg == "-t"
+            || arg == "--target-session"
+            || (arg.starts_with("-t") && arg.len() > 2)
+            || arg.starts_with("--target-session=")
+    });
 
     has_attach && !has_target
 }
