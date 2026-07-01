@@ -57,6 +57,13 @@ terman tmux --detached
 terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
 terman tmux --help
+
+# tmux 最小复现清单（排查）
+#   会话不存在：terman tmux attach -t missing-session
+#   先查看会话：terman tmux list-sessions
+#   名称冲突：terman tmux new -s dev
+#   再复现冲突：terman tmux new -s dev
+
 # Windows 可通过 --wsl 强制使用 WSL tmux
 tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
 失败时会给出常见场景建议（如 attach 未显式指定会话）。
