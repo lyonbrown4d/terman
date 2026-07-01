@@ -40,6 +40,7 @@ terman screen --system --no-fallback
 # tmux 排查建议
 #   发现 attach 报错且不确定会话：terman tmux list-sessions
 #   明确指定会话再重试：terman tmux attach -t <session-name>
+#   新建会话返回 1/会话冲突：terman tmux list-sessions 后改用新会话名重试
 #   仅 Windows 需要回退到 WSL 时加 --wsl：terman tmux --wsl new -s <session>
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
