@@ -21,6 +21,10 @@ use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use which::which;
 
 #[derive(Args, Debug, Clone)]
+#[command(
+    about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
+    after_help = "常见用法示例：\n  - terman screen\n  - terman screen --system\n  - terman screen --system -S dev\n  - terman screen --system --detach\n  - terman screen --system --no-fallback",
+)]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
     #[arg(short, long, value_name = "CMD", conflicts_with = "system")]
@@ -38,8 +42,8 @@ pub struct ScreenArgs {
     #[arg(long)]
     pub system: bool,
 
-    /// Start screen in detached mode (system mode only).
-    #[arg(long)]
+    /// 启动系统 screen 后台模式（等价于 `screen -d -m`）。
+    #[arg(long, requires = "system")]
     pub detach: bool,
 
     /// Start a login shell in built-in mode; ignored in system mode.
