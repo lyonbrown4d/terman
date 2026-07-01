@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 mod screen;
 mod tmux;
@@ -11,7 +11,7 @@ struct Cli {
     command: Option<Commands>,
 }
 
-#[derive(clap::Subcommand)]
+#[derive(Subcommand)]
 enum Commands {
     Screen(screen::ScreenArgs),
     Tmux(tmux::TmuxArgs),

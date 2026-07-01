@@ -2,47 +2,50 @@ use std::{
     env,
     error::Error,
     io,
-    process::{Command, ExitStatus},
+    process::{Command, ExitStatus, Stdio},
 };
 
 use clap::Args;
-use which::which;
 
 #[derive(Args, Debug)]
 pub struct TmuxArgs {
-    /// Additional arguments passed directly to system tmux.
+    /// Directly passed arguments for tmux.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
 }
 
+enum TmuxKind {
+    Native,
+    Wsl,
+}
+
+struct TmuxLaunch {
+    cmd: String,
+    kind: TmuxKind,
+    extra_args: Vec<String>,
+}
+
 pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
-    if which("tmux").is_err() {
-        if cfg!(windows) {
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::NotFound,
-                "未检测到 tmux。Windows 上请先安装 MSYS2/WSL 的 tmux，或先使用 terman screen。",
-            )));
+    let launch = resolve_tmux_launch()?;
+
+    let mut cmd = Command::new(&launch.cmd);
+    match launch.kind {
+        TmuxKind::Native => {}
+        TmuxKind::Wsl => {
+            cmd.args(&launch.extra_args);
+            eprintln!("当前使用 WSL tmux 回退路径。建议长期使用 WSL 发行版中的 tmux 以获得更完整行为。");
         }
-
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。",
-        )));
     }
 
-    if cfg!(windows) {
-        eprintln!("检测到 tmux，可用，但 Windows 终端行为可能受环境影响。建议在 WSL/Mintty/WSL2 中体验最佳。\n");
-    }
-
-    let mut cmd = Command::new("tmux");
-    cmd.args(&args.args)
-        .envs(get_passthrough_env())
+    let status: ExitStatus = cmd
+        .args(&args.args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .envs(passthrough_env())
         .env("TERM", env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")))
-        .stdin(std::process::Stdio::inherit())
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit());
+        .status()?;
 
-    let status: ExitStatus = cmd.status()?;
     if status.success() {
         Ok(())
     } else {
@@ -53,10 +56,77 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn get_passthrough_env() -> impl Iterator<Item = (String, String)> {
-    ["TERM", "COLORTERM", "LC_ALL", "LANG", "LC_CTYPE", "TERM_PROGRAM", "TERM_PROGRAM_VERSION"]
-        .iter()
-        .filter_map(|k| env::var(k).ok().map(|v| (k.to_string(), v)))
-        .collect::<Vec<_>>()
-        .into_iter()
+fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
+    if let Some(path) = which_binary("tmux") {
+        return Ok(TmuxLaunch {
+            cmd: path,
+            kind: TmuxKind::Native,
+            extra_args: Vec::new(),
+        });
+    }
+
+    if cfg!(windows) {
+        if which_binary("wsl").is_some() || which_binary("wsl.exe").is_some() {
+            return Ok(TmuxLaunch {
+                cmd: String::from("wsl"),
+                kind: TmuxKind::Wsl,
+                extra_args: vec![String::from("-e"), String::from("tmux")],
+            });
+        }
+
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            "未检测到 tmux。Windows 上请先安装 WSL 并在 Linux 子系统内安装 tmux，或先使用 terman screen。",
+        )));
+    }
+
+    Err(Box::new(io::Error::new(
+        io::ErrorKind::NotFound,
+        "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。",
+    )))
+}
+
+fn which_binary(name: &str) -> Option<String> {
+    if let Ok(path_env) = env::var("PATH") {
+        let exts = if cfg!(windows) {
+            vec![".exe", ".bat", ".cmd", ""]
+        } else {
+            vec![""]
+        };
+
+        let paths = env::split_paths(&path_env);
+        for path in paths {
+            for ext in &exts {
+                let candidate = path.join(format!("{name}{ext}"));
+                if candidate.is_file() {
+                    return Some(candidate.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    let command_name = if cfg!(windows) { "where" } else { "command" };
+    if let Ok(out) = Command::new(command_name).arg("-v").arg(name).stdout(io::null()).output() {
+        if out.status.success() {
+            return Some(name.to_string());
+        }
+    }
+
+    None
+}
+
+fn passthrough_env() -> impl Iterator<Item = (String, String)> {
+    [
+        "TERM",
+        "COLORTERM",
+        "LC_ALL",
+        "LANG",
+        "LC_CTYPE",
+        "TERM_PROGRAM",
+        "TERM_PROGRAM_VERSION",
+    ]
+    .iter()
+    .filter_map(|k| env::var(k).ok().map(|v| (k.to_string(), v)))
+    .collect::<Vec<_>>()
+    .into_iter()
 }
