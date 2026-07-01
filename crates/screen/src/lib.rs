@@ -164,8 +164,8 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
             format!("system screen 退出码: {exit_code}\n{}", screen_system_runtime_hints(exit_code)),
         )))
     }
-    }
 
+}
 fn screen_system_runtime_hints(exit_code: i32) -> &'static str {
     match exit_code {
         1 => {
@@ -186,7 +186,6 @@ fn screen_system_runtime_hints(exit_code: i32) -> &'static str {
     }
 }
 
-}
 
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _raw = RawMode::enter()?;
