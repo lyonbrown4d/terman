@@ -23,7 +23,7 @@ use which::which;
 #[derive(Args, Debug, Clone)]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
-    #[arg(short, long, value_name = "CMD")]
+    #[arg(short, long, value_name = "CMD", conflicts_with = "system")]
     pub command: Option<String>,
 
     /// Initial terminal columns.
@@ -92,13 +92,6 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 
 fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let launch = resolve_screen_launch()?;
-
-    if args.command.is_some() {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "系统 screen 模式下不支持 --command。请改为 `--system -- <screen 参数>`，如 `-S dev`。",
-        )));
-    }
 
     let mut cmd = Command::new(&launch.cmd);
     if let ScreenKind::Wsl = launch.kind {
