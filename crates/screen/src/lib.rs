@@ -18,6 +18,7 @@ use crossterm::{
     terminal::{self, size as terminal_size},
 };
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use which::which;
 
 #[derive(Args, Debug, Clone)]
 pub struct ScreenArgs {
@@ -244,25 +245,7 @@ fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
 }
 
 fn which_binary(name: &str) -> Option<String> {
-    if let Ok(path_env) = env::var("PATH") {
-        let exts = if cfg!(windows) {
-            vec![".exe", ".bat", ".cmd", ""]
-        } else {
-            vec![""]
-        };
-
-        let paths = env::split_paths(&path_env);
-        for path in paths {
-            for ext in &exts {
-                let candidate = path.join(format!("{name}{ext}"));
-                if candidate.is_file() {
-                    return Some(candidate.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    None
+    which(name).ok().map(|path| path.to_string_lossy().to_string())
 }
 
 fn passthrough_env() -> impl Iterator<Item = (String, String)> {

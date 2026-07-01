@@ -6,6 +6,7 @@ use std::{
 };
 
 use clap::Args;
+use which::which;
 
 #[derive(Args, Debug)]
 pub struct TmuxArgs {
@@ -66,9 +67,9 @@ fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
     }
 
     if cfg!(windows) {
-        if which_binary("wsl").is_some() || which_binary("wsl.exe").is_some() {
+        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
             return Ok(TmuxLaunch {
-                cmd: String::from("wsl"),
+                cmd: path,
                 kind: TmuxKind::Wsl,
                 extra_args: vec![String::from("-e"), String::from("tmux")],
             });
@@ -87,32 +88,7 @@ fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
 }
 
 fn which_binary(name: &str) -> Option<String> {
-    if let Ok(path_env) = env::var("PATH") {
-        let exts = if cfg!(windows) {
-            vec![".exe", ".bat", ".cmd", ""]
-        } else {
-            vec![""]
-        };
-
-        let paths = env::split_paths(&path_env);
-        for path in paths {
-            for ext in &exts {
-                let candidate = path.join(format!("{name}{ext}"));
-                if candidate.is_file() {
-                    return Some(candidate.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    let command_name = if cfg!(windows) { "where" } else { "command" };
-    if let Ok(out) = Command::new(command_name).arg("-v").arg(name).stdout(io::null()).output() {
-        if out.status.success() {
-            return Some(name.to_string());
-        }
-    }
-
-    None
+    which(name).ok().map(|path| path.to_string_lossy().to_string())
 }
 
 fn passthrough_env() -> impl Iterator<Item = (String, String)> {
@@ -130,6 +106,7 @@ fn passthrough_env() -> impl Iterator<Item = (String, String)> {
     .collect::<Vec<_>>()
     .into_iter()
 }
+
 use clap::Parser;
 
 #[derive(Parser)]
