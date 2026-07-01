@@ -53,11 +53,14 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
     }
 
     let mut passed_args = args.args;
-    if args.detached && !is_tmux_new_session_command(&args.args) {
-        eprintln!("提示：--detached 通常与 `new/new-session` 配合使用；当前命令将按透传参数原样执行。");
-    }
     if args.detached {
-        passed_args.insert(0, String::from("-d"));
+        if is_tmux_new_session_command(&passed_args) {
+            if !tmux_has_detached_arg(&passed_args) {
+                passed_args.insert(0, String::from("-d"));
+            }
+        } else {
+            eprintln!("提示：--detached 通常与 `new/new-session` 配合使用；当前命令将按透传参数原样执行。");
+        }
     }
 
     let status: ExitStatus = cmd
@@ -195,6 +198,10 @@ fn is_tmux_new_session_command(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "new" || arg == "new-session")
 }
 
+fn tmux_has_detached_arg(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "-d" || arg == "--detached")
+}
+
 fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
     if args.wsl {
         if !cfg!(windows) {
@@ -283,4 +290,3 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
-
