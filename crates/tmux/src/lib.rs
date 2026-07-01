@@ -75,16 +75,21 @@ fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
             });
         }
 
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            "未检测到 tmux。Windows 上请先安装 WSL 并在 Linux 子系统内安装 tmux，或先使用 terman screen。",
-        )));
+        return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, tmux_not_found_hint())));
     }
 
     Err(Box::new(io::Error::new(
         io::ErrorKind::NotFound,
-        "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。",
+        tmux_not_found_hint(),
     )))
+}
+
+fn tmux_not_found_hint() -> &'static str {
+    if cfg!(windows) {
+        "未检测到 tmux。可选方案：1) 使用 WSL 安装 tmux（推荐）：wsl -e sudo apt install tmux；2) 安装 Windows tmux（如 Scoop 安装）：scoop install tmux；3) 先使用 terman screen 继续工作。"
+    } else {
+        "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。"
+    }
 }
 
 fn which_binary(name: &str) -> Option<String> {
