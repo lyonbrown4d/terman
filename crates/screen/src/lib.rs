@@ -158,11 +158,34 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     if status.success() {
         Ok(())
     } else {
+        let exit_code = status.code().unwrap_or(-1);
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("system screen 退出码: {status}"),
+            format!("system screen 退出码: {exit_code}\n{}", screen_system_runtime_hints(exit_code)),
         )))
     }
+    }
+
+fn screen_system_runtime_hints(exit_code: i32) -> &'static str {
+    match exit_code {
+        1 => {
+            "system screen 执行失败（退出码 1）：常见为参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman screen --system --help` 复现最小命令。"
+        }
+        2 => {
+            "system screen 执行失败（退出码 2）：通常与权限、终端环境或可执行文件上下文有关。建议在普通终端重试，或先确认 screen 安装和 shell 环境。"
+        }
+        126 => {
+            "system screen 无法执行（退出码 126）：请确认 screen 可执行文件有执行权限。"
+        }
+        127 => {
+            "system screen 未找到（退出码 127）：请先确认 screen 安装正常且在 PATH。"
+        }
+        _ => {
+            "system screen 返回非预期退出码，建议先执行 `terman screen --system --help` 获取可用参数并用最小参数重试。"
+        }
+    }
+}
+
 }
 
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
