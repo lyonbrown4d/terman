@@ -6,6 +6,7 @@
 
 - 已添加 `terman screen` 命令：基于成熟库 `portable-pty` + `crossterm` + `clap`。
 - 它会在当前平台上启动一个 PTY shell，会话中按键通过原始终端事件映射后透传到会话。
+- 当终端窗口尺寸变化时，PTY 尺寸会同步更新，避免远端 shell 的显示错位。
 - 这是后续实现真正 screen/tmux 功能（会话列表、断开重连、分屏、窗口布局等）的基础。
 
 ## 使用
@@ -15,7 +16,7 @@
 terman screen
 
 # 运行一段命令（通过当前平台 shell）
-terman screen --command "printf "\"hello\\n\""
+terman screen --command "printf \"\"hello\\n\"\""
 ```
 
 ## 备注

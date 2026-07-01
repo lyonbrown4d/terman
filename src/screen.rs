@@ -71,11 +71,12 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     };
 
     let pair = pty_system.openpty(pty_size)?;
-    let mut command = build_command(args.command)?;
+    let command = build_command(args.command)?;
     let mut child = pair.slave.spawn_command(command)?;
 
-    let mut reader = pair.master.try_clone_reader()?;
-    let mut writer = pair.master.take_writer()?;
+    let mut master = pair.master;
+    let mut reader = master.try_clone_reader()?;
+    let mut writer = master.take_writer()?;
 
     let should_run = Arc::new(AtomicBool::new(true));
     let mut stdout = io::stdout();
@@ -113,8 +114,8 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         }
 
         match event::poll(Duration::from_millis(16)) {
-            Ok(true) => {
-                if let Ok(Event::Key(key)) = event::read() {
+            Ok(true) => match event::read() {
+                Ok(Event::Key(key)) => {
                     if let Some(bytes) = key_to_bytes(key) {
                         if writer.write_all(&bytes).is_err() {
                             break;
@@ -124,7 +125,18 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
                         }
                     }
                 }
-            }
+                Ok(Event::Resize(cols, rows)) => {
+                    let size = PtySize {
+                        cols,
+                        rows,
+                        pixel_width: 0,
+                        pixel_height: 0,
+                    };
+                    let _ = master.resize(size);
+                }
+                Ok(_) => {}
+                Err(_) => break,
+            },
             Ok(false) => {}
             Err(_) => break,
         }
