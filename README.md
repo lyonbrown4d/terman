@@ -24,6 +24,7 @@ terman screen --command "printf \"hello\\n\""
 terman screen --system
 terman screen --system -S dev
 terman screen --system --detach
+terman screen --system --wsl
 terman screen --system --no-fallback
 # 系统 screen 常见返回码
 #   1: 参数错误或会话不存在
