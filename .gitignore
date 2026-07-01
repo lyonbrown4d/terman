@@ -1,1 +1,4 @@
 /target
+# IDE/project config
+.idea/
+.vscode/
