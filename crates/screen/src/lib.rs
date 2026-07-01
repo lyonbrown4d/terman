@@ -94,13 +94,16 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let launch = resolve_screen_launch()?;
 
     if args.command.is_some() {
-        eprintln!("提示：system screen 模式下，请使用 `--system -- <screen_args>`，如 `-S dev`；`--command` 会被忽略。\n");
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "系统 screen 模式下不支持 --command。请改为 `--system -- <screen 参数>`，如 `-S dev`。",
+        )));
     }
 
     let mut cmd = Command::new(&launch.cmd);
     if let ScreenKind::Wsl = launch.kind {
         cmd.args(&launch.extra_args);
-        eprintln!("当前使用 WSL screen 回退路径；建议在 WSL 发行版中常驻使用 screen。")
+        eprintln!("当前使用 WSL screen 回退路径；建议在 WSL 发行版中常驻使用 screen。");
     }
 
     let status: ExitStatus = cmd
@@ -121,7 +124,6 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         )))
     }
 }
-
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
@@ -170,9 +172,14 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         let _ = exit_tx.send(status);
     });
 
+    let mut exit_code: Option<i32> = None;
+
     loop {
         match exit_rx.try_recv() {
-            Ok(_) => break,
+            Ok(code) => {
+                exit_code = Some(code);
+                break;
+            }
             Err(mpsc::TryRecvError::Empty) => {}
             Err(mpsc::TryRecvError::Disconnected) => break,
         }
@@ -211,9 +218,16 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     should_run.store(false, Ordering::Release);
     let _ = child_wait_handle.join();
 
-    Ok(())
+    let exit_code = exit_code.unwrap_or(-1);
+    if exit_code == 0 {
+        Ok(())
+    } else {
+        Err(Box::new(io::Error::new(
+            io::ErrorKind::Other,
+            format!("内置 screen 退出码: {exit_code}"),
+        )))
+    }
 }
-
 fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
     if let Some(path) = which_binary("screen") {
         return Ok(ScreenLaunch {
