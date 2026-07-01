@@ -231,26 +231,30 @@ fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
     }
 
     if cfg!(windows) {
-        if which_binary("wsl").is_some() || which_binary("wsl.exe").is_some() {
+        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
             return Ok(ScreenLaunch {
-                cmd: String::from("wsl"),
+                cmd: path,
                 kind: ScreenKind::Wsl,
                 extra_args: vec![String::from("-e"), String::from("screen")],
             });
         }
 
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            "未检测到 screen。Windows 上请先安装 WSL 并在 Linux 子系统内安装 screen，或先使用 terman 内置 screen。",
-        )));
+        return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, screen_not_found_hint())));
     }
 
     Err(Box::new(io::Error::new(
         io::ErrorKind::NotFound,
-        "未检测到 screen。请先安装 screen（apt/yum/brew）。",
+        screen_not_found_hint(),
     )))
 }
 
+fn screen_not_found_hint() -> &'static str {
+    if cfg!(windows) {
+        "未检测到 screen。可选方案：1) 使用 WSL 安装 screen（推荐）：wsl -e sudo apt install screen；2) 安装 Windows 版本 screen（如 scoop install screen）；3) 先使用 terman 内置 screen。"
+    } else {
+        "未检测到 screen。请先安装 screen（apt/yum/brew）。"
+    }
+}
 fn which_binary(name: &str) -> Option<String> {
     which(name).ok().map(|path| path.to_string_lossy().to_string())
 }
