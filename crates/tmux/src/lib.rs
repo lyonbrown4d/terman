@@ -74,7 +74,7 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
             format!(
                 "tmux 退出码: {exit_code}\n{}\n{}",
                 tmux_launch_failure_hint(&launch),
-                tmux_runtime_hints(&passed_args, exit_code),
+                tmux_runtime_hints(&passed_args, exit_code, &launch.kind),
             ),
         )))
     }
@@ -116,23 +116,46 @@ fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
         }
     }
 }
-fn tmux_runtime_hints(args: &[String], exit_code: i32) -> String {
+fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> String {
     let mut hints = Vec::new();
 
-    if exit_code == 1 && is_tmux_attach_without_target(args) {
+    if is_tmux_attach_without_target(args) {
         hints.push(
-            "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman tmux attach -t <session-name>；或先运行 terman tmux list-sessions 查看可用会话。"
-                .to_string(),
+            "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman tmux attach -t <session-name>；或先运行 terman tmux list-sessions 查看可用会话。".to_string(),
         );
     }
 
     if hints.is_empty() {
-        let default_hint = match exit_code {
-            1 => "常见失败原因：参数错误、会话不存在、或 tmux 当前状态不允许该操作。建议确认参数后重试。".to_string(),
-            2 => "常见失败原因：tmux 无法执行该命令或权限受限。建议检查可执行文件与文件系统权限。".to_string(),
-            126 => "tmux 可执行文件不可执行。可先确认 `tmux` 的权限（chmod +x 或重新安装）。".to_string(),
-            127 => "未检测到 tmux 命令。请确认安装路径或在 Windows 下加 --wsl。".to_string(),
-            _ => "建议先用最小参数复现，或结合 `tmux` 原生命令进行排查。".to_string(),
+        let default_hint = match (kind, exit_code) {
+            (TmuxKind::Wsl, 1) => {
+                "常见失败原因：参数错误、会话不存在，或 WSL 下 tmux 与终端环境不兼容。建议先执行：wsl -e tmux --version 或 wsl -e tmux list-sessions。".to_string()
+            }
+            (TmuxKind::Wsl, 2) => {
+                "在 WSL 回退路径执行失败（退出码 2）：常见为权限/文件系统上下文问题。建议在 WSL 终端直接运行同样参数复现。".to_string()
+            }
+            (_, 1) => {
+                "常见失败原因：参数错误、会话不存在、或 tmux 当前状态不允许该操作。建议确认参数后重试。".to_string()
+            }
+            (_, 2) => {
+                "常见失败原因：tmux 无法执行该命令或权限受限。建议检查可执行文件与文件系统权限。".to_string()
+            }
+            (_, 126) => {
+                "tmux 可执行文件不可执行。可先确认 `tmux` 的权限（chmod +x 或重新安装）。".to_string()
+            }
+            (_, 127) => match kind {
+                TmuxKind::Wsl => {
+                    "未在 WSL 中检测到 tmux。请先在 Windows 里执行 `wsl -e which tmux`，或先安装：wsl -e sudo apt install tmux。".to_string()
+                }
+                TmuxKind::Native => {
+                    "未检测到 tmux 命令。请先确认安装路径或在 Windows 下加 --wsl。".to_string()
+                }
+            },
+            (_, 130) => {
+                "tmux 被用户中断（Ctrl-C）。如命令应当持久运行可改为后台启动并检查参数。".to_string()
+            }
+            _ => {
+                "建议先用最小参数复现，或结合 `tmux` 原生命令进行排查。".to_string()
+            }
         };
         hints.push(default_hint);
     }

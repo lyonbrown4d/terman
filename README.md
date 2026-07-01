@@ -31,6 +31,12 @@ terman screen --system --no-fallback
 #   126: executable 无法执行
 #   127: executable 未找到
 # 默认行为：system 失败会自动回退到内置 screen；如需禁用请加 --no-fallback
+# tmux 常见返回码（系统模式桥接）
+#   1: 参数错误、会话不存在、或 tmux 当前状态不允许该操作
+#   2: 执行受限（权限或文件系统/终端环境）
+#   126: executable 无法执行（如权限不足）
+#   127: executable 未找到（Windows 建议优先尝试 `--wsl`）
+#   130: 用户中断（Ctrl-C）
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
 terman screen --help
