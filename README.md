@@ -2,13 +2,13 @@
 
 一个“现代化跨平台终端工具集合”的起步仓库。
 
-## 当前进展（第四阶段）
+## 当前进展（第五阶段）：Monorepo 骨架
 
-- 已添加 `terman screen` 命令：基于成熟库 `portable-pty` + `crossterm` + `clap`。
-- 实现跨平台 PTY 输入输出，支持窗口大小变化同步。
-- 已添加 `terman tmux` 命令：默认优先复用系统 `tmux`，Windows 下自动尝试 `wsl tmux` 兜底，不做自建实现。
-- `screen` 命令新增 `--system`：优先复用系统 `screen`（若存在），否则回退到 `terman` 内置 PTY 模式，形成“成熟工具优先，回退兜底”的屏幕会话路径。
-- `screen` 与 `tmux` 目前作为同一进程入口的两个子命令，后续可无缝迁移到 monorepo 的多包结构。
+- `terman` 保持主 CLI 入口（`src/main.rs`）。
+- 引入 workspace 成员库：
+  - `crates/screen`：承载 screen 相关能力（内置 PTY + 可选 system screen 委托）。
+  - `crates/tmux`：承载 tmux 委托能力（Windows 优先 WSL 回退）。
+- 这是 `screen` 与 `tmux` 两条能力线的第一层结构化拆分，后续可继续把每一层做成独立 crate 发布。
 
 ## 使用
 
@@ -31,5 +31,6 @@ terman tmux attach -t dev
 
 ## 备注
 
-- `screen` 当前仍是第一阶段：可交互 PTY 会话，逐步推进到会话管理、断开重连与多窗格。
-- `tmux` 当前是托管式桥接：尽量调用本机成熟实现，Windows 先尝试 WSL 方案。
+- 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），退化到内置 PTY 会话。
+- 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+- 下一步建议先做 `crates/screen` 的 API 模块化（会话枚举、detached/attach 命令转换），再在 `crates/tmux` 做相同策略。

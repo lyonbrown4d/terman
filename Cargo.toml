@@ -3,7 +3,14 @@ name = "terman"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = [
+    "crates/screen",
+    "crates/tmux",
+]
+resolver = "2"
+
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
-crossterm = "0.29.0"
-portable-pty = "0.8"
+terman-screen = { path = "crates/screen" }
+terman-tmux = { path = "crates/tmux" }
