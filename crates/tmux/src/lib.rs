@@ -130,3 +130,15 @@ fn passthrough_env() -> impl Iterator<Item = (String, String)> {
     .collect::<Vec<_>>()
     .into_iter()
 }
+use clap::Parser;
+
+#[derive(Parser)]
+struct Cli {
+    #[command(flatten)]
+    args: TmuxArgs,
+}
+
+pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = Cli::parse();
+    run(cli.args)
+}

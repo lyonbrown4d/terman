@@ -397,3 +397,15 @@ fn ctrl_char_bytes(c: char) -> Option<Vec<u8>> {
     };
     Some(vec![b])
 }
+use clap::Parser;
+
+#[derive(Parser)]
+struct Cli {
+    #[command(flatten)]
+    args: ScreenArgs,
+}
+
+pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = Cli::parse();
+    run(cli.args)
+}
