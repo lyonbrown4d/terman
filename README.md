@@ -57,7 +57,7 @@ terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
 terman tmux --help
 
-# tmux 最小复现清单（排查）
+# tmux 最小复现示例（最小复现）
 #   会话不存在：terman tmux attach -t missing-session
 #   先查看会话：terman tmux list-sessions
 #   名称冲突：terman tmux new -s demo
