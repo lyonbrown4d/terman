@@ -2,6 +2,7 @@ use std::{
     env,
     error::Error,
     io::{self, Read, Write},
+    process::{Command, ExitStatus, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc,
@@ -20,7 +21,7 @@ use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 
 #[derive(Args, Debug, Clone)]
 pub struct ScreenArgs {
-    /// If set, run this command string through the platform shell.
+    /// If set, run this command string through the platform shell in built-in mode.
     #[arg(short, long, value_name = "CMD")]
     pub command: Option<String>,
 
@@ -31,6 +32,14 @@ pub struct ScreenArgs {
     /// Initial terminal rows.
     #[arg(long)]
     pub rows: Option<u16>,
+
+    /// Prefer using system `screen` if available.
+    #[arg(long)]
+    pub system: bool,
+
+    /// Extra args passed to system screen when `--system` is enabled.
+    #[arg(trailing_var_arg = true)]
+    pub args: Vec<String>,
 }
 
 impl Default for ScreenArgs {
@@ -39,6 +48,8 @@ impl Default for ScreenArgs {
             command: None,
             cols: None,
             rows: None,
+            system: false,
+            args: Vec::new(),
         }
     }
 }
@@ -58,7 +69,59 @@ impl Drop for RawMode {
     }
 }
 
+enum ScreenKind {
+    Native,
+    Wsl,
+}
+
+struct ScreenLaunch {
+    cmd: String,
+    kind: ScreenKind,
+    extra_args: Vec<String>,
+}
+
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    if args.system {
+        run_system_screen(args)?;
+        return Ok(());
+    }
+
+    run_builtin_screen(args)
+}
+
+fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    let launch = resolve_screen_launch()?;
+
+    if args.command.is_some() {
+        eprintln!("提示：system screen 模式下，请使用 `--system -- <screen_args>`，如 `-S dev`；`--command` 会被忽略。\n");
+    }
+
+    let mut cmd = Command::new(&launch.cmd);
+    if let ScreenKind::Wsl = launch.kind {
+        cmd.args(&launch.extra_args);
+        eprintln!("当前使用 WSL screen 回退路径；建议在 WSL 发行版中常驻使用 screen。")
+    }
+
+    let status: ExitStatus = cmd
+        .args(&args.args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .envs(passthrough_env())
+        .env("TERM", env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")))
+        .status()?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(Box::new(io::Error::new(
+            io::ErrorKind::Other,
+            format!("system screen 退出码: {status}"),
+        )))
+    }
+}
+
+fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
 
@@ -148,6 +211,74 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _ = child_wait_handle.join();
 
     Ok(())
+}
+
+fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
+    if let Some(path) = which_binary("screen") {
+        return Ok(ScreenLaunch {
+            cmd: path,
+            kind: ScreenKind::Native,
+            extra_args: Vec::new(),
+        });
+    }
+
+    if cfg!(windows) {
+        if which_binary("wsl").is_some() || which_binary("wsl.exe").is_some() {
+            return Ok(ScreenLaunch {
+                cmd: String::from("wsl"),
+                kind: ScreenKind::Wsl,
+                extra_args: vec![String::from("-e"), String::from("screen")],
+            });
+        }
+
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            "未检测到 screen。Windows 上请先安装 WSL 并在 Linux 子系统内安装 screen，或先使用 terman 内置 screen。",
+        )));
+    }
+
+    Err(Box::new(io::Error::new(
+        io::ErrorKind::NotFound,
+        "未检测到 screen。请先安装 screen（apt/yum/brew）。",
+    )))
+}
+
+fn which_binary(name: &str) -> Option<String> {
+    if let Ok(path_env) = env::var("PATH") {
+        let exts = if cfg!(windows) {
+            vec![".exe", ".bat", ".cmd", ""]
+        } else {
+            vec![""]
+        };
+
+        let paths = env::split_paths(&path_env);
+        for path in paths {
+            for ext in &exts {
+                let candidate = path.join(format!("{name}{ext}"));
+                if candidate.is_file() {
+                    return Some(candidate.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    None
+}
+
+fn passthrough_env() -> impl Iterator<Item = (String, String)> {
+    [
+        "TERM",
+        "COLORTERM",
+        "LC_ALL",
+        "LANG",
+        "LC_CTYPE",
+        "TERM_PROGRAM",
+        "TERM_PROGRAM_VERSION",
+    ]
+    .iter()
+    .filter_map(|k| env::var(k).ok().map(|v| (k.to_string(), v)))
+    .collect::<Vec<_>>()
+    .into_iter()
 }
 
 fn build_command(command: Option<String>) -> Result<CommandBuilder, io::Error> {
