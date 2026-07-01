@@ -64,7 +64,8 @@ terman tmux --help
 #   再复现冲突：terman tmux new -s demo
 
 
-# 可复制复现脚本（bash）
+# 可复制复现脚本（跨平台）
+## Bash 复现脚本
 ```bash
 # 会话不存在复现
 terman tmux attach -t missing-session
@@ -78,7 +79,7 @@ terman tmux new -s demo
 ```
 
 
-# 可复制复现脚本（powershell）
+## PowerShell 复现脚本
 ```powershell
 # 会话不存在复现
 terman tmux attach -t missing-session
