@@ -14,7 +14,7 @@ use which::which;
     after_help = "常见用法示例：\n  - terman tmux new -s dev\n  - terman tmux attach -t <session>\n  - terman tmux --detached new -s dev\n  - terman tmux --wsl new -s dev",
 )]
 pub struct TmuxArgs {
-    /// Start tmux detached.
+    /// 等价于 tmux -d，启动会话前台/后台分离。
     #[arg(long)]
     pub detached: bool,
 
