@@ -54,6 +54,10 @@ pub struct ScreenArgs {
     #[arg(long)]
     pub no_fallback: bool,
 
+    /// 强制在 Windows 下使用 WSL 作为系统 screen 后端。仅 `--system` 可用。
+    #[arg(long, requires = "system")]
+    pub wsl: bool,
+
     /// Extra args passed to system screen when `--system` is enabled.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -69,6 +73,7 @@ impl Default for ScreenArgs {
             detach: false,
             login_shell: false,
             no_fallback: false,
+            wsl: false,
             args: Vec::new(),
         }
     }
@@ -131,7 +136,7 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 
 
 fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    let launch = resolve_screen_launch()?;
+    let launch = resolve_screen_launch(args.wsl)?;
 
     let mut cmd = Command::new(&launch.cmd);
     let mut system_args = args.args;
@@ -298,7 +303,29 @@ fn system_screen_fallback_hint() -> &'static str {
         "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - screen --version\n  - sudo apt/yum/brew install screen\n  - terman screen --system --no-fallback"
     }
 }
-fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
+fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> {
+    if use_wsl {
+        if !cfg!(windows) {
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "--wsl 仅在 Windows 下可用。",
+            )));
+        }
+
+        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
+            return Ok(ScreenLaunch {
+                cmd: path,
+                kind: ScreenKind::Wsl,
+                extra_args: vec![String::from("-e"), String::from("screen")],
+            });
+        }
+
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            "未检测到 WSL。请先启用 Windows 的 WSL（如安装并配置一个发行版），再执行 `wsl -e sudo apt install screen`。",
+        )));
+    }
+
     if let Some(path) = which_binary("screen") {
         return Ok(ScreenLaunch {
             cmd: path,
