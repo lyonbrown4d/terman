@@ -271,9 +271,9 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 }
 fn system_screen_fallback_hint() -> &'static str {
     if cfg!(windows) {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback（或先修复 WSL/screen 安装）。"
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - wsl -e screen --version\n  - wsl -e sudo apt install screen\n  - terman screen --system --no-fallback"
     } else {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。"
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - screen --version\n  - sudo apt/yum/brew install screen\n  - terman screen --system --no-fallback"
     }
 }
 fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
