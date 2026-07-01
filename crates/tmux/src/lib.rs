@@ -125,6 +125,12 @@ fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
 }
 fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> String {
     let mut hints = Vec::new();
+    if kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
+        hints.push(
+            "WSL 回退路径执行 detached 场景失败时，建议先在 WSL 终端直接复现：wsl -e tmux <同样参数>，确认会话名、路径与环境变量无差异。".to_string(),
+        );
+    }
+
 
     if is_tmux_attach_without_target(args) {
         hints.push(
