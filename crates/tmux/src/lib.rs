@@ -11,7 +11,7 @@ use which::which;
 #[derive(Args, Debug)]
 #[command(
     about = "tmux 桥接入口（按原生命令参数透传）",
-    after_help = "常见用法示例：\n  - terman tmux new -s dev\n  - terman tmux attach -t <session>\n  - terman tmux --detached new -s dev\n  - terman tmux --wsl new -s dev",
+    after_help = "常见用法示例：\n  - terman tmux new -s dev\n  - terman tmux attach -t <session>\n  - terman tmux list-sessions\n  - terman tmux --detached new -s dev\n  - terman tmux --wsl new -s dev",
 )]
 pub struct TmuxArgs {
     /// 等价于 tmux -d，启动会话前台/后台分离。

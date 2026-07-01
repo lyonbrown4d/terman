@@ -52,6 +52,8 @@ terman tmux attach -t dev
 terman tmux --detached
 terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
+terman tmux list-sessions
+terman tmux attach -t <session-name>
 terman tmux --help
 
 # Windows 可通过 --wsl 强制使用 WSL tmux
