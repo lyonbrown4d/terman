@@ -28,6 +28,7 @@ terman screen --system --no-fallback
 # 默认行为：system 失败会自动回退到内置 screen；如需禁用请加 --no-fallback
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
+terman screen --help
 
 # 使用 tmux 子命令
 terman tmux
