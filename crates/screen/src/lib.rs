@@ -46,6 +46,10 @@ pub struct ScreenArgs {
     #[arg(long, conflicts_with = "system")]
     pub login_shell: bool,
 
+    /// 回退到内置 screen（`--system` 启动失败时）。
+    #[arg(long)]
+    pub no_fallback: bool,
+
     /// Extra args passed to system screen when `--system` is enabled.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -60,6 +64,7 @@ impl Default for ScreenArgs {
             system: false,
             detach: false,
             login_shell: false,
+            no_fallback: false,
             args: Vec::new(),
         }
     }
@@ -100,8 +105,20 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     }
 
     if args.system {
-        run_system_screen(args)?;
-        return Ok(());
+        match run_system_screen(args.clone()) {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                if args.no_fallback {
+                    return Err(err);
+                }
+                eprintln!("系统 screen 执行失败，回退到内置 screen: {err}");
+            }
+        }
+
+        let mut fallback_args = args;
+        fallback_args.system = false;
+        fallback_args.detach = false;
+        return run_builtin_screen(fallback_args);
     }
 
     run_builtin_screen(args)
@@ -463,3 +480,4 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+

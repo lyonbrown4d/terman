@@ -24,7 +24,7 @@ terman screen --command "printf \"hello\\n\""
 terman screen --system
 terman screen --system -S dev
 terman screen --system --detach
-
+terman screen --system --no-fallback
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
 
