@@ -49,14 +49,14 @@ terman screen --help
 # 使用 tmux 子命令
 terman tmux
 terman tmux new -s dev
+terman tmux new-session -s dev
 terman tmux attach -t dev
+terman tmux attach-session -t <session-name>
+terman tmux list-sessions
 terman tmux --detached
 terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
-terman tmux list-sessions
-terman tmux attach -t <session-name>
 terman tmux --help
-
 # Windows 可通过 --wsl 强制使用 WSL tmux
 tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
 失败时会给出常见场景建议（如 attach 未显式指定会话）。
