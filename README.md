@@ -32,6 +32,8 @@ terman screen --login-shell
 terman tmux
 terman tmux new -s dev
 terman tmux attach -t dev
+terman tmux --detached
+terman tmux --detached new -s dev
 ```
 
 ## 备注

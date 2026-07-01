@@ -10,6 +10,10 @@ use which::which;
 
 #[derive(Args, Debug)]
 pub struct TmuxArgs {
+    /// Start tmux detached.
+    #[arg(long)]
+    pub detached: bool,
+
     /// Directly passed arguments for tmux.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -38,8 +42,13 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
         }
     }
 
+    let mut passed_args = args.args;
+    if args.detached {
+        passed_args.insert(0, String::from("-d"));
+    }
+
     let status: ExitStatus = cmd
-        .args(&args.args)
+        .args(&passed_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
