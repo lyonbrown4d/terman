@@ -123,6 +123,10 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
         hints.push(
             "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman tmux attach -t <session-name>；或先运行 terman tmux list-sessions 查看可用会话。".to_string(),
         );
+    } else if is_tmux_attach_command(args) && exit_code == 1 {
+        hints.push(
+            "attach 指定了会话但命令返回 1，常见因为目标会话不存在。请先运行 terman tmux list-sessions，确认会话名后重试。".to_string(),
+        );
     }
 
     if hints.is_empty() {
@@ -164,15 +168,20 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
 }
 
 fn is_tmux_attach_without_target(args: &[String]) -> bool {
-    let has_attach = args.iter().any(|arg| arg == "attach" || arg == "attach-session");
-    let has_target = args.iter().any(|arg| {
+    is_tmux_attach_command(args) && !tmux_attach_has_target(args)
+}
+
+fn is_tmux_attach_command(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "attach" || arg == "attach-session")
+}
+
+fn tmux_attach_has_target(args: &[String]) -> bool {
+    args.iter().any(|arg| {
         arg == "-t"
             || arg == "--target-session"
             || (arg.starts_with("-t") && arg.len() > 2)
             || arg.starts_with("--target-session=")
-    });
-
-    has_attach && !has_target
+    })
 }
 fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
     if args.wsl {
