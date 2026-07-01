@@ -166,13 +166,23 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         let exit_code = status.code().unwrap_or(-1);
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("system screen 退出码: {exit_code}\n{}", screen_system_runtime_hints(exit_code)),
+            format!("system screen 退出码: {exit_code}\n{}", screen_system_runtime_hints(&system_args, exit_code, &launch.kind)),
         )))
     }
 
 }
-fn screen_system_runtime_hints(exit_code: i32) -> &'static str {
-    match exit_code {
+fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKind) -> String {
+    let mut hints = Vec::new();
+
+    if let ScreenKind::Wsl = kind {
+        if is_screen_detached_arg(args) {
+            hints.push(
+                "WSL 回退路径执行 detached 场景失败时，建议先在 WSL 终端直接复现：wsl -e screen <同样参数>，确认会话名、路径与环境变量无差异。".to_string(),
+            );
+        }
+    }
+
+    let runtime_hint = match exit_code {
         1 => {
             "system screen 执行失败（退出码 1）：常见为参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman screen --system --help` 复现最小命令。"
         }
@@ -188,9 +198,15 @@ fn screen_system_runtime_hints(exit_code: i32) -> &'static str {
         _ => {
             "system screen 返回非预期退出码，建议先执行 `terman screen --system --help` 获取可用参数并用最小参数重试。"
         }
-    }
+    };
+    hints.push(runtime_hint.to_string());
+    hints.join("\n")
 }
 
+
+fn is_screen_detached_arg(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "-d" || arg == "-D" || arg == "--detach")
+}
 
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _raw = RawMode::enter()?;
