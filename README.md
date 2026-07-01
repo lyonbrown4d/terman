@@ -38,6 +38,7 @@ terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
 # Windows 可通过 --wsl 强制使用 WSL tmux
 tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
+失败时会给出常见场景建议（如 attach 未显式指定会话）。
 ```
 
 ## 备注
