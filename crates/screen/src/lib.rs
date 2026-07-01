@@ -38,6 +38,14 @@ pub struct ScreenArgs {
     #[arg(long)]
     pub system: bool,
 
+    /// Start screen in detached mode (system mode only).
+    #[arg(long)]
+    pub detach: bool,
+
+    /// Start a login shell in built-in mode; ignored in system mode.
+    #[arg(long, conflicts_with = "system")]
+    pub login_shell: bool,
+
     /// Extra args passed to system screen when `--system` is enabled.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -50,6 +58,8 @@ impl Default for ScreenArgs {
             cols: None,
             rows: None,
             system: false,
+            detach: false,
+            login_shell: false,
             args: Vec::new(),
         }
     }
@@ -82,6 +92,13 @@ struct ScreenLaunch {
 }
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    if args.detach && !args.system {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "--detach 仅可在 --system 模式下使用。",
+        )));
+    }
+
     if args.system {
         run_system_screen(args)?;
         return Ok(());
@@ -90,17 +107,25 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     run_builtin_screen(args)
 }
 
+
 fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let launch = resolve_screen_launch()?;
 
     let mut cmd = Command::new(&launch.cmd);
+    let mut system_args = args.args;
+
+    if args.detach {
+        system_args.insert(0, String::from("-m"));
+        system_args.insert(0, String::from("-d"));
+    }
+
     if let ScreenKind::Wsl = launch.kind {
         cmd.args(&launch.extra_args);
         eprintln!("当前使用 WSL screen 回退路径；建议在 WSL 发行版中常驻使用 screen。");
     }
 
     let status: ExitStatus = cmd
-        .args(&args.args)
+        .args(&system_args)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
@@ -117,6 +142,7 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         )))
     }
 }
+
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
@@ -130,7 +156,7 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     };
 
     let pair = pty_system.openpty(pty_size)?;
-    let command = build_command(args.command)?;
+    let command = build_command(&args)?;
     let mut child = pair.slave.spawn_command(command)?;
 
     let mut master = pair.master;
@@ -275,21 +301,32 @@ fn passthrough_env() -> impl Iterator<Item = (String, String)> {
     .into_iter()
 }
 
-fn build_command(command: Option<String>) -> Result<CommandBuilder, io::Error> {
+fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
 
-    match command {
+    match args.command.clone() {
         Some(cmd) => {
             let mut builder = CommandBuilder::new(&shell);
             if cfg!(windows) {
                 builder.arg("/C");
             } else {
+                if args.login_shell {
+                    builder.arg("-l");
+                }
                 builder.arg("-c");
             }
             builder.arg(cmd);
             Ok(builder)
         }
-        None => Ok(CommandBuilder::new(shell)),
+        None => {
+            if !cfg!(windows) && args.login_shell {
+                let mut builder = CommandBuilder::new(&shell);
+                builder.arg("-l");
+                Ok(builder)
+            } else {
+                Ok(CommandBuilder::new(shell))
+            }
+        }
     }
 }
 

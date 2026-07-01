@@ -23,6 +23,10 @@ terman screen --command "printf \"hello\\n\""
 # 使用系统 screen（若已安装）
 terman screen --system
 terman screen --system -S dev
+terman screen --system --detach
+
+# 使用内置 screen 的登录 shell
+terman screen --login-shell
 
 # 使用 tmux 子命令
 terman tmux
