@@ -121,6 +121,21 @@ tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安
 - `terman screen --wsl` 会先检查 WSL 内 `screen` 是否可用（等效 `wsl -e which screen`）；
 - `terman tmux --wsl` 会先检查 WSL 内 `tmux` 是否可用（等效 `wsl -e which tmux`）；
 - 两者都未检测到对应工具时，会在启动前直接返回更明确的安装建议，并提示先安装对应包再重试。
+
+### tmux 失败输出示例
+
+当 `tmux` 执行失败时，当前会输出统一格式：
+
+- `tmux 失败（退出码 <code>）：<场景说明>\n<具体提示>`
+- `tmux WSL 预检（退出码 <code>）：<场景说明>\n<安装/排查建议>`
+- `tmux 可用性检查（退出码 <code>）：<场景说明>`
+
+例如：
+
+- `terman tmux --wsl attach -t xxx` 若 WSL 下无 tmux：
+  - `tmux WSL 预检 失败（退出码 127）：当前已进入 WSL 回退路径...`
+- `terman tmux` 在系统 tmux 不可用时：
+  - `tmux 失败（退出码 127）：tmux 可用性检查失败...`
 ### 场景化建议
 
 - `terman tmux attach -t <session>` 报会话不存在：先运行 `terman tmux list-sessions` 确认会话名。
@@ -131,5 +146,6 @@ tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安
 
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+
 
 
