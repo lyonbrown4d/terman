@@ -170,7 +170,7 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         let exit_code = status.code().unwrap_or(-1);
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("system screen 退出码: {exit_code}\n{}", screen_system_runtime_hints(&system_args, exit_code, &launch.kind)),
+            format!("{}", screen_failure_message("system screen", exit_code, &screen_system_runtime_hints(&system_args, exit_code, &launch.kind)))
         )))
     }
 }
@@ -192,10 +192,21 @@ fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error
     Err(Box::new(io::Error::new(
         io::ErrorKind::Other,
         format!(
-            "WSL screen 可用性检查失败（退出码 {code}）。当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。请先安装：wsl -e sudo apt install screen。{}",
-            screen_wsl_runtime_hint(),
+            "{}",
+            screen_failure_message(
+                "system screen WSL 预检",
+                code,
+                &format!(
+                    "当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。请先安装：wsl -e sudo apt install screen。{}",
+                    screen_wsl_runtime_hint(),
+                ),
+            ),
         ),
     )))
+}
+
+fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
+    format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
 
 fn screen_wsl_runtime_hint() -> &'static str {
@@ -214,19 +225,19 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
 
     let runtime_hint = match exit_code {
         1 => {
-            "system screen 执行失败（退出码 1）：常见为参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman screen --system --help` 复现最小命令。"
+            "参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman screen --system --help` 复现最小命令。"
         }
         2 => {
-            "system screen 执行失败（退出码 2）：通常与权限、终端环境或可执行文件上下文有关。建议在普通终端重试，或先确认 screen 安装和 shell 环境。"
+            "通常与权限、终端环境或可执行文件上下文有关。建议在普通终端重试，或先确认 screen 安装和 shell 环境。"
         }
         126 => {
-            "system screen 无法执行（退出码 126）：请确认 screen 可执行文件有执行权限。"
+            "无法执行，请确认 screen 可执行文件有执行权限。"
         }
         127 => {
-            "system screen 未找到（退出码 127）：请先确认 screen 安装正常且在 PATH。"
+            "未找到可执行文件，请先确认 screen 安装正常且在 PATH。"
         }
         _ => {
-            "system screen 返回非预期退出码，建议先执行 `terman screen --system --help` 获取可用参数并用最小参数重试。"
+            "返回非预期状态，建议先执行 `terman screen --system --help` 获取可用参数并用最小参数重试。"
         }
     };
     hints.push(runtime_hint.to_string());
@@ -338,7 +349,7 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     } else {
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("内置 screen 退出码: {exit_code}"),
+            screen_failure_message("内置 screen", exit_code, "进程退出码非零"),
         )))
     }
 }
@@ -587,5 +598,6 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+
 
 
