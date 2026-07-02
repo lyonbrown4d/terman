@@ -224,6 +224,18 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
         }
     }
 
+    if is_screen_attach_attempt(args) {
+        hints.push(
+            "检测到恢复会话参数 (-r/-R/-x)。若会话不存在，先执行 `screen -list`（或 `terman screen --system -ls`）确认会话名后重试。".to_string(),
+        );
+    }
+
+    if is_screen_session_name_arg(args) && exit_code == 1 {
+        hints.push(
+            "检测到 `-S <name>` 场景，退出码 1 常见于会话名不存在或已有同名会话。先执行 `terman screen --system -list`/`screen -list` 查看后重试。".to_string(),
+        );
+    }
+
     let runtime_hint = match exit_code {
         1 => {
             "参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman screen --system --help` 复现最小命令。"
@@ -245,6 +257,19 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
     hints.join("\n")
 }
 
+fn is_screen_attach_attempt(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "-r" || arg == "-R" || arg == "-x")
+}
+
+fn is_screen_session_name_arg(args: &[String]) -> bool {
+    let mut iter = args.iter().peekable();
+    while let Some(arg) = iter.next() {
+        if arg == "-S" {
+            return iter.peek().is_some();
+        }
+    }
+    false
+}
 
 fn is_screen_detached_arg(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "-d" || arg == "-D" || arg == "--detach")
