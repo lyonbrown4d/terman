@@ -616,7 +616,7 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg};
+    use super::{is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg, screen_failure_message};
 
     #[test]
     fn recognizes_screen_detach_flags() {
@@ -640,4 +640,11 @@ mod tests {
         assert!(!is_screen_session_name_arg(&["-S".to_string()]));
         assert!(!is_screen_session_name_arg(&[]));
     }
+
+    #[test]
+    fn screen_failure_message_formats_error() {
+        let msg = screen_failure_message("system screen", 127, "未找到 screen");
+        assert_eq!(msg, "system screen 失败（退出码 127）：未找到 screen");
+    }
 }
+

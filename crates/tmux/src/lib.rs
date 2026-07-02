@@ -368,6 +368,7 @@ mod tests {
         is_tmux_detached_without_tmux_command,
         is_tmux_new_session_command,
         is_tmux_list_sessions_command,
+        tmux_failure_message,
         tmux_launch_failure_hint,
         tmux_wsl_runtime_hint,
         TmuxLaunch,
@@ -403,5 +404,14 @@ mod tests {
         assert!(hint.contains("tmux"));
         assert!(hint.contains(&tmux_wsl_runtime_hint()));
     }
+
+    #[test]
+    fn tmux_failure_message_formats_error() {
+        let msg = tmux_failure_message("tmux", 1, "命令返回失败");
+        assert_eq!(msg, "tmux 失败（退出码 1）：命令返回失败");
+    }
 }
+
+
+
 
