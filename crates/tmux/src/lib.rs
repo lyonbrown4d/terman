@@ -79,14 +79,20 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
             format!(
-                "tmux 退出码: {exit_code}\n{}\n{}",
-                tmux_launch_failure_hint(&launch),
-                tmux_runtime_hints(&passed_args, exit_code, &launch.kind),
+                "{}",
+                tmux_failure_message(
+                    "tmux",
+                    exit_code,
+                    &format!(
+                        "{}\n{}",
+                        tmux_launch_failure_hint(&launch),
+                        tmux_runtime_hints(&passed_args, exit_code, &launch.kind),
+                    ),
+                ),
             ),
         )))
     }
 }
-
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     let mut probe = Command::new(&launch.cmd);
     if launch.kind == TmuxKind::Wsl {
@@ -103,8 +109,15 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
             return Err(Box::new(io::Error::new(
                 io::ErrorKind::Other,
                 format!(
-                    "WSL tmux 可用性检查失败（退出码 {code}）。当前已进入 WSL 回退路径，但未检测到 WSL 内 tmux。请先安装：wsl -e sudo apt install tmux。{}",
-                    tmux_wsl_runtime_hint(),
+                    "{}",
+                    tmux_failure_message(
+                        "tmux WSL 预检",
+                        code,
+                        &format!(
+                            "当前已进入 WSL 回退路径，但未检测到 WSL 内 tmux。请先安装：wsl -e sudo apt install tmux。{}",
+                            tmux_wsl_runtime_hint(),
+                        ),
+                    ),
                 ),
             )));
         }
@@ -131,14 +144,20 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
         let code = status.code().unwrap_or(-1);
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("tmux 可用性检查失败（退出码 {code}）。{}", tmux_launch_failure_hint(launch)),
+            format!(
+                "{}",
+                tmux_failure_message("tmux 可用性检查", code, tmux_launch_failure_hint(launch)),
+            ),
         )))
     }
 }
-
 fn tmux_wsl_runtime_hint() -> &'static str {
     "建议先在 WSL 内执行 `wsl -e which tmux` / `wsl -e tmux --version` 确认安装与环境。"
 }
+fn tmux_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
+    format!("{scope} 失败（退出码 {exit_code}）：{detail}")
+}
+
 fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
     match launch.kind {
         TmuxKind::Native => tmux_not_found_hint(),
@@ -320,5 +339,6 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+
 
 
