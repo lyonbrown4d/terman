@@ -198,7 +198,7 @@ fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error
                 "system screen WSL 预检",
                 code,
                 &format!(
-                    "当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。请先安装：wsl -e sudo apt install screen。{}",
+                    "当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。建议先执行 `wsl -l -v` 检查发行版状态，再执行 `wsl --status` 检查子系统可用性，最后运行 `wsl -e screen -V` 进行预检。{}",
                     screen_wsl_runtime_hint(),
                 ),
             ),
@@ -215,6 +215,13 @@ fn screen_wsl_runtime_hint() -> &'static str {
 }
 fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKind) -> String {
     let mut hints = Vec::new();
+
+    if let ScreenKind::Wsl = kind {
+        hints.push(
+            "WSL 回退路径失败时，建议先执行 `wsl -l -v`（检查发行版）、`wsl --status`（检查子系统）与 `wsl -e screen -V`（确认 screen 可用）。".to_string(),
+        );
+    }
+
 
     if let ScreenKind::Wsl = kind {
         if is_screen_detached_arg(args) {
