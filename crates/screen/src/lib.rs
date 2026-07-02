@@ -613,3 +613,31 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     run(cli.args)
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::{is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg};
+
+    #[test]
+    fn recognizes_screen_detach_flags() {
+        assert!(is_screen_detached_arg(&["-d".to_string()]));
+        assert!(is_screen_detached_arg(&["-D".to_string()]));
+        assert!(is_screen_detached_arg(&["--detach".to_string()]));
+        assert!(!is_screen_detached_arg(&["-r".to_string()]));
+    }
+
+    #[test]
+    fn recognizes_screen_attach_args() {
+        assert!(is_screen_attach_attempt(&["-r".to_string()]));
+        assert!(is_screen_attach_attempt(&["-R".to_string()]));
+        assert!(is_screen_attach_attempt(&["-x".to_string()]));
+        assert!(!is_screen_attach_attempt(&["attach".to_string()]));
+    }
+
+    #[test]
+    fn detects_screen_session_name_arg_requires_value() {
+        assert!(is_screen_session_name_arg(&["-S".to_string(), "dev".to_string()]));
+        assert!(!is_screen_session_name_arg(&["-S".to_string()]));
+        assert!(!is_screen_session_name_arg(&[]));
+    }
+}

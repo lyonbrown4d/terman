@@ -359,3 +359,49 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     run(cli.args)
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        is_tmux_attach_without_target,
+        is_tmux_detached_without_new_session,
+        is_tmux_detached_without_tmux_command,
+        is_tmux_new_session_command,
+        is_tmux_list_sessions_command,
+        tmux_launch_failure_hint,
+        tmux_wsl_runtime_hint,
+        TmuxLaunch,
+        TmuxKind,
+    };
+    #[test]
+    fn detects_tmux_detached_and_attach_flags() {
+        let args = vec!["-d".to_string()];
+        assert!(is_tmux_detached_without_tmux_command(&args));
+        assert!(is_tmux_detached_without_new_session(&args));
+        assert!(!is_tmux_detached_without_new_session(&["-d".to_string(), "new".to_string()]));
+    }
+
+    #[test]
+    fn detects_tmux_session_detection() {
+        let args = vec!["attach".to_string(), "-t".to_string(), "demo".to_string()];
+        assert!(!is_tmux_attach_without_target(&args));
+        assert!(is_tmux_attach_without_target(&["attach".to_string()]));
+        assert!(is_tmux_list_sessions_command(&["list-sessions".to_string()]));
+        assert!(!is_tmux_list_sessions_command(&["ls".to_string()]));
+        assert!(is_tmux_new_session_command(&["new".to_string()]));
+    }
+
+    #[test]
+    fn tmux_launch_failure_hint_for_wsl_contains_hint() {
+        let launch = TmuxLaunch {
+            cmd: String::from("tmux"),
+            kind: TmuxKind::Wsl,
+            extra_args: vec![],
+        };
+
+        let hint = tmux_launch_failure_hint(&launch);
+        assert!(hint.contains("tmux"));
+        assert!(hint.contains(&tmux_wsl_runtime_hint()));
+    }
+}
+
