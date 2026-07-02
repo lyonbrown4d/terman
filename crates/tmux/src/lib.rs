@@ -177,7 +177,11 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     }
 
 
-    if is_tmux_attach_without_target(args) {
+    if is_tmux_detached_without_new_session(args) {
+        hints.push(
+            "你使用了 -d/--detached，但未与 new/new-session 组合。当前会话未新增时该参数常被透传下发，建议改用：terman tmux new -d -s <name> 或 terman tmux --detached new -s <name>。".to_string(),
+        );
+    } else if is_tmux_attach_without_target(args) {
         hints.push(
             "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman tmux attach -t <session-name>；或先运行 terman tmux list-sessions 查看可用会话。".to_string(),
         );
@@ -230,6 +234,10 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     }
 
     hints.join("\n")
+}
+
+fn is_tmux_detached_without_new_session(args: &[String]) -> bool {
+    is_tmux_detached_arg(args) && !is_tmux_new_session_command(args)
 }
 
 fn is_tmux_list_sessions_command(args: &[String]) -> bool {
