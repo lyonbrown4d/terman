@@ -307,7 +307,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
 
         return Err(Box::new(io::Error::new(
             io::ErrorKind::NotFound,
-            "未检测到 wsl。请先安装或启用 Windows 的 WSL。",
+            "未检测到 WSL。请先安装或启用 Windows 的 WSL。",
         )));
     }
 
