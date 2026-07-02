@@ -198,7 +198,7 @@ fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error
                 "system screen WSL 预检",
                 code,
                 &format!(
-                    "当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。建议先执行 `wsl -l -v` 检查发行版状态，再执行 `wsl --status` 检查子系统可用性，最后运行 `wsl -e screen -V` 进行预检。{}",
+                    "当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。{}",
                     screen_wsl_runtime_hint(),
                 ),
             ),
@@ -210,15 +210,15 @@ fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
 
-fn screen_wsl_runtime_hint() -> &'static str {
-    "建议先在 WSL 内执行 `wsl -e which screen` / `wsl -e screen -V` 确认安装与版本。"
+fn screen_wsl_runtime_hint() -> String {
+    terman_common::wsl_install_hint("screen")
 }
 fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKind) -> String {
     let mut hints = Vec::new();
 
     if let ScreenKind::Wsl = kind {
         hints.push(
-            "WSL 回退路径失败时，建议先执行 `wsl -l -v`（检查发行版）、`wsl --status`（检查子系统）与 `wsl -e screen -V`（确认 screen 可用）。".to_string(),
+            terman_common::wsl_runtime_hint("screen"),
         );
     }
 

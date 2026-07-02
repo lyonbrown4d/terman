@@ -156,18 +156,18 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
         )))
     }
 }
-fn tmux_wsl_runtime_hint() -> &'static str {
-    "建议先在 WSL 内执行 `wsl -e which tmux` / `wsl -e tmux -V` 确认安装与版本。"
+fn tmux_wsl_runtime_hint() -> String {
+    terman_common::wsl_install_hint("tmux")
 }
 fn tmux_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
 
-fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
+fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> String {
     match launch.kind {
-        TmuxKind::Native => tmux_not_found_hint(),
+        TmuxKind::Native => tmux_not_found_hint().to_string(),
         TmuxKind::Wsl => {
-            "当前使用 WSL 回退 tmux 路径，建议先执行 `wsl -l -v` 检查发行版状态，再执行 `wsl --status` 检查子系统可用性，最后运行 `wsl -e tmux -V` 进行预检。"
+            format!("当前使用 WSL 回退 tmux 路径，{}", tmux_wsl_runtime_hint())
         }
     }
 }
@@ -175,7 +175,7 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     let mut hints = Vec::new();
     if kind == TmuxKind::Wsl {
         hints.push(
-            "WSL 回退路径失败时，建议先执行 `wsl -l -v`（检查发行版）、`wsl --status`（检查子系统）与 `wsl -e tmux -V`（确认 tmux 可用）。".to_string(),
+            terman_common::wsl_runtime_hint("tmux"),
         );
     }
     if kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
