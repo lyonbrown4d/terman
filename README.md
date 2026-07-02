@@ -137,9 +137,13 @@ terman tmux new -s demo
 - `terman tmux attach -t <session>` 报会话不存在：先运行 `terman tmux list-sessions` 确认会话名。
 - `terman tmux new -s <name>` 返回会话冲突：改用新的会话名再尝试。
 - Windows 下 tmux 启动异常：优先使用 `terman tmux --wsl ...`。
+- `terman screen --system attach -t <session>` 报会话不存在：先运行 `terman screen --system -ls` 或 `screen -list` 确认会话。
+- `terman screen --system -S <name>` 遇到会话名冲突：先检查列表并更换会话名。
+- `terman screen --system --wsl` 相关异常：按顺序执行 `wsl -l -v`、`wsl --status`、`wsl -e screen -V`，再复现命令。
 
 ## 备注
 
 - screen 与 tmux 的 WSL 排查提示已统一复用 `terman-common` 中的共享模板，确保跨平台诊断口径一致。
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+
