@@ -62,6 +62,9 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
             }
         } else {
             eprintln!("提示：--detached 通常与 `new/new-session` 配合使用；当前命令将按透传参数原样执行。");
+            if is_tmux_detached_without_tmux_command(&passed_args) {
+                eprintln!("提示：当前只传了 -d/--detached 未带子命令时易触发预期外行为。建议显式指定 new/new-session 再启动。\n示例：`terman tmux --detached new -s <name>`");
+            }
         }
     }
 
@@ -177,6 +180,12 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     }
 
 
+    if is_tmux_detached_without_tmux_command(args) {
+        hints.push(
+            "你仅使用了 --detached/ -d 且未带会话子命令。建议改为 `terman tmux --detached new -s <name>` 或先确认当前参数。".to_string(),
+        );
+    }
+
     if is_tmux_detached_without_new_session(args) {
         hints.push(
             "你使用了 -d/--detached，但未与 new/new-session 组合。当前会话未新增时该参数常被透传下发，建议改用：terman tmux new -d -s <name> 或 terman tmux --detached new -s <name>。".to_string(),
@@ -236,9 +245,14 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     hints.join("\n")
 }
 
+fn is_tmux_detached_without_tmux_command(args: &[String]) -> bool {
+    is_tmux_detached_arg(args) && args.iter().all(|arg| arg == "-d" || arg == "--detached")
+}
+
 fn is_tmux_detached_without_new_session(args: &[String]) -> bool {
     is_tmux_detached_arg(args) && !is_tmux_new_session_command(args)
 }
+
 
 fn is_tmux_list_sessions_command(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "list-sessions" || arg == "ls")
