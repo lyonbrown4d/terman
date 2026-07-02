@@ -6,7 +6,7 @@ use std::{
 };
 
 use clap::{Args, Parser, Subcommand};
-use which::which;
+use terman_common;
 
 #[derive(Parser)]
 #[command(name = "terman")]
@@ -74,7 +74,7 @@ fn resolve_executable_path(exe_name: &str) -> Option<PathBuf> {
         }
     }
 
-    which(exe_name).ok().map(PathBuf::from)
+    terman_common::which_binary(exe_name).map(PathBuf::from)
 }
 
 fn binary_name(binary: Binary) -> &'static str {
@@ -92,6 +92,3 @@ fn binary_executable_name(binary: &Binary) -> String {
         base.to_string()
     }
 }
-
-
-
