@@ -297,7 +297,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
             )));
         }
 
-        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_wsl_binary() {
             return Ok(TmuxLaunch {
                 cmd: path,
                 kind: TmuxKind::Wsl,
@@ -320,7 +320,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
     }
 
     if cfg!(windows) {
-        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_wsl_binary() {
             return Ok(TmuxLaunch {
                 cmd: path,
                 kind: TmuxKind::Wsl,
@@ -357,3 +357,4 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+

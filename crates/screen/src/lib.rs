@@ -402,7 +402,7 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
             )));
         }
 
-        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_wsl_binary() {
             return Ok(ScreenLaunch {
                 cmd: path,
                 kind: ScreenKind::Wsl,
@@ -425,7 +425,7 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
     }
 
     if cfg!(windows) {
-        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_wsl_binary() {
             return Ok(ScreenLaunch {
                 cmd: path,
                 kind: ScreenKind::Wsl,
