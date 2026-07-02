@@ -89,6 +89,27 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
 
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     let mut probe = Command::new(&launch.cmd);
+    if launch.kind == TmuxKind::Wsl {
+        let wsl_check = Command::new("wsl")
+            .arg("-e")
+            .arg("which")
+            .arg("tmux")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()?;
+
+        if !wsl_check.success() {
+            let code = wsl_check.code().unwrap_or(-1);
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "WSL tmux 可用性检查失败（退出码 {code}）。当前已进入 WSL 回退路径，但未检测到 WSL 内 tmux。请先安装：wsl -e sudo apt install tmux。{}",
+                    tmux_wsl_runtime_hint(),
+                ),
+            )));
+        }
+    }
+
     match launch.kind {
         TmuxKind::Native => {
             probe.arg("-V");
@@ -115,6 +136,9 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     }
 }
 
+fn tmux_wsl_runtime_hint() -> &'static str {
+    "建议先在 WSL 内执行 `wsl -e which tmux` / `wsl -e tmux --version` 确认安装与环境。"
+}
 fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
     match launch.kind {
         TmuxKind::Native => tmux_not_found_hint(),
@@ -296,3 +320,4 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+
