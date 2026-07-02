@@ -26,23 +26,10 @@ terman screen --system -S dev
 terman screen --system --detach
 terman screen --system --wsl
 terman screen --system --no-fallback
-# 系统 screen 常见返回码
-#   1: 参数错误或会话不存在
-#   2: 环境变量/权限类异常
-#   126: executable 无法执行
-#   127: executable 未找到
-# 默认行为：system 失败会自动回退到内置 screen；如需禁用请加 --no-fallback
-# tmux 常见返回码（系统模式桥接）
-#   1: 参数错误、会话不存在、或 tmux 当前状态不允许该操作
-#   2: 执行受限（权限或文件系统/终端环境）
-#   126: executable 无法执行（如权限不足）
-#   127: executable 未找到（Windows 建议优先尝试 `--wsl`）
-#   130: 用户中断（Ctrl-C）
-# tmux 排查建议
-#   发现 attach 报错且不确定会话：terman tmux list-sessions
-#   明确指定会话再重试：terman tmux attach -t <session-name>
-#   新建会话返回 1/会话冲突：terman tmux list-sessions 后改用新会话名重试
-#   仅 Windows 需要回退到 WSL 时加 --wsl：terman tmux --wsl new -s <session>
+# 提示
+# - `system` 失败会自动回退到内置 screen；如需强制仅系统模式请加 `--no-fallback`
+# - tmux 常见场景与返回码请参考下方「跨平台快速排查（screen / tmux）」
+# - Windows 下 tmux 优先使用 `--wsl`
 # 使用内置 screen 的登录 shell
 terman screen --login-shell
 terman screen --help
