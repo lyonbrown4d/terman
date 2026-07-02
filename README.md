@@ -116,7 +116,7 @@ terman tmux new -s demo
 
 - `terman screen --wsl` 会先检查 WSL 内 `screen` 是否可用（等效 `wsl -e which screen`）；
 - `terman tmux --wsl` 会先检查 WSL 内 `tmux` 是否可用（等效 `wsl -e which tmux`）；
-- 两者都未检测到对应工具时，会在启动前直接返回更明确的安装建议，并提示先安装对应包再重试。
+- 两者都未检测到对应工具时，会在启动前直接返回更明确的排查建议：先执行 `wsl -l -v` 检查发行版、`wsl --status` 检查子系统可用性，再执行 `wsl -e <tool> -V` 验证可用性（screen/tmux 对应 `tool`）；未检测到则提示先安装对应包。
 
 ### tmux 失败输出示例
 
@@ -140,9 +140,6 @@ terman tmux new -s demo
 
 ## 备注
 
+- screen 与 tmux 的 WSL 排查提示已统一复用 `terman-common` 中的共享模板，确保跨平台诊断口径一致。
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
-
-
-
-
