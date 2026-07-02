@@ -167,12 +167,17 @@ fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> &'static str {
     match launch.kind {
         TmuxKind::Native => tmux_not_found_hint(),
         TmuxKind::Wsl => {
-            "当前使用 WSL 回退 tmux 路径，但未检测到可用 tmux。可先在 WSL 内执行 `sudo apt install tmux`（或对应包管理器）进行安装。"
+            "当前使用 WSL 回退 tmux 路径，建议先执行 `wsl -l -v` 检查发行版状态，再执行 `wsl --status` 检查子系统可用性，最后运行 `wsl -e tmux -V` 进行预检。"
         }
     }
 }
 fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> String {
     let mut hints = Vec::new();
+    if kind == TmuxKind::Wsl {
+        hints.push(
+            "WSL 回退路径失败时，建议先执行 `wsl -l -v`（检查发行版）、`wsl --status`（检查子系统）与 `wsl -e tmux -V`（确认 tmux 可用）。".to_string(),
+        );
+    }
     if kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
         hints.push(
             "WSL 回退路径执行 detached 场景失败时，建议先在 WSL 终端直接复现：wsl -e tmux <同样参数>，确认会话名、路径与环境变量无差异。".to_string(),
