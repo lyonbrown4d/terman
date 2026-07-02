@@ -116,6 +116,11 @@ tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安
 | `tmux`（系统模式） | `127` | `tmux` 未找到 | 安装 tmux；Windows 下可用 `--wsl`（避免“Windows 原生不可见”） |
 | `tmux`（系统模式） | `130` | 用户中断（Ctrl-C） | 按正常退出流程重试 |
 
+### WSL 回退预检说明
+
+- `terman screen --wsl` 会先检查 WSL 内 `screen` 是否可用（等效 `wsl -e which screen`）；
+- `terman tmux --wsl` 会先检查 WSL 内 `tmux` 是否可用（等效 `wsl -e which tmux`）；
+- 两者都未检测到对应工具时，会在启动前直接返回更明确的安装建议，并提示先安装对应包再重试。
 ### 场景化建议
 
 - `terman tmux attach -t <session>` 报会话不存在：先运行 `terman tmux list-sessions` 确认会话名。
@@ -126,4 +131,5 @@ tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安
 
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+
 
