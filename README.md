@@ -45,6 +45,30 @@ terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
 terman tmux --help
 
+# screen 最小复现示例（可直接复制）
+
+```bash
+# 1) system screen 会话不存在（attach）示例
+terman screen --system attach -t missing-session
+if [ $? -ne 0 ]; then
+  echo "screen attach 失败：可先执行 screen --help 检查命令或确认会话是否存在"
+fi
+
+# 2) 内置 screen 可复现：启动最小命令
+terman screen
+```
+
+```powershell
+# 1) system screen 会话不存在（attach）示例
+terman screen --system attach -t missing-session
+if ($LASTEXITCODE -ne 0) {
+  Write-Output "screen attach 失败：可先执行 screen --help 检查命令或确认会话是否存在"
+}
+
+# 2) 内置 screen 可复现：启动最小命令
+terman screen
+```
+
 # tmux 最小复现示例（可直接复制）
 
 ```bash
@@ -118,6 +142,7 @@ terman tmux new -s demo
 
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+
 
 
 
