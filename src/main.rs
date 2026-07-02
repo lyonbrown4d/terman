@@ -6,6 +6,7 @@ use std::{
 };
 
 use clap::{Args, Parser, Subcommand};
+use which::which;
 
 #[derive(Parser)]
 #[command(name = "terman")]
@@ -66,13 +67,14 @@ fn run_binary(binary: Binary, args: &[OsString]) -> Result<ExitStatus, Box<dyn s
 
 fn resolve_executable_path(exe_name: &str) -> Option<PathBuf> {
     let current_exe = env::current_exe().ok()?;
-    let dir = current_exe.parent()?;
-    let candidate = dir.join(exe_name);
-    if candidate.is_file() {
-        Some(candidate)
-    } else {
-        None
+    if let Some(dir) = current_exe.parent() {
+        let candidate = dir.join(exe_name);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
     }
+
+    which(exe_name).ok().map(PathBuf::from)
 }
 
 fn binary_name(binary: Binary) -> &'static str {
@@ -90,3 +92,6 @@ fn binary_executable_name(binary: &Binary) -> String {
         base.to_string()
     }
 }
+
+
+
