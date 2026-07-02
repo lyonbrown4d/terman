@@ -45,15 +45,8 @@ terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
 terman tmux --help
 
-# tmux 最小复现示例（最小复现）
-#   会话不存在：terman tmux attach -t missing-session
-#   先查看会话：terman tmux list-sessions
-#   名称冲突：terman tmux new -s demo
-#   再复现冲突：terman tmux new -s demo
+# tmux 最小复现示例（可直接复制）
 
-
-# 可复制复现脚本（跨平台）
-## Bash 复现脚本
 ```bash
 # 会话不存在复现
 terman tmux attach -t missing-session
@@ -66,8 +59,6 @@ terman tmux new -s demo
 terman tmux new -s demo
 ```
 
-
-## PowerShell 复现脚本
 ```powershell
 # 会话不存在复现
 terman tmux attach -t missing-session
@@ -80,13 +71,7 @@ terman tmux new -s demo
 terman tmux new -s demo
 ```
 
-# Windows 可通过 --wsl 强制使用 WSL tmux
-tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安装建议）
-失败时会给出常见场景建议（如 attach 未显式指定会话）。
-```
-
-
-
+# Windows 可通过 --wsl 强制使用 WSL tmux；如果 WSL 内 tmux 不可用，会返回安装与环境排查建议.
 ## 跨平台快速排查（screen / tmux）
 
 ### 常见返回码
