@@ -5,8 +5,10 @@ use std::{
     process::{Command, ExitStatus, Stdio},
 };
 
+use terman_common;
+
+
 use clap::Args;
-use which::which;
 
 #[derive(Args, Debug)]
 #[command(
@@ -68,7 +70,7 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .envs(passthrough_env())
+        .envs(terman_common::passthrough_env())
         .env("TERM", env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")))
         .status()?;
 
@@ -260,7 +262,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
             )));
         }
 
-        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
             return Ok(TmuxLaunch {
                 cmd: path,
                 kind: TmuxKind::Wsl,
@@ -274,7 +276,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
         )));
     }
 
-    if let Some(path) = which_binary("tmux") {
+    if let Some(path) = terman_common::which_binary("tmux") {
         return Ok(TmuxLaunch {
             cmd: path,
             kind: TmuxKind::Native,
@@ -283,7 +285,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
     }
 
     if cfg!(windows) {
-        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
             return Ok(TmuxLaunch {
                 cmd: path,
                 kind: TmuxKind::Wsl,
@@ -307,25 +309,6 @@ fn tmux_not_found_hint() -> &'static str {
     }
 }
 
-fn which_binary(name: &str) -> Option<String> {
-    which(name).ok().map(|path| path.to_string_lossy().to_string())
-}
-
-fn passthrough_env() -> impl Iterator<Item = (String, String)> {
-    [
-        "TERM",
-        "COLORTERM",
-        "LC_ALL",
-        "LANG",
-        "LC_CTYPE",
-        "TERM_PROGRAM",
-        "TERM_PROGRAM_VERSION",
-    ]
-    .iter()
-    .filter_map(|k| env::var(k).ok().map(|v| (k.to_string(), v)))
-    .collect::<Vec<_>>()
-    .into_iter()
-}
 
 use clap::Parser;
 

@@ -7,4 +7,4 @@ edition = "2024"
 clap = { version = "4.5.20", features = ["derive"] }
 crossterm = "0.29.0"
 portable-pty = "0.8"
-which = "6.0"
+terman-common = { path = "../common" }

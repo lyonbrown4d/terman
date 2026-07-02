@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
-which = "6.0"
+terman-common = { path = "../common" }

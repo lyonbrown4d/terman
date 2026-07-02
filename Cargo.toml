@@ -7,10 +7,10 @@ edition = "2024"
 members = [
     "crates/screen",
     "crates/tmux",
+    "crates/common",
 ]
 resolver = "2"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 which = "6.0"
-

@@ -18,7 +18,8 @@ use crossterm::{
     terminal::{self, size as terminal_size},
 };
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
-use which::which;
+use terman_common;
+
 
 #[derive(Args, Debug, Clone)]
 #[command(
@@ -160,7 +161,7 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .envs(passthrough_env())
+        .envs(terman_common::passthrough_env())
         .env("TERM", env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")))
         .status()?;
 
@@ -369,7 +370,7 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
             )));
         }
 
-        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
             return Ok(ScreenLaunch {
                 cmd: path,
                 kind: ScreenKind::Wsl,
@@ -383,7 +384,7 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
         )));
     }
 
-    if let Some(path) = which_binary("screen") {
+    if let Some(path) = terman_common::which_binary("screen") {
         return Ok(ScreenLaunch {
             cmd: path,
             kind: ScreenKind::Native,
@@ -392,7 +393,7 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
     }
 
     if cfg!(windows) {
-        if let Some(path) = which_binary("wsl").or_else(|| which_binary("wsl.exe")) {
+        if let Some(path) = terman_common::which_binary("wsl").or_else(|| terman_common::which_binary("wsl.exe")) {
             return Ok(ScreenLaunch {
                 cmd: path,
                 kind: ScreenKind::Wsl,
@@ -416,26 +417,6 @@ fn screen_not_found_hint() -> &'static str {
         "未检测到 screen。请先安装 screen（apt/yum/brew）。"
     }
 }
-fn which_binary(name: &str) -> Option<String> {
-    which(name).ok().map(|path| path.to_string_lossy().to_string())
-}
-
-fn passthrough_env() -> impl Iterator<Item = (String, String)> {
-    [
-        "TERM",
-        "COLORTERM",
-        "LC_ALL",
-        "LANG",
-        "LC_CTYPE",
-        "TERM_PROGRAM",
-        "TERM_PROGRAM_VERSION",
-    ]
-    .iter()
-    .filter_map(|k| env::var(k).ok().map(|v| (k.to_string(), v)))
-    .collect::<Vec<_>>()
-    .into_iter()
-}
-
 fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
 
