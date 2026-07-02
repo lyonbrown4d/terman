@@ -45,7 +45,7 @@ pub fn wsl_runtime_hint(tool: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::wsl_precheck_not_found_hint;
+    use super::{wsl_precheck_not_found_hint, wsl_runtime_hint};
 
     #[test]
     fn wsl_precheck_not_found_hint_mentions_tool_and_install_cmd() {
@@ -55,4 +55,15 @@ mod tests {
         assert!(hint.contains("未检测到 WSL 内 tmux"));
         assert!(hint.contains("wsl -e sudo apt install tmux"));
     }
+
+    #[test]
+    fn wsl_runtime_hint_uses_wsl_version_check_for_tool() {
+        let tool = "screen";
+        let hint = wsl_runtime_hint(tool);
+
+        assert!(hint.contains("wsl -l -v"));
+        assert!(hint.contains("wsl --status"));
+        assert!(hint.contains("wsl -e screen -V"));
+    }
 }
+
