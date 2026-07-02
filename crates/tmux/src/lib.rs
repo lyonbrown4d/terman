@@ -181,6 +181,10 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
         hints.push(
             "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman tmux attach -t <session-name>；或先运行 terman tmux list-sessions 查看可用会话。".to_string(),
         );
+    } else if is_tmux_list_sessions_command(args) && exit_code == 1 {
+        hints.push(
+            "你执行 list-sessions 失败，常见为用户权限或 tmux 服务端无法启动。可先执行 `tmux -v` / `wsl -e tmux -v` 输出调试信息，或重试 `terman tmux list-sessions`。".to_string(),
+        );
     } else if is_tmux_attach_command(args) && exit_code == 1 {
         hints.push(
             "attach 指定了会话但命令返回 1，常见因为目标会话不存在。请先运行 terman tmux list-sessions，确认会话名后重试。".to_string(),
@@ -226,6 +230,10 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     }
 
     hints.join("\n")
+}
+
+fn is_tmux_list_sessions_command(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "list-sessions" || arg == "ls")
 }
 
 fn is_tmux_attach_without_target(args: &[String]) -> bool {
