@@ -110,6 +110,7 @@ terman tmux new -s demo
 | `tmux`（系统模式） | `2` | 终端环境或权限受限 | 检查 `TERM`、文件系统/权限；Windows 场景优先尝试 `--wsl` |
 | `tmux`（系统模式） | `126` | `tmux` 可执行文件无法运行 | 检查 tmux 安装与权限，或尝试 `terman tmux --wsl` |
 | `tmux`（系统模式） | `127` | `tmux` 未找到 | 安装 tmux；Windows 下可用 `--wsl`（避免“Windows 原生不可见”） |
+| `tmux`（WSL 预检） | `127` | WSL 回退路径未检测到 tmux | 先执行 `wsl -e which tmux`，再按提示安装或启动 WSL |
 | `tmux`（系统模式） | `130` | 用户中断（Ctrl-C） | 按正常退出流程重试 |
 
 ### WSL 回退预检说明
