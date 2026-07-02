@@ -42,3 +42,17 @@ pub fn wsl_runtime_hint(tool: &str) -> String {
         "建议先执行 `wsl -l -v`（检查发行版）、`wsl --status`（检查子系统）与 `wsl -e {tool} -V`（确认 {tool} 可用）。"
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::wsl_precheck_not_found_hint;
+
+    #[test]
+    fn wsl_precheck_not_found_hint_mentions_tool_and_install_cmd() {
+        let tool = "tmux";
+        let hint = wsl_precheck_not_found_hint(tool);
+
+        assert!(hint.contains("未检测到 WSL 内 tmux"));
+        assert!(hint.contains("wsl -e sudo apt install tmux"));
+    }
+}
