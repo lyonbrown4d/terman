@@ -98,6 +98,30 @@ tmux 命令若不可用会给出安装路径提示（如 WSL/system 识别与安
 失败时会给出常见场景建议（如 attach 未显式指定会话）。
 ```
 
+
+
+## 跨平台快速排查（screen / tmux）
+
+### 常见返回码
+
+| 工具 | 典型返回码 | 典型场景 | 排查动作 |
+|---|---:|---|---|
+| `screen --system` | `1` | 参数错误 / 会话不存在 / 非法操作 | 确认子命令和参数，必要时先用 `terman screen --help` 查看；再用合法参数重试 |
+| `screen --system` | `2` | 环境变量或权限问题 | 检查 Shell 环境、WSL 配置和权限，再重试 |
+| `screen --system` | `126` | `screen` 可执行文件无法运行（权限/兼容性） | 检查二进制权限与完整安装，或先回退到内置 screen |
+| `screen --system` | `127` | `screen` 未找到 | 安装系统 `screen`，或去掉 `--system` 使用内置模式 |
+| `tmux`（系统模式） | `1` | 参数错误、会话不存在、attach/list 冲突 | 先执行 `terman tmux list-sessions`，再 `terman tmux attach -t <session>` |
+| `tmux`（系统模式） | `2` | 终端环境或权限受限 | 检查 `TERM`、文件系统/权限；Windows 场景优先尝试 `--wsl` |
+| `tmux`（系统模式） | `126` | `tmux` 可执行文件无法运行 | 检查 tmux 安装与权限，或尝试 `terman tmux --wsl` |
+| `tmux`（系统模式） | `127` | `tmux` 未找到 | 安装 tmux；Windows 下可用 `--wsl`（避免“Windows 原生不可见”） |
+| `tmux`（系统模式） | `130` | 用户中断（Ctrl-C） | 按正常退出流程重试 |
+
+### 场景化建议
+
+- `terman tmux attach -t <session>` 报会话不存在：先运行 `terman tmux list-sessions` 确认会话名。
+- `terman tmux new -s <name>` 返回会话冲突：改用新的会话名再尝试。
+- Windows 下 tmux 启动异常：优先使用 `terman tmux --wsl ...`。
+
 ## 备注
 
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
