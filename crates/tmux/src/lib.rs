@@ -157,7 +157,7 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     }
 }
 fn tmux_wsl_runtime_hint() -> &'static str {
-    "建议先在 WSL 内执行 `wsl -e which tmux` / `wsl -e tmux --version` 确认安装与环境。"
+    "建议先在 WSL 内执行 `wsl -e which tmux` / `wsl -e tmux -V` 确认安装与版本。"
 }
 fn tmux_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
@@ -215,7 +215,7 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     if hints.is_empty() {
         let default_hint = match (kind, exit_code) {
             (TmuxKind::Wsl, 1) => {
-                "常见失败原因：参数错误、会话不存在，或 WSL 下 tmux 与终端环境不兼容。建议先执行：wsl -e tmux --version 或 wsl -e tmux list-sessions。".to_string()
+                "常见失败原因：参数错误、会话不存在，或 WSL 下 tmux 与终端环境不兼容。建议先执行：wsl -e tmux -V 或 wsl -e tmux list-sessions。".to_string()
             }
             (TmuxKind::Wsl, 2) => {
                 "在 WSL 回退路径执行失败（退出码 2）：常见为权限/文件系统上下文问题。建议在 WSL 终端直接运行同样参数复现。".to_string()
@@ -357,6 +357,3 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
-
-
-
