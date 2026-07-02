@@ -198,7 +198,8 @@ fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error
                 "system screen WSL 预检",
                 code,
                 &format!(
-                    "当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。{}",
+                    "{}{}",
+                    terman_common::wsl_precheck_not_found_hint("screen"),
                     screen_wsl_runtime_hint(),
                 ),
             ),

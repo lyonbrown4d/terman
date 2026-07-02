@@ -119,7 +119,8 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
                         "tmux WSL 预检",
                         code,
                         &format!(
-                            "当前已进入 WSL 回退路径，但未检测到 WSL 内 tmux。请先安装：wsl -e sudo apt install tmux。{}",
+                            "{}{}",
+                            terman_common::wsl_precheck_not_found_hint("tmux"),
                             tmux_wsl_runtime_hint(),
                         ),
                     ),
