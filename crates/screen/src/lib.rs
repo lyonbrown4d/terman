@@ -138,6 +138,10 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let launch = resolve_screen_launch(args.wsl)?;
 
+    if let ScreenKind::Wsl = launch.kind {
+        validate_screen_wsl_launch(&launch)?;
+    }
+
     let mut cmd = Command::new(&launch.cmd);
     let mut system_args = args.args;
 
@@ -169,7 +173,33 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
             format!("system screen 退出码: {exit_code}\n{}", screen_system_runtime_hints(&system_args, exit_code, &launch.kind)),
         )))
     }
+}
 
+fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error>> {
+    let status = Command::new(&launch.cmd)
+        .arg("-e")
+        .arg("which")
+        .arg("screen")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+
+    if status.success() {
+        return Ok(());
+    }
+
+    let code = status.code().unwrap_or(-1);
+    Err(Box::new(io::Error::new(
+        io::ErrorKind::Other,
+        format!(
+            "WSL screen 可用性检查失败（退出码 {code}）。当前已进入 WSL 回退路径，但未检测到 WSL 内 screen。请先安装：wsl -e sudo apt install screen。{}",
+            screen_wsl_runtime_hint(),
+        ),
+    )))
+}
+
+fn screen_wsl_runtime_hint() -> &'static str {
+    "建议先在 WSL 内执行 `wsl -e which screen` / `wsl -e screen --version` 确认安装与环境。"
 }
 fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKind) -> String {
     let mut hints = Vec::new();
@@ -557,4 +587,5 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+
 
