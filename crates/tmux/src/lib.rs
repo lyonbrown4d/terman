@@ -90,7 +90,7 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     let mut probe = Command::new(&launch.cmd);
     if launch.kind == TmuxKind::Wsl {
-        let wsl_check = Command::new("wsl")
+        let wsl_check = Command::new(&launch.cmd)
             .arg("-e")
             .arg("which")
             .arg("tmux")
@@ -320,4 +320,5 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+
 
