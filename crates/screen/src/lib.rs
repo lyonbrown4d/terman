@@ -233,13 +233,13 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
 
     if is_screen_attach_attempt(args) {
         hints.push(
-            "检测到恢复会话参数 (-r/-R/-x)。若会话不存在，先执行 `screen -list`（或 `terman screen --system -ls`）确认会话名后重试。".to_string(),
+            "检测到恢复会话参数 (-r/-R/-x)。若会话不存在，先执行 `screen -ls`（或 `terman screen --system -ls`）确认会话名后重试。".to_string(),
         );
     }
 
     if is_screen_session_name_arg(args) && exit_code == 1 {
         hints.push(
-            "检测到 `-S <name>` 场景，退出码 1 常见于会话名不存在或已有同名会话。先执行 `terman screen --system -list`/`screen -list` 查看后重试。".to_string(),
+            "检测到 `-S <name>` 场景，退出码 1 常见于会话名不存在或已有同名会话。先执行 `terman screen --system -ls`/`screen -ls` 查看后重试。".to_string(),
         );
     }
 
@@ -611,3 +611,4 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     run(cli.args)
 }
+
