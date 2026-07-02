@@ -106,6 +106,7 @@ terman tmux new -s demo
 | `screen --system` | `2` | 环境变量或权限问题 | 检查 Shell 环境、WSL 配置和权限，再重试 |
 | `screen --system` | `126` | `screen` 可执行文件无法运行（权限/兼容性） | 检查二进制权限与完整安装，或先回退到内置 screen |
 | `screen --system` | `127` | `screen` 未找到 | 安装系统 `screen`，或去掉 `--system` 使用内置模式 |
+| `screen`（WSL 预检） | `127` | WSL 回退路径未检测到 screen | 先执行 `wsl -e which screen`，再按提示安装或启动 WSL |
 | `tmux`（系统模式） | `1` | 参数错误、会话不存在、attach/list 冲突 | 先执行 `terman tmux list-sessions`，再 `terman tmux attach -t <session>` |
 | `tmux`（系统模式） | `2` | 终端环境或权限受限 | 检查 `TERM`、文件系统/权限；Windows 场景优先尝试 `--wsl` |
 | `tmux`（系统模式） | `126` | `tmux` 可执行文件无法运行 | 检查 tmux 安装与权限，或尝试 `terman tmux --wsl` |
