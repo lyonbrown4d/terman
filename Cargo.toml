@@ -21,5 +21,3 @@ which = "6.0"
 [dependencies]
 clap = { workspace = true }
 terman-common = { workspace = true }
-terman-screen = { path = "crates/screen" }
-terman-tmux = { path = "crates/tmux" }

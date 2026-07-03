@@ -1,8 +1,12 @@
-use std::ffi::OsString;
+use std::{
+    env,
+    ffi::OsString,
+    path::PathBuf,
+    process::{Command, ExitStatus},
+};
 
 use clap::{Args, Parser, Subcommand};
-use terman_screen;
-use terman_tmux;
+use terman_common;
 
 #[derive(Parser)]
 #[command(name = "terman")]
@@ -39,22 +43,52 @@ fn main() {
         None => (Binary::Screen, Vec::new()),
     };
 
-    if let Err(err) = run_binary(&binary, &args) {
-        eprintln!("启动 {} 失败: {err}", binary_name(&binary));
-        std::process::exit(1);
+    match run_binary(binary, &args) {
+        Ok(status) => {
+            if let Some(code) = status.code() {
+                std::process::exit(code);
+            }
+            eprintln!("{} child process terminated abnormally.", binary_name(binary));
+            std::process::exit(1);
+        }
+        Err(err) => {
+            eprintln!("启动 {} 失败: {err}", binary_name(binary));
+            std::process::exit(1);
+        }
     }
 }
 
-fn run_binary(binary: &Binary, args: &[OsString]) -> Result<(), Box<dyn std::error::Error>> {
-    match binary {
-        Binary::Screen => terman_screen::run_with_args(args),
-        Binary::Tmux => terman_tmux::run_with_args(args),
-    }
+fn run_binary(binary: Binary, args: &[OsString]) -> Result<ExitStatus, Box<dyn std::error::Error>> {
+    let exe_name = binary_executable_name(&binary);
+    let command = resolve_executable_path(&exe_name).unwrap_or_else(|| PathBuf::from(&exe_name));
+
+    Ok(Command::new(command).args(args).status()?)
 }
 
-fn binary_name(binary: &Binary) -> &'static str {
+fn resolve_executable_path(exe_name: &str) -> Option<PathBuf> {
+    let current_exe = env::current_exe().ok()?;
+    if let Some(dir) = current_exe.parent() {
+        let candidate = dir.join(exe_name);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+
+    terman_common::which_binary(exe_name).map(PathBuf::from)
+}
+
+fn binary_name(binary: Binary) -> &'static str {
     match binary {
         Binary::Screen => "terman-screen",
         Binary::Tmux => "terman-tmux",
+    }
+}
+
+fn binary_executable_name(binary: &Binary) -> String {
+    let base = binary_name(*binary);
+    if cfg!(windows) {
+        format!("{base}.exe")
+    } else {
+        base.to_string()
     }
 }

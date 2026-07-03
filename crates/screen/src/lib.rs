@@ -1,6 +1,5 @@
 use std::{
     env,
-    ffi::OsString,
     error::Error,
     io::{self, Read, Write},
     process::{Command, ExitStatus, Stdio},
@@ -13,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-use clap::{Args, Parser};
+use clap::Args;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     terminal::{self, size as terminal_size},
@@ -601,22 +600,13 @@ fn ctrl_char_bytes(c: char) -> Option<Vec<u8>> {
     };
     Some(vec![b])
 }
+use clap::Parser;
 
 #[derive(Parser)]
 struct Cli {
     #[command(flatten)]
     args: ScreenArgs,
 }
-
-pub fn run_with_args(args: &[OsString]) -> Result<(), Box<dyn std::error::Error>> {
-    let mut argv: Vec<OsString> = Vec::with_capacity(args.len() + 1);
-    argv.push(OsString::from("terman-screen"));
-    argv.extend_from_slice(args);
-
-    let cli = Cli::try_parse_from(argv)?;
-    run(cli.args)
-}
-
 
 pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
@@ -657,8 +647,4 @@ mod tests {
         assert_eq!(msg, "system screen 失败（退出码 127）：未找到 screen");
     }
 }
-
-
-
-
 

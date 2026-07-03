@@ -1,6 +1,5 @@
 use std::{
     env,
-    ffi::OsString,
     error::Error,
     io,
     process::{Command, ExitStatus, Stdio},
@@ -9,7 +8,7 @@ use std::{
 use terman_common;
 
 
-use clap::{Args, Parser};
+use clap::Args;
 
 #[derive(Args, Debug)]
 #[command(
@@ -347,22 +346,13 @@ fn tmux_not_found_hint() -> &'static str {
 }
 
 
+use clap::Parser;
 
 #[derive(Parser)]
 struct Cli {
     #[command(flatten)]
     args: TmuxArgs,
 }
-
-pub fn run_with_args(args: &[OsString]) -> Result<(), Box<dyn std::error::Error>> {
-    let mut argv: Vec<OsString> = Vec::with_capacity(args.len() + 1);
-    argv.push(OsString::from("terman-tmux"));
-    argv.extend_from_slice(args);
-
-    let cli = Cli::try_parse_from(argv)?;
-    run(cli.args)
-}
-
 
 pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
@@ -421,10 +411,6 @@ mod tests {
         assert_eq!(msg, "tmux 失败（退出码 1）：命令返回失败");
     }
 }
-
-
-
-
 
 
 
