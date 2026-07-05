@@ -78,6 +78,16 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
             }
             request_session_hardcopy(args, &path)
         }
+        "pastefile" => {
+            let path = control_command_payload(inline_payload, &args.execute_args);
+            if path.is_empty() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    terman_common::builtin_screen_control_pastefile_path_required_hint(),
+                ));
+            }
+            request_session_pastefile(args, &path)
+        }
         "resize" => {
             let payload = control_command_payload(inline_payload, &args.execute_args);
             let (cols, rows) = parse_resize_payload(&payload)?;
@@ -145,6 +155,11 @@ fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
             "unexpected screen hardcopy response",
         )),
     }
+}
+
+fn request_session_pastefile(args: &ScreenArgs, path: &str) -> io::Result<()> {
+    let bytes = fs::read(path)?;
+    send_session_control_request(args, ScreenIpcRequest::Input { bytes })
 }
 
 fn parse_resize_payload(payload: &str) -> io::Result<(u16, u16)> {
@@ -278,6 +293,7 @@ fn request_endpoint_response(
     serde_json::from_str(response.trim_end())
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
 }
+
 
 
 

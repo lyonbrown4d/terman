@@ -26,6 +26,7 @@ pub enum MessageKey {
     BuiltinScreenControlInfo,
     BuiltinScreenControlHardcopyPathRequired,
     BuiltinScreenControlHardcopyComplete,
+    BuiltinScreenControlPastefilePathRequired,
     BuiltinScreenWipeComplete,
 }
 
@@ -54,6 +55,9 @@ impl MessageKey {
             }
             Self::BuiltinScreenControlHardcopyComplete => {
                 "builtin-screen-control-hardcopy-complete"
+            }
+            Self::BuiltinScreenControlPastefilePathRequired => {
+                "builtin-screen-control-pastefile-path-required"
             }
             Self::BuiltinScreenWipeComplete => "builtin-screen-wipe-complete",
         }
@@ -143,6 +147,10 @@ pub fn builtin_screen_control_info_hint(replay_bytes: usize, attach_clients: usi
 
 pub fn builtin_screen_control_hardcopy_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlHardcopyPathRequired, &[])
+}
+
+pub fn builtin_screen_control_pastefile_path_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlPastefilePathRequired, &[])
 }
 
 pub fn builtin_screen_control_hardcopy_complete_hint(path: &str, bytes: usize) -> String {
@@ -262,3 +270,4 @@ mod tests {
         assert!(message.contains("native tmux executable"));
     }
 }
+
