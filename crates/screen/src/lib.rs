@@ -26,7 +26,7 @@ use terman_common;
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -r dev\n  - terman-screen -x dev\n  - terman-screen --system\n  - terman-screen --system --list\n  - terman-screen --system -r dev\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -r dev\n  - terman-screen -x dev\n  - terman-screen --system\n  - terman-screen --system --list\n  - terman-screen --system -r dev\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --no-fallback"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -85,9 +85,6 @@ pub struct ScreenArgs {
     #[arg(long)]
     pub no_fallback: bool,
 
-    /// 强制在 Windows 下使用 WSL 作为系统 screen 后端。仅 `--system` 可用。
-    #[arg(long, requires = "system")]
-    pub wsl: bool,
 
     /// Extra args passed to system screen when `--system` is enabled.
     #[arg(trailing_var_arg = true)]
@@ -108,7 +105,6 @@ impl Default for ScreenArgs {
             detach: false,
             login_shell: false,
             no_fallback: false,
-            wsl: false,
             args: Vec::new(),
         }
     }
@@ -129,15 +125,8 @@ impl Drop for RawMode {
     }
 }
 
-enum ScreenKind {
-    Native,
-    Wsl,
-}
-
 struct ScreenLaunch {
     cmd: String,
-    kind: ScreenKind,
-    extra_args: Vec<String>,
 }
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -189,19 +178,9 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    let launch = resolve_screen_launch(args.wsl)?;
-
-    if let ScreenKind::Wsl = launch.kind {
-        validate_screen_wsl_launch(&launch)?;
-    }
-
+    let launch = resolve_screen_launch()?;
     let mut cmd = Command::new(&launch.cmd);
     let system_args = build_system_screen_args(&args);
-
-    if let ScreenKind::Wsl = launch.kind {
-        cmd.args(&launch.extra_args);
-        eprintln!("当前使用 WSL screen 回退路径；建议在 WSL 发行版中常驻使用 screen。");
-    }
 
     let status: ExitStatus = cmd
         .args(&system_args)
@@ -222,52 +201,13 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
                 screen_failure_message(
                     "system screen",
                     exit_code,
-                    &screen_system_runtime_hints(&system_args, exit_code, &launch.kind)
+                    &screen_system_runtime_hints(&system_args, exit_code)
                 )
             ),
         )))
     }
 }
 
-fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error>> {
-    let status = terman_common::wsl_which_status_with_timeout(
-        &launch.cmd,
-        "screen",
-        terman_common::DEFAULT_COMMAND_TIMEOUT,
-    )?;
-
-    let Some(status) = status else {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::TimedOut,
-            screen_failure_message(
-                "system screen WSL 预检",
-                -1,
-                &format!("WSL screen 预检超时。{}", screen_wsl_runtime_hint()),
-            ),
-        )));
-    };
-
-    if status.success() {
-        return Ok(());
-    }
-
-    let code = status.code().unwrap_or(-1);
-    Err(Box::new(io::Error::new(
-        io::ErrorKind::Other,
-        format!(
-            "{}",
-            screen_failure_message(
-                "system screen WSL 预检",
-                code,
-                &format!(
-                    "{}{}",
-                    terman_common::wsl_precheck_not_found_hint("screen"),
-                    screen_wsl_runtime_hint(),
-                ),
-            ),
-        ),
-    )))
-}
 fn build_system_screen_args(args: &ScreenArgs) -> Vec<String> {
     let mut system_args = Vec::new();
 
@@ -324,23 +264,8 @@ fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
 
-fn screen_wsl_runtime_hint() -> String {
-    terman_common::wsl_install_hint("screen")
-}
-fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKind) -> String {
+fn screen_system_runtime_hints(args: &[String], exit_code: i32) -> String {
     let mut hints = Vec::new();
-
-    if let ScreenKind::Wsl = kind {
-        hints.push(terman_common::wsl_runtime_hint("screen"));
-    }
-
-    if let ScreenKind::Wsl = kind {
-        if is_screen_detached_arg(args) {
-            hints.push(
-                "WSL 回退路径执行 detached 场景失败时，建议先在 WSL 终端直接复现：wsl -e screen <同样参数>，确认会话名、路径与环境变量无差异。".to_string(),
-            );
-        }
-    }
 
     if is_screen_attach_attempt(args) {
         hints.push(
@@ -362,7 +287,7 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
             "通常与权限、终端环境或可执行文件上下文有关。建议在普通终端重试，或先确认 screen 安装和 shell 环境。"
         }
         126 => "无法执行，请确认 screen 可执行文件有执行权限。",
-        127 => "未找到可执行文件，请先确认 screen 安装正常且在 PATH。",
+        127 => "未找到本机 screen 可执行文件，请先确认 screen 安装正常且在 PATH。",
         _ => {
             "返回非预期状态，建议先执行 `terman-screen --system --help` 获取可用参数并用最小参数重试。"
         }
@@ -661,55 +586,14 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 }
 fn system_screen_fallback_hint() -> &'static str {
     if cfg!(windows) {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - wsl -e screen -V\n  - wsl -e sudo apt install screen\n  - terman-screen --system --no-fallback"
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先确认本机 screen 可执行文件，或直接使用内置 screen。"
     } else {
         "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - screen -V\n  - sudo apt/yum/brew install screen\n  - terman-screen --system --no-fallback"
     }
 }
-fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> {
-    if use_wsl {
-        if !cfg!(windows) {
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "--wsl 仅在 Windows 下可用。",
-            )));
-        }
-
-        if let Some(path) = terman_common::which_wsl_binary() {
-            return Ok(ScreenLaunch {
-                cmd: path,
-                kind: ScreenKind::Wsl,
-                extra_args: vec![String::from("-e"), String::from("screen")],
-            });
-        }
-
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            "未检测到 WSL。请先启用 Windows 的 WSL（如安装并配置一个发行版），再执行 `wsl -e sudo apt install screen`。",
-        )));
-    }
-
+fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
     if let Some(path) = terman_common::which_binary("screen") {
-        return Ok(ScreenLaunch {
-            cmd: path,
-            kind: ScreenKind::Native,
-            extra_args: Vec::new(),
-        });
-    }
-
-    if cfg!(windows) {
-        if let Some(path) = terman_common::which_wsl_binary() {
-            return Ok(ScreenLaunch {
-                cmd: path,
-                kind: ScreenKind::Wsl,
-                extra_args: vec![String::from("-e"), String::from("screen")],
-            });
-        }
-
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            screen_not_found_hint(),
-        )));
+        return Ok(ScreenLaunch { cmd: path });
     }
 
     Err(Box::new(io::Error::new(
@@ -717,10 +601,9 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
         screen_not_found_hint(),
     )))
 }
-
 fn screen_not_found_hint() -> &'static str {
     if cfg!(windows) {
-        "未检测到 screen。可选方案：1) 使用 WSL 安装 screen（推荐）：wsl -e sudo apt install screen；2) 安装 Windows 版本 screen（如 scoop install screen）；3) 先使用 terman 内置 screen。"
+        "未检测到本机 screen。可直接使用 terman 内置 screen，或安装本机 screen 可执行文件。"
     } else {
         "未检测到 screen。请先安装 screen（apt/yum/brew）。"
     }

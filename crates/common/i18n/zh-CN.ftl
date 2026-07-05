@@ -1,0 +1,1 @@
+native-tool-not-found = 当前平台未检测到 {$tool}。请安装本机 {$tool} 可执行文件，或在可用时使用内置实现。

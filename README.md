@@ -5,8 +5,8 @@
 ## 当前结构
 
 - `crates/screen`：生成 `terman-screen`，承载 screen 相关能力（内置 PTY + 可选 system screen 委托）。
-- `crates/tmux`：生成 `terman-tmux`，承载 tmux 委托能力（Windows 优先 WSL 回退）。
-- `crates/common`：共享跨平台检测、WSL 提示和环境变量透传工具。
+- `crates/tmux`：生成 `terman-tmux`，承载当前平台的 tmux 委托能力。
+- `crates/common`：共享跨平台检测、i18n 提示和环境变量透传工具。
 - 根目录是 Cargo virtual workspace，不再提供 `terman` 主入口。
 
 ## 构建
@@ -42,7 +42,7 @@ terman-screen --command "printf \"hello\\n\""
 terman-screen --system
 terman-screen --system -S dev
 terman-screen --system --detach
-terman-screen --system --wsl
+terman-screen --system --no-fallback
 terman-screen --system --no-fallback
 
 # 使用内置 screen 的登录 shell
@@ -75,7 +75,7 @@ terman-tmux attach -t <session>
 terman-tmux attach-session -t <session>
 terman-tmux list-sessions
 terman-tmux --detached new -s dev
-terman-tmux --wsl new -s dev
+terman-tmux --detached new -s dev
 ```
 
 tmux 最小复现示例：
@@ -100,24 +100,24 @@ terman-tmux new -s demo
 terman-tmux new -s demo
 ```
 
-Windows 可通过 `--wsl` 强制使用 WSL tmux；如果 WSL 内 tmux 不可用，会返回安装与环境排查建议。
+Windows 就走 Windows 本机能力，Linux 就走 Linux 本机能力；项目不把 WSL 作为运行后端或依赖路径。
 
 ## 跨平台快速排查
 
 | 工具 | 典型返回码 | 典型场景 | 排查动作 |
 |---|---:|---|---|
 | `terman-screen --system` | `1` | 参数错误 / 会话不存在 / 非法操作 | 确认子命令和参数，必要时先用 `terman-screen --help` 查看；再用合法参数重试 |
-| `terman-screen --system` | `2` | 环境变量或权限问题 | 检查 Shell 环境、WSL 配置和权限，再重试 |
+| `terman-screen --system` | `2` | 环境变量或权限问题 | 检查 Shell 环境、本机可执行文件和权限，再重试 |
 | `terman-screen --system` | `126` | `screen` 可执行文件无法运行 | 检查二进制权限与完整安装，或先回退到内置 screen |
 | `terman-screen --system` | `127` | `screen` 未找到 | 安装系统 `screen`，或去掉 `--system` 使用内置模式 |
 | `terman-tmux` | `1` | 参数错误、会话不存在、attach/list 冲突 | 先执行 `terman-tmux list-sessions`，再 `terman-tmux attach -t <session>` |
-| `terman-tmux` | `2` | 终端环境或权限受限 | 检查 `TERM`、文件系统/权限；Windows 场景优先尝试 `--wsl` |
-| `terman-tmux` | `126` | `tmux` 可执行文件无法运行 | 检查 tmux 安装与权限，或尝试 `terman-tmux --wsl` |
-| `terman-tmux` | `127` | `tmux` 未找到 | 安装 tmux；Windows 下可用 `--wsl` |
+| `terman-tmux` | `2` | 终端环境或权限受限 | 检查 `TERM`、文件系统/权限和本机 tmux 路径 |
+| `terman-tmux` | `126` | `tmux` 可执行文件无法运行 | 检查本机 tmux 安装与权限 |
+| `terman-tmux` | `127` | `tmux` 未找到 | 安装当前平台的 tmux 可执行文件 |
 | `terman-tmux` | `130` | 用户中断（Ctrl-C） | 按正常退出流程重试 |
 
 ## 备注
 
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
-- WSL 排查提示复用 `terman-common` 中的共享模板，确保 screen/tmux 的诊断口径一致。
+- 跨平台提示复用 `terman-common` 中打包进二进制的 i18n 资源，确保 screen/tmux 的诊断口径一致。

@@ -7,9 +7,12 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+fluent-bundle = "0.16.0"
 clap = { version = "4.6.1", features = ["derive"] }
 crossterm = "0.29.0"
 portable-pty = "0.9.0"
+sys-locale = "0.3.2"
 terman-common = { path = "crates/common" }
 tokio = { version = "1.52.3", features = ["macros", "process", "rt", "time"] }
+unic-langid = "0.9.6"
 which = "8.0.4"

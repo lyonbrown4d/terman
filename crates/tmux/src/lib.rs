@@ -12,7 +12,7 @@ use clap::Args;
 #[derive(Args, Debug)]
 #[command(
     about = "tmux 桥接入口（按原生命令参数透传）",
-    after_help = "常见用法示例：\n  - terman-tmux new -s dev\n  - terman-tmux new-session -s dev\n  - terman-tmux attach -t <session>\n  - terman-tmux attach-session -t <session>\n  - terman-tmux list-sessions\n  - terman-tmux --detached new -s dev\n  - terman-tmux --detached --wsl new -s dev\n  - terman-tmux --wsl new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman-tmux attach -t missing-session\n  - 先查看会话：terman-tmux list-sessions\n  - 名称冲突：terman-tmux new -s demo\n  - 再复现冲突：terman-tmux new -s demo\n"
+    after_help = "常见用法示例：\n  - terman-tmux new -s dev\n  - terman-tmux new-session -s dev\n  - terman-tmux attach -t <session>\n  - terman-tmux attach-session -t <session>\n  - terman-tmux list-sessions\n  - terman-tmux --detached new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman-tmux attach -t missing-session\n  - 先查看会话：terman-tmux list-sessions\n  - 名称冲突：terman-tmux new -s demo\n  - 再复现冲突：terman-tmux new -s demo\n"
 )]
 pub struct TmuxArgs {
     /// 等价于 tmux -d，启动会话前台/后台分离。
@@ -20,42 +20,21 @@ pub struct TmuxArgs {
     #[arg(long)]
     pub detached: bool,
 
-    /// 强制使用 WSL tmux（仅 Windows）。
-    #[arg(long)]
-    pub wsl: bool,
 
     /// Directly passed arguments for tmux.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-enum TmuxKind {
-    Native,
-    Wsl,
-}
-
 struct TmuxLaunch {
     cmd: String,
-    kind: TmuxKind,
-    extra_args: Vec<String>,
 }
 
 pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
-    let launch = resolve_tmux_launch(&args)?;
+    let launch = resolve_tmux_launch()?;
     validate_tmux_launch(&launch)?;
 
     let mut cmd = Command::new(&launch.cmd);
-    match launch.kind {
-        TmuxKind::Native => {}
-        TmuxKind::Wsl => {
-            cmd.args(&launch.extra_args);
-            eprintln!(
-                "当前使用 WSL tmux 回退路径。建议长期使用 WSL 发行版中的 tmux 以获得更完整行为。"
-            );
-        }
-    }
-
     let mut passed_args = args.args;
     if args.detached {
         if is_tmux_new_session_command(&passed_args) {
@@ -95,8 +74,8 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
                     exit_code,
                     &format!(
                         "{}\n{}",
-                        tmux_launch_failure_hint(&launch),
-                        tmux_runtime_hints(&passed_args, exit_code, &launch.kind),
+                        tmux_launch_failure_hint(),
+                        tmux_runtime_hints(&passed_args, exit_code),
                     ),
                 ),
             ),
@@ -104,56 +83,11 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
     }
 }
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
-    let mut probe = Command::new(&launch.cmd);
-    if launch.kind == TmuxKind::Wsl {
-        let wsl_check = terman_common::wsl_which_status_with_timeout(
-            &launch.cmd,
-            "tmux",
-            terman_common::DEFAULT_COMMAND_TIMEOUT,
-        )?;
-
-        let Some(wsl_check) = wsl_check else {
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::TimedOut,
-                tmux_failure_message(
-                    "tmux WSL 预检",
-                    -1,
-                    &format!("WSL tmux 预检超时。{}", tmux_wsl_runtime_hint()),
-                ),
-            )));
-        };
-
-        if !wsl_check.success() {
-            let code = wsl_check.code().unwrap_or(-1);
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::Other,
-                format!(
-                    "{}",
-                    tmux_failure_message(
-                        "tmux WSL 预检",
-                        code,
-                        &format!(
-                            "{}{}",
-                            terman_common::wsl_precheck_not_found_hint("tmux"),
-                            tmux_wsl_runtime_hint(),
-                        ),
-                    ),
-                ),
-            )));
-        }
-    }
-
-    match launch.kind {
-        TmuxKind::Native => {
-            probe.arg("-V");
-        }
-        TmuxKind::Wsl => {
-            probe.args(&launch.extra_args);
-            probe.arg("-V");
-        }
-    }
-
-    let status: ExitStatus = probe.stdout(Stdio::null()).stderr(Stdio::null()).status()?;
+    let status: ExitStatus = Command::new(&launch.cmd)
+        .arg("-V")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
 
     if status.success() {
         Ok(())
@@ -163,13 +97,10 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
             io::ErrorKind::Other,
             format!(
                 "{}",
-                tmux_failure_message("tmux 可用性检查", code, &tmux_launch_failure_hint(launch)),
+                tmux_failure_message("tmux 可用性检查", code, &tmux_launch_failure_hint()),
             ),
         )))
     }
-}
-fn tmux_wsl_runtime_hint() -> String {
-    terman_common::wsl_install_hint("tmux")
 }
 fn tmux_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
@@ -179,7 +110,7 @@ fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> String {
     match launch.kind {
         TmuxKind::Native => tmux_not_found_hint().to_string(),
         TmuxKind::Wsl => {
-            format!("当前使用 WSL 回退 tmux 路径，{}", tmux_wsl_runtime_hint())
+            format!("当前使用显式 --wsl tmux 兼容路径，{}", tmux_wsl_runtime_hint())
         }
     }
 }
@@ -190,7 +121,7 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     }
     if *kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
         hints.push(
-            "WSL 回退路径执行 detached 场景失败时，建议先在 WSL 终端直接复现：wsl -e tmux <同样参数>，确认会话名、路径与环境变量无差异。".to_string(),
+            "显式 --wsl 兼容路径执行 detached 场景失败时，可在同一 WSL 发行版中复现：wsl -e tmux <同样参数>；如不想使用 WSL，请移除 --wsl。".to_string(),
         );
     }
 
@@ -210,7 +141,7 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
         );
     } else if is_tmux_list_sessions_command(args) && exit_code == 1 {
         hints.push(
-            "你执行 list-sessions 失败，常见为用户权限或 tmux 服务端无法启动。可先执行 `tmux -v` / `wsl -e tmux -v` 输出调试信息，或重试 `terman-tmux list-sessions`。".to_string(),
+            "你执行 list-sessions 失败，常见为用户权限或 tmux 服务端无法启动。可先执行 `tmux -v` 输出调试信息，或重试 `terman-tmux list-sessions`。".to_string(),
         );
     } else if is_tmux_attach_command(args) && exit_code == 1 {
         hints.push(
@@ -224,10 +155,10 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
     if hints.is_empty() {
         let default_hint = match (kind, exit_code) {
             (TmuxKind::Wsl, 1) => {
-                "常见失败原因：参数错误、会话不存在，或 WSL 下 tmux 与终端环境不兼容。建议先执行：wsl -e tmux -V 或 wsl -e tmux list-sessions。".to_string()
+                "常见失败原因：参数错误、会话不存在，或显式 --wsl 后端与终端环境不兼容。可执行 `wsl -e tmux -V` 检查该兼容后端；默认目标仍是本机跨平台 tmux。".to_string()
             }
             (TmuxKind::Wsl, 2) => {
-                "在 WSL 回退路径执行失败（退出码 2）：常见为权限/文件系统上下文问题。建议在 WSL 终端直接运行同样参数复现。".to_string()
+                "显式 --wsl 兼容路径执行失败（退出码 2）：常见为权限/文件系统上下文问题。可在同一 WSL 发行版中复现，或移除 --wsl 使用本机路径。".to_string()
             }
             (_, 1) => {
                 "常见失败原因：参数错误、会话不存在、或 tmux 当前状态不允许该操作。建议确认参数后重试。".to_string()
@@ -240,10 +171,10 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
             }
             (_, 127) => match kind {
                 TmuxKind::Wsl => {
-                    "未在 WSL 中检测到 tmux。请先在 Windows 里执行 `wsl -e which tmux`，或先安装：wsl -e sudo apt install tmux。".to_string()
+                    "显式 --wsl 兼容路径中未检测到 tmux。请确认该 WSL 发行版内已有 tmux，或移除 --wsl 使用本机跨平台路径。".to_string()
                 }
                 TmuxKind::Native => {
-                    "未检测到 tmux 命令。请先确认安装路径或在 Windows 下加 --wsl。".to_string()
+                    "未检测到本机 tmux 命令。请先确认本机安装路径；--wsl 仅作为显式兼容后端。".to_string()
                 }
             },
             (_, 130) => {
@@ -297,50 +228,9 @@ fn tmux_has_detached_arg(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "-d" || arg == "--detached")
 }
 
-fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
-    if args.wsl {
-        if !cfg!(windows) {
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "--wsl 仅在 Windows 下可用。",
-            )));
-        }
-
-        if let Some(path) = terman_common::which_wsl_binary() {
-            return Ok(TmuxLaunch {
-                cmd: path,
-                kind: TmuxKind::Wsl,
-                extra_args: vec![String::from("-e"), String::from("tmux")],
-            });
-        }
-
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            "未检测到 WSL。请先安装或启用 Windows 的 WSL。",
-        )));
-    }
-
+fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
     if let Some(path) = terman_common::which_binary("tmux") {
-        return Ok(TmuxLaunch {
-            cmd: path,
-            kind: TmuxKind::Native,
-            extra_args: Vec::new(),
-        });
-    }
-
-    if cfg!(windows) {
-        if let Some(path) = terman_common::which_wsl_binary() {
-            return Ok(TmuxLaunch {
-                cmd: path,
-                kind: TmuxKind::Wsl,
-                extra_args: vec![String::from("-e"), String::from("tmux")],
-            });
-        }
-
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            tmux_not_found_hint(),
-        )));
+        return Ok(TmuxLaunch { cmd: path });
     }
 
     Err(Box::new(io::Error::new(
@@ -350,7 +240,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
 }
 fn tmux_not_found_hint() -> &'static str {
     if cfg!(windows) {
-        "未检测到 tmux。可选方案：1) 使用 WSL 安装 tmux（推荐）：wsl -e sudo apt install tmux；2) 安装 Windows tmux（如 Scoop 安装）：scoop install tmux；3) 先使用 terman-screen 继续工作。"
+        "未检测到本机 tmux。请安装当前平台的 tmux 可执行文件，或继续使用 terman-screen。"
     } else {
         "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。"
     }
@@ -408,7 +298,7 @@ mod tests {
             extra_args: vec![],
         };
 
-        let hint = tmux_launch_failure_hint(&launch);
+        let hint = tmux_launch_failure_hint();
         assert!(hint.contains("tmux"));
         assert!(hint.contains(&tmux_wsl_runtime_hint()));
     }
