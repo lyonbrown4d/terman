@@ -1,13 +1,15 @@
-use std::{error::Error, io};
+use std::error::Error;
 
 mod builtin;
 mod cli;
 mod ipc;
+mod service;
 mod sessions;
 mod shell;
 
 pub use cli::{ScreenArgs, run_with_binary_parse};
 use builtin::run_builtin_screen;
+use service::request_screen_attach;
 use sessions::{list_builtin_screen_sessions, validate_screen_session_name};
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -22,7 +24,8 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     }
 
     if is_builtin_screen_attach_requested(&args) {
-        return Err(Box::new(builtin_screen_attach_unsupported_error()));
+        request_screen_attach(&args)?;
+        return Ok(());
     }
 
     if args.list {
@@ -37,20 +40,13 @@ fn is_builtin_screen_attach_requested(args: &ScreenArgs) -> bool {
     args.resume.is_some() || args.multi_attach.is_some()
 }
 
-fn builtin_screen_attach_unsupported_error() -> io::Error {
-    io::Error::new(
-        io::ErrorKind::Unsupported,
-        terman_common::builtin_screen_attach_unsupported_hint(),
-    )
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{ScreenArgs, is_builtin_screen_attach_requested};
     use super::sessions::{
         BuiltinScreenSession, builtin_screen_session_is_alive, parse_builtin_screen_session_record,
         sanitize_session_file_name,
     };
+    use super::{ScreenArgs, is_builtin_screen_attach_requested};
     use sysinfo::System;
 
     #[test]
@@ -79,7 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_builtin_session_record() {
+    fn parses_builtin_session_record_without_legacy_ipc_endpoint() {
         let record = r#"{"name":"dev","pid":"42","cwd":"C:/repo","command":"pwsh"}"#;
         let parsed = parse_builtin_screen_session_record(record).expect("record should parse");
 

@@ -3,3 +3,5 @@ builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-scre
 builtin-screen-session-list-header = Built-in screen sessions:
 builtin-screen-session-exists = Built-in screen session `{$name}` already exists. Run `terman-screen --list` to inspect existing sessions, or choose another name.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
+builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
+builtin-screen-session-not-found = Built-in screen session `{$name}` was not found.

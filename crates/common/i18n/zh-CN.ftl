@@ -3,3 +3,5 @@ builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-scre
 builtin-screen-session-list-header = 内置 screen 会话:
 builtin-screen-session-exists = 内置 screen 会话 `{$name}` 已存在。请先使用 `terman-screen --list` 查看现有会话，或换一个会话名。
 builtin-screen-attach-unsupported = 内置 screen 暂未开放 attach。跨平台 attach 将由内置会话服务处理。
+builtin-screen-attach-target-required = 请指定 screen 会话名；当前可能存在多个内置 screen 会话。
+builtin-screen-session-not-found = 未找到内置 screen 会话 `{$name}`。

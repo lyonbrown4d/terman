@@ -207,8 +207,9 @@ pub fn terminal_env() -> Vec<(String, String)> {
 mod tests {
     use super::{
         MessageKey, MessageLanguage, command_status_with_timeout, localized_message_for_language,
-        builtin_screen_attach_unsupported_hint, builtin_screen_no_sessions_hint,
-        builtin_screen_session_exists_hint, builtin_screen_session_list_header,
+        builtin_screen_attach_target_required_hint, builtin_screen_attach_unsupported_hint,
+        builtin_screen_no_sessions_hint, builtin_screen_session_exists_hint,
+        builtin_screen_session_list_header, builtin_screen_session_not_found_hint,
         message_language_from_tag, native_tool_not_found_hint,
     };
     use std::time::Duration;

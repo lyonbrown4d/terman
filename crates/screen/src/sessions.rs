@@ -22,12 +22,14 @@ impl Drop for BuiltinScreenSessionGuard {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub(crate) struct BuiltinScreenSession {
     pub(crate) name: String,
     pub(crate) pid: String,
     pub(crate) cwd: String,
     pub(crate) command: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) ipc_endpoint: Option<String>,
 }
 
 pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
@@ -56,11 +58,13 @@ pub(crate) fn register_builtin_screen_session(
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|_| String::from("<unknown>"));
     let command = args.command.clone().unwrap_or_else(default_shell);
+    let ipc_endpoint = ScreenIpcEndpoint::for_session(session_name);
     let record = BuiltinScreenSession {
         name: session_name.clone(),
         pid: std::process::id().to_string(),
         cwd,
         command,
+        ipc_endpoint: Some(ipc_endpoint.raw_name().to_string()),
     };
     let record = serde_json::to_string_pretty(&record)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
@@ -85,10 +89,50 @@ pub(crate) fn register_builtin_screen_session(
 }
 
 pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
-    let dir = builtin_screen_sessions_dir();
-    if !dir.exists() {
+    let sessions = load_alive_builtin_screen_sessions()?;
+
+    if sessions.is_empty() {
         println!("{}", terman_common::builtin_screen_no_sessions_hint());
         return Ok(());
+    }
+
+    println!("{}", terman_common::builtin_screen_session_list_header());
+    for session in sessions {
+        println!(
+            "  {}\tpid={}\tcwd={}\tcommand={}",
+            session.name, session.pid, session.cwd, session.command
+        );
+    }
+
+    Ok(())
+}
+
+pub(crate) fn find_builtin_screen_session_for_attach(
+    target: Option<&str>,
+) -> io::Result<BuiltinScreenSession> {
+    let sessions = load_alive_builtin_screen_sessions()?;
+    match target {
+        Some(name) => sessions
+            .into_iter()
+            .find(|session| session.name == name)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    terman_common::builtin_screen_session_not_found_hint(name),
+                )
+            }),
+        None if sessions.len() == 1 => Ok(sessions.into_iter().next().expect("one session")),
+        None => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_attach_target_required_hint(),
+        )),
+    }
+}
+
+fn load_alive_builtin_screen_sessions() -> io::Result<Vec<BuiltinScreenSession>> {
+    let dir = builtin_screen_sessions_dir();
+    if !dir.exists() {
+        return Ok(Vec::new());
     }
 
     let mut system = System::new();
@@ -114,21 +158,7 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
     }
 
     sessions.sort_by(|left, right| left.name.cmp(&right.name));
-
-    if sessions.is_empty() {
-        println!("{}", terman_common::builtin_screen_no_sessions_hint());
-        return Ok(());
-    }
-
-    println!("{}", terman_common::builtin_screen_session_list_header());
-    for session in sessions {
-        println!(
-            "  {}\tpid={}\tcwd={}\tcommand={}",
-            session.name, session.pid, session.cwd, session.command
-        );
-    }
-
-    Ok(())
+    Ok(sessions)
 }
 
 pub(crate) fn builtin_screen_session_is_alive(

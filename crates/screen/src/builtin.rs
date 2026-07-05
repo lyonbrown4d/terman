@@ -18,6 +18,7 @@ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 
 use crate::{
     ScreenArgs,
+    service::ScreenSessionService,
     sessions::register_builtin_screen_session,
     shell::{default_shell, shell_command_args},
 };
