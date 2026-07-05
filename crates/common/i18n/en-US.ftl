@@ -17,6 +17,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X quit
       - terman-screen -S dev -Q info
       - terman-screen -S dev -X windows
+      - terman-screen -S dev -X select 0
       - terman-screen -S dev -X at 0 info
       - terman-screen -S dev -X colon "info"
       - terman-screen -S dev -X source .screenrc
@@ -43,10 +44,11 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, info, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, info, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
+builtin-screen-control-select-unsupported = Built-in screen has one window; select supports only 0, ., #, or an empty selector. Got `{$selector}`.
 builtin-screen-control-info = screen info: session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = 0* {$session_name} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.

@@ -17,6 +17,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X quit
       - terman-screen -S dev -Q info
       - terman-screen -S dev -X windows
+      - terman-screen -S dev -X select 0
       - terman-screen -S dev -X at 0 info
       - terman-screen -S dev -X colon "info"
       - terman-screen -S dev -X source .screenrc
@@ -43,10 +44,11 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、info、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、info、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
+builtin-screen-control-select-unsupported = 内置 screen 当前只有一个窗口；select 仅支持 0、.、# 或空 selector。收到 `{$selector}`。
 builtin-screen-control-info = screen 信息：session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = 0* {$session_name} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。
