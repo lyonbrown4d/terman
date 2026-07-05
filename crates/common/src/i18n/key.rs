@@ -17,6 +17,9 @@ pub enum MessageKey {
     BuiltinTmuxCommandUnsupported,
     BuiltinTmuxInternalServerSessionRequired,
     BuiltinTmuxInternalServerExited,
+    BuiltinTmuxServerNotResponding,
+    BuiltinTmuxServerNotReady,
+    BuiltinTmuxUnexpectedInfoResponse,
     BuiltinScreenNoSessions,
     BuiltinScreenSessionListHeader,
     BuiltinScreenSessionListEntry,
@@ -66,6 +69,9 @@ impl MessageKey {
                 "builtin-tmux-internal-server-session-required"
             }
             Self::BuiltinTmuxInternalServerExited => "builtin-tmux-internal-server-exited",
+            Self::BuiltinTmuxServerNotResponding => "builtin-tmux-server-not-responding",
+            Self::BuiltinTmuxServerNotReady => "builtin-tmux-server-not-ready",
+            Self::BuiltinTmuxUnexpectedInfoResponse => "builtin-tmux-unexpected-info-response",
             Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
             Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
             Self::BuiltinScreenSessionListEntry => "builtin-screen-session-list-entry",

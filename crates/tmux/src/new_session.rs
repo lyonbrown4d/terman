@@ -63,7 +63,10 @@ fn wait_for_session_server(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     }
 
     Err(last_error.unwrap_or_else(|| {
-        io::Error::new(io::ErrorKind::TimedOut, "tmux server did not become ready")
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            terman_common::builtin_tmux_server_not_ready_hint(),
+        )
     }))
 }
 

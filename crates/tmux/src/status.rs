@@ -68,7 +68,10 @@ fn query_session_info_with_retry(session: &BuiltinTmuxSession) -> io::Result<Liv
     }
 
     Err(last_error.unwrap_or_else(|| {
-        io::Error::new(io::ErrorKind::TimedOut, "tmux server did not respond")
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            terman_common::builtin_tmux_server_not_responding_hint(),
+        )
     }))
 }
 
@@ -89,7 +92,7 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
         }
         response => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("unexpected tmux info response: {response:?}"),
+            terman_common::builtin_tmux_unexpected_info_response_hint(&format!("{response:?}")),
         )),
     }
 }

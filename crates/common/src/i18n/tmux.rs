@@ -93,6 +93,21 @@ pub fn builtin_tmux_internal_server_exited_hint(code: i32) -> String {
     )
 }
 
+pub fn builtin_tmux_server_not_responding_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxServerNotResponding, &[])
+}
+
+pub fn builtin_tmux_server_not_ready_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxServerNotReady, &[])
+}
+
+pub fn builtin_tmux_unexpected_info_response_hint(response: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxUnexpectedInfoResponse,
+        &[("response", response)],
+    )
+}
+
 pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
     localized_message(
         MessageKey::BuiltinTmuxCommandUnsupported,
