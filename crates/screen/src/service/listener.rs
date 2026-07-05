@@ -77,6 +77,10 @@ fn handle_client(
             bus.publish_detach();
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::Bell) => {
+            bus.publish_transient_output(b"\x07");
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Clear) => {
             bus.clear_replay();
             write_response(stream, &ScreenIpcResponse::Accepted)

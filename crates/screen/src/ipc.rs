@@ -70,6 +70,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     Detach,
     DetachAll,
+    Bell,
     Clear,
     Echo {
         message: String,
