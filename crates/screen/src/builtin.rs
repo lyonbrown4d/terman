@@ -41,6 +41,11 @@ impl Drop for RawMode {
 
 pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _session_record = register_builtin_screen_session(&args)?;
+    let session_bus = ScreenSessionBus::new();
+    let _session_service = ScreenSessionService::start(
+        args.session_name.as_deref(),
+        session_bus.clone(),
+    )?;
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
 
@@ -64,12 +69,14 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let mut stdout = io::stdout();
 
     let output_running = Arc::clone(&should_run);
+    let output_bus = session_bus.clone();
     let output_thread = thread::spawn(move || {
         let mut buf = [0u8; 8192];
         while output_running.load(Ordering::Acquire) {
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
+                    output_bus.publish_output(&buf[..n]);
                     if stdout.write_all(&buf[..n]).is_err() {
                         break;
                     }
@@ -83,11 +90,13 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     });
 
     let (exit_tx, exit_rx) = mpsc::channel::<i32>();
+    let exit_bus = session_bus.clone();
     let child_wait_handle = thread::spawn(move || {
         let status = child
             .wait()
             .map(|status| status.exit_code() as i32)
             .unwrap_or(-1);
+        exit_bus.publish_exit(status);
         let _ = exit_tx.send(status);
     });
 
@@ -262,6 +271,7 @@ fn ctrl_char_bytes(c: char) -> Option<Vec<u8>> {
     };
     Some(vec![b])
 }
+
 fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }

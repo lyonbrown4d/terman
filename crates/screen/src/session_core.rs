@@ -1,6 +1,4 @@
-use std::{
-    sync::{Arc, Mutex, mpsc},
-};
+use std::sync::{Arc, Mutex, mpsc};
 
 const MAX_REPLAY_BYTES: usize = 64 * 1024;
 
@@ -28,11 +26,20 @@ impl ScreenSessionBus {
     }
 
     pub(crate) fn subscribe(&self) -> mpsc::Receiver<ScreenSessionEvent> {
+        self.subscribe_with_replay().1
+    }
+
+    pub(crate) fn subscribe_with_replay(&self) -> (Vec<u8>, mpsc::Receiver<ScreenSessionEvent>) {
         let (tx, rx) = mpsc::channel();
-        if let Ok(mut state) = self.inner.lock() {
+        let replay = if let Ok(mut state) = self.inner.lock() {
+            let replay = state.replay.clone();
             state.subscribers.push(tx);
-        }
-        rx
+            replay
+        } else {
+            Vec::new()
+        };
+
+        (replay, rx)
     }
 
     pub(crate) fn replay_snapshot(&self) -> Vec<u8> {
@@ -85,6 +92,17 @@ mod tests {
         bus.publish_output(b"hello");
 
         assert_eq!(bus.replay_snapshot(), b"hello".to_vec());
+    }
+
+    #[test]
+    fn subscribes_with_replay_without_losing_snapshot() {
+        let bus = ScreenSessionBus::new();
+        bus.publish_output(b"hello");
+        let (replay, rx) = bus.subscribe_with_replay();
+        bus.publish_output(b"!");
+
+        assert_eq!(replay, b"hello".to_vec());
+        assert_eq!(rx.try_recv(), Ok(ScreenSessionEvent::Output(b"!".to_vec())));
     }
 
     #[test]

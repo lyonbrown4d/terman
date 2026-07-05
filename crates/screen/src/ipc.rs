@@ -81,6 +81,9 @@ pub(crate) enum ScreenIpcRequest {
 pub(crate) enum ScreenIpcResponse {
     Accepted,
     Attached { replay: Vec<u8> },
+    Output { bytes: Vec<u8> },
+    Resize { cols: u16, rows: u16 },
+    Exit { code: i32 },
     Rejected { reason: String },
 }
 
@@ -140,13 +143,21 @@ mod tests {
     }
 
     #[test]
-    fn models_attach_replay_response() {
+    fn models_attach_stream_responses() {
         assert_eq!(
             ScreenIpcResponse::Attached {
                 replay: b"hello".to_vec()
             },
             ScreenIpcResponse::Attached {
                 replay: b"hello".to_vec()
+            }
+        );
+        assert_eq!(
+            ScreenIpcResponse::Output {
+                bytes: b"x".to_vec()
+            },
+            ScreenIpcResponse::Output {
+                bytes: b"x".to_vec()
             }
         );
     }

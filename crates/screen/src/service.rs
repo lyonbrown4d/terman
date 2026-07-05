@@ -8,7 +8,7 @@ use interprocess::local_socket::prelude::*;
 use crate::{
     ScreenArgs,
     ipc::{ScreenAttachMode, ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
-    session_core::ScreenSessionBus,
+    session_core::{ScreenSessionBus, ScreenSessionEvent},
     sessions::find_builtin_screen_session_for_attach,
 };
 
@@ -32,7 +32,10 @@ impl ScreenSessionService {
                 let Ok(mut stream) = stream else {
                     continue;
                 };
-                let _ = handle_client(&mut stream, &bus);
+                let client_bus = bus.clone();
+                thread::spawn(move || {
+                    let _ = handle_client(&mut stream, &client_bus);
+                });
             }
         });
 
@@ -69,20 +72,36 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     stream.write_all(b"\n")?;
     stream.flush()?;
 
-    let mut response = String::new();
-    BufReader::new(stream).read_line(&mut response)?;
-    let response: ScreenIpcResponse = serde_json::from_str(response.trim_end())
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    read_attach_stream(stream)
+}
 
-    match response {
-        ScreenIpcResponse::Accepted => Ok(()),
-        ScreenIpcResponse::Attached { replay } => {
-            let mut stdout = io::stdout();
-            stdout.write_all(&replay)?;
-            stdout.flush()
+fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
+    let mut reader = BufReader::new(stream);
+    let mut stdout = io::stdout();
+
+    loop {
+        let mut response = String::new();
+        if reader.read_line(&mut response)? == 0 {
+            return Ok(());
         }
-        ScreenIpcResponse::Rejected { reason } => {
-            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        let response: ScreenIpcResponse = serde_json::from_str(response.trim_end())
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+
+        match response {
+            ScreenIpcResponse::Accepted => {}
+            ScreenIpcResponse::Attached { replay } => {
+                stdout.write_all(&replay)?;
+                stdout.flush()?;
+            }
+            ScreenIpcResponse::Output { bytes } => {
+                stdout.write_all(&bytes)?;
+                stdout.flush()?;
+            }
+            ScreenIpcResponse::Resize { .. } => {}
+            ScreenIpcResponse::Exit { .. } => return Ok(()),
+            ScreenIpcResponse::Rejected { reason } => {
+                return Err(io::Error::new(io::ErrorKind::Unsupported, reason));
+            }
         }
     }
 }
@@ -94,22 +113,46 @@ fn handle_client(stream: &mut LocalSocketStream, bus: &ScreenSessionBus) -> io::
         reader.read_line(&mut request)?;
     }
 
-    let response = match serde_json::from_str::<ScreenIpcRequest>(request.trim_end()) {
-        Ok(ScreenIpcRequest::Attach { .. }) => ScreenIpcResponse::Attached {
-            replay: bus.replay_snapshot(),
-        },
-        Ok(ScreenIpcRequest::Detach) => ScreenIpcResponse::Accepted,
-        Ok(ScreenIpcRequest::Input { .. } | ScreenIpcRequest::Resize { .. }) => {
-            ScreenIpcResponse::Rejected {
+    match serde_json::from_str::<ScreenIpcRequest>(request.trim_end()) {
+        Ok(ScreenIpcRequest::Attach { .. }) => stream_attach(stream, bus),
+        Ok(ScreenIpcRequest::Detach) => write_response(stream, &ScreenIpcResponse::Accepted),
+        Ok(ScreenIpcRequest::Input { .. } | ScreenIpcRequest::Resize { .. }) => write_response(
+            stream,
+            &ScreenIpcResponse::Rejected {
                 reason: terman_common::builtin_screen_attach_unsupported_hint(),
-            }
-        }
-        Err(err) => ScreenIpcResponse::Rejected {
-            reason: err.to_string(),
-        },
-    };
+            },
+        ),
+        Err(err) => write_response(
+            stream,
+            &ScreenIpcResponse::Rejected {
+                reason: err.to_string(),
+            },
+        ),
+    }
+}
 
-    serde_json::to_writer(&mut *stream, &response)
+fn stream_attach(stream: &mut LocalSocketStream, bus: &ScreenSessionBus) -> io::Result<()> {
+    let (replay, events) = bus.subscribe_with_replay();
+    write_response(stream, &ScreenIpcResponse::Attached { replay })?;
+
+    for event in events {
+        let response = match event {
+            ScreenSessionEvent::Output(bytes) => ScreenIpcResponse::Output { bytes },
+            ScreenSessionEvent::Resize { cols, rows } => ScreenIpcResponse::Resize { cols, rows },
+            ScreenSessionEvent::Exit(code) => ScreenIpcResponse::Exit { code },
+        };
+        let should_close = matches!(response, ScreenIpcResponse::Exit { .. });
+        write_response(stream, &response)?;
+        if should_close {
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) -> io::Result<()> {
+    serde_json::to_writer(&mut *stream, response)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
     stream.write_all(b"\n")?;
     stream.flush()
