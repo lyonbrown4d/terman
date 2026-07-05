@@ -7,6 +7,7 @@ pub(crate) enum ScreenInputAction {
     Bytes(Vec<u8>),
     Detach,
     Help,
+    Hardcopy,
     Info,
     Kill,
 }
@@ -46,6 +47,9 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('k') | KeyCode::Char('K') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Kill)
+            }
+            KeyCode::Char('h') | KeyCode::Char('H') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::Hardcopy)
             }
             KeyCode::Char('i') | KeyCode::Char('I') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Info)
@@ -185,6 +189,19 @@ mod tests {
 
         assert_eq!(decoder.decode_key(prefix), None);
         assert_eq!(decoder.decode_key(kill), Some(ScreenInputAction::Kill));
+    }
+
+    #[test]
+    fn detects_screen_hardcopy_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let hardcopy = KeyEvent::new(KeyCode::Char('h'), KeyModifiers::empty());
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(
+            decoder.decode_key(hardcopy),
+            Some(ScreenInputAction::Hardcopy)
+        );
     }
 
     #[test]

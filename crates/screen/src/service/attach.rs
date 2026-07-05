@@ -1,4 +1,5 @@
 use std::{
+    fs,
     io::{self, BufRead, BufReader, Write},
     sync::{
         Arc,
@@ -19,6 +20,8 @@ use crate::{
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_input::{ScreenInputAction, ScreenInputDecoder},
 };
+
+const DEFAULT_ATTACH_HARDCOPY_PATH: &str = "hardcopy.0";
 
 struct AttachRawMode;
 
@@ -64,7 +67,8 @@ pub(super) fn attach_interactive(
                         return Ok(());
                     }
                     Some(ScreenInputAction::Help) => print_attach_help()?,
-                Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,
+                    Some(ScreenInputAction::Hardcopy) => print_attach_hardcopy(&endpoint)?,
+                    Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,
                     Some(ScreenInputAction::Kill) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
                         running.store(false, Ordering::Release);
@@ -95,6 +99,32 @@ pub(super) fn attach_interactive(
 fn sync_attach_terminal_size(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     let (cols, rows) = terminal::size()?;
     send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
+}
+
+fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    match request_endpoint_response(endpoint, ScreenIpcRequest::Hardcopy)? {
+        ScreenIpcResponse::Hardcopy { bytes } => {
+            fs::write(DEFAULT_ATTACH_HARDCOPY_PATH, &bytes)?;
+            let mut stdout = io::stdout();
+            stdout.write_all(b"\r\n")?;
+            stdout.write_all(
+                terman_common::builtin_screen_control_hardcopy_complete_hint(
+                    DEFAULT_ATTACH_HARDCOPY_PATH,
+                    bytes.len(),
+                )
+                .as_bytes(),
+            )?;
+            stdout.write_all(b"\r\n")?;
+            stdout.flush()
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected screen attach hardcopy response",
+        )),
+    }
 }
 
 fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
@@ -128,6 +158,7 @@ fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
         )),
     }
 }
+
 fn print_attach_help() -> io::Result<()> {
     let mut stdout = io::stdout();
     stdout.write_all(b"\r\n")?;
