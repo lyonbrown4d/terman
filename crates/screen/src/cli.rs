@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "跨平台 screen 终端会话工具（自实现内置后端）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -d -m -S dev\n  - terman-screen -dmS dev\n  - terman-screen -D -r dev\n  - terman-screen -d -r dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -d -m -S dev\n  - terman-screen -dmS dev\n  - terman-screen -D -r dev\n  - terman-screen -d -r dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -S dev -p 0 -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -51,6 +51,16 @@ pub struct ScreenArgs {
         conflicts_with_all = ["command", "list", "resume", "multi_attach", "execute", "internal_server"]
     )]
     pub wipe: bool,
+
+    /// Select a screen window for a control command; single-window built-in sessions currently accept this as a compatibility selector.
+    #[arg(
+        short = 'p',
+        long = "window",
+        value_name = "WINDOW",
+        requires = "execute",
+        conflicts_with_all = ["command", "list", "wipe", "resume", "multi_attach", "internal_server"]
+    )]
+    pub window_selector: Option<String>,
 
     /// Execute a control command against an existing screen session.
     #[arg(
@@ -123,6 +133,7 @@ impl Default for ScreenArgs {
             detach_existing: false,
             list: false,
             wipe: false,
+            window_selector: None,
             execute: None,
             execute_args: Vec::new(),
             resume_or_create: None,
