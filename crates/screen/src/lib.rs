@@ -26,7 +26,7 @@ use terman_common;
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen --system\n  - terman-screen --system --list\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -r dev\n  - terman-screen -x dev\n  - terman-screen --system\n  - terman-screen --system --list\n  - terman-screen --system -r dev\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -48,6 +48,26 @@ pub struct ScreenArgs {
     /// List known screen sessions. In system mode this maps to `screen -ls`.
     #[arg(long, alias = "ls", conflicts_with_all = ["command", "detach"])]
     pub list: bool,
+
+    /// Resume a detached screen session; maps to `screen -r [NAME]` in system mode.
+    #[arg(
+        short = 'r',
+        long = "resume",
+        value_name = "NAME",
+        num_args = 0..=1,
+        conflicts_with_all = ["command", "detach", "list", "session_name", "multi_attach"]
+    )]
+    pub resume: Option<Option<String>>,
+
+    /// Attach to an existing session without detaching other displays; maps to `screen -x [NAME]`.
+    #[arg(
+        short = 'x',
+        long = "multi-attach",
+        value_name = "NAME",
+        num_args = 0..=1,
+        conflicts_with_all = ["command", "detach", "list", "session_name", "resume"]
+    )]
+    pub multi_attach: Option<Option<String>>,
 
     /// Prefer using system `screen` if available.
     #[arg(long)]
@@ -82,6 +102,8 @@ impl Default for ScreenArgs {
             rows: None,
             session_name: None,
             list: false,
+            resume: None,
+            multi_attach: None,
             system: false,
             detach: false,
             login_shell: false,
@@ -128,6 +150,16 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 
     if let Some(session_name) = &args.session_name {
         validate_screen_session_name(session_name)?;
+    }
+    if let Some(Some(session_name)) = &args.resume {
+        validate_screen_session_name(session_name)?;
+    }
+    if let Some(Some(session_name)) = &args.multi_attach {
+        validate_screen_session_name(session_name)?;
+    }
+
+    if is_builtin_screen_attach_requested(&args) {
+        return Err(Box::new(builtin_screen_attach_unsupported_error(&args)));
     }
 
     if args.list && !args.system {
@@ -253,10 +285,41 @@ fn build_system_screen_args(args: &ScreenArgs) -> Vec<String> {
         system_args.push(session_name.clone());
     }
 
+    if let Some(target) = &args.resume {
+        system_args.push(String::from("-r"));
+        if let Some(target) = target {
+            system_args.push(target.clone());
+        }
+    }
+
+    if let Some(target) = &args.multi_attach {
+        system_args.push(String::from("-x"));
+        if let Some(target) = target {
+            system_args.push(target.clone());
+        }
+    }
+
     system_args.extend(args.args.clone());
     system_args
 }
 
+fn is_builtin_screen_attach_requested(args: &ScreenArgs) -> bool {
+    !args.system && (args.resume.is_some() || args.multi_attach.is_some())
+}
+
+fn builtin_screen_attach_unsupported_error(args: &ScreenArgs) -> io::Error {
+    let mode = if args.resume.is_some() {
+        "恢复 detached 会话"
+    } else {
+        "多端附加会话"
+    };
+    io::Error::new(
+        io::ErrorKind::Unsupported,
+        format!(
+            "内置 screen 暂不支持{mode}。请先使用 `terman-screen --system -r <name>` / `terman-screen --system -x <name>` 走系统 screen；跨平台内置 attach 需要后续会话服务支持。",
+        ),
+    )
+}
 fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
@@ -836,8 +899,9 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::{
         ScreenArgs, build_system_screen_args, clean_session_record_value,
-        is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg,
-        parse_builtin_screen_session_record, sanitize_session_file_name, screen_failure_message,
+        is_builtin_screen_attach_requested, is_screen_attach_attempt, is_screen_detached_arg,
+        is_screen_session_name_arg, parse_builtin_screen_session_record, sanitize_session_file_name,
+        screen_failure_message,
     };
 
     #[test]
@@ -903,6 +967,47 @@ mod tests {
         };
 
         assert_eq!(build_system_screen_args(&args), vec![String::from("-ls")]);
+    }
+
+    #[test]
+    fn builds_system_args_for_resume_with_optional_target() {
+        let args = ScreenArgs {
+            system: true,
+            resume: Some(Some(String::from("dev"))),
+            ..ScreenArgs::default()
+        };
+
+        assert_eq!(
+            build_system_screen_args(&args),
+            vec![String::from("-r"), String::from("dev")]
+        );
+    }
+
+    #[test]
+    fn builds_system_args_for_multi_attach_without_target() {
+        let args = ScreenArgs {
+            system: true,
+            multi_attach: Some(None),
+            ..ScreenArgs::default()
+        };
+
+        assert_eq!(build_system_screen_args(&args), vec![String::from("-x")]);
+    }
+
+    #[test]
+    fn detects_builtin_attach_modes() {
+        let builtin_resume = ScreenArgs {
+            resume: Some(Some(String::from("dev"))),
+            ..ScreenArgs::default()
+        };
+        let system_resume = ScreenArgs {
+            system: true,
+            resume: Some(Some(String::from("dev"))),
+            ..ScreenArgs::default()
+        };
+
+        assert!(is_builtin_screen_attach_requested(&builtin_resume));
+        assert!(!is_builtin_screen_attach_requested(&system_resume));
     }
 
     #[test]
