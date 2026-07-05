@@ -4,6 +4,7 @@ use std::{
     hash::{Hash, Hasher},
     io::{self, Write},
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
 };
 
 use directories::ProjectDirs;
@@ -13,12 +14,15 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 use crate::{ScreenArgs, ipc::ScreenIpcEndpoint, shell::default_shell};
 
 pub(crate) struct BuiltinScreenSessionGuard {
-    path: PathBuf,
+    session_name: Arc<Mutex<String>>,
 }
 
 impl Drop for BuiltinScreenSessionGuard {
     fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
+        let Ok(session_name) = self.session_name.lock() else {
+            return;
+        };
+        let _ = remove_builtin_screen_session_record(&session_name);
     }
 }
 
@@ -32,9 +36,17 @@ pub(crate) struct BuiltinScreenSession {
     pub(crate) ipc_endpoint: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RenameBuiltinScreenSession {
+    Renamed,
+    SourceMissing,
+    DestinationExists,
+}
+
 pub(crate) fn register_builtin_screen_session(
     args: &ScreenArgs,
     endpoint: &ScreenIpcEndpoint,
+    session_name_state: Option<Arc<Mutex<String>>>,
 ) -> io::Result<Option<BuiltinScreenSessionGuard>> {
     let Some(session_name) = &args.session_name else {
         return Ok(None);
@@ -57,8 +69,7 @@ pub(crate) fn register_builtin_screen_session(
         command,
         ipc_endpoint: Some(endpoint.raw_name().to_string()),
     };
-    let record = serde_json::to_string_pretty(&record)
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    let record = serialize_session_record(&record)?;
 
     let mut file = fs::OpenOptions::new()
         .write(true)
@@ -76,7 +87,55 @@ pub(crate) fn register_builtin_screen_session(
         })?;
     file.write_all(format!("{record}\n").as_bytes())?;
 
-    Ok(Some(BuiltinScreenSessionGuard { path }))
+    let session_name = session_name_state.unwrap_or_else(|| Arc::new(Mutex::new(session_name.clone())));
+    Ok(Some(BuiltinScreenSessionGuard { session_name }))
+}
+
+pub(crate) fn rename_builtin_screen_session(
+    old_name: &str,
+    new_name: &str,
+) -> io::Result<RenameBuiltinScreenSession> {
+    let old_path = builtin_screen_session_record_path(old_name);
+    if !old_path.exists() {
+        return Ok(RenameBuiltinScreenSession::SourceMissing);
+    }
+
+    let new_path = builtin_screen_session_record_path(new_name);
+    if new_path.exists() {
+        let _ = remove_stale_builtin_screen_session_record(&new_path)?;
+        if new_path.exists() {
+            return Ok(RenameBuiltinScreenSession::DestinationExists);
+        }
+    }
+
+    let record = fs::read_to_string(&old_path)?;
+    let Some(mut session) = parse_builtin_screen_session_record(&record) else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "invalid built-in screen session record",
+        ));
+    };
+    session.name = new_name.to_string();
+
+    if let Some(parent) = new_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let record = serialize_session_record(&session)?;
+    let mut file = match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&new_path)
+    {
+        Ok(file) => file,
+        Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
+            return Ok(RenameBuiltinScreenSession::DestinationExists);
+        }
+        Err(err) => return Err(err),
+    };
+    file.write_all(format!("{record}\n").as_bytes())?;
+    fs::remove_file(old_path)?;
+
+    Ok(RenameBuiltinScreenSession::Renamed)
 }
 
 pub(crate) fn remove_builtin_screen_session_record(name: &str) -> io::Result<bool> {
@@ -87,6 +146,7 @@ pub(crate) fn remove_builtin_screen_session_record(name: &str) -> io::Result<boo
         Err(err) => Err(err),
     }
 }
+
 pub(crate) fn remove_stale_builtin_screen_session_records() -> io::Result<usize> {
     let dir = builtin_screen_sessions_dir();
     if !dir.exists() {
@@ -177,6 +237,11 @@ pub(crate) fn builtin_screen_session_is_alive(
 
 pub(crate) fn parse_builtin_screen_session_record(record: &str) -> Option<BuiltinScreenSession> {
     serde_json::from_str(record).ok()
+}
+
+fn serialize_session_record(session: &BuiltinScreenSession) -> io::Result<String> {
+    serde_json::to_string_pretty(session)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
 }
 
 fn builtin_screen_session_record_path(name: &str) -> PathBuf {

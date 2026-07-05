@@ -35,6 +35,7 @@ pub enum MessageKey {
     BuiltinScreenControlStuffRequired,
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlInfo,
+    BuiltinScreenControlUnexpectedResponse,
     BuiltinScreenControlHardcopyPathRequired,
     BuiltinScreenControlHardcopyComplete,
     BuiltinScreenControlPastefilePathRequired,
@@ -85,6 +86,9 @@ impl MessageKey {
             Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
             Self::BuiltinScreenControlResizeRequired => "builtin-screen-control-resize-required",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
+            Self::BuiltinScreenControlUnexpectedResponse => {
+                "builtin-screen-control-unexpected-response"
+            },
             Self::BuiltinScreenControlHardcopyPathRequired => {
                 "builtin-screen-control-hardcopy-path-required"
             }

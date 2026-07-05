@@ -3,7 +3,7 @@ mod store;
 
 use std::{io, thread, time::Duration};
 
-pub(crate) use store::{BuiltinScreenSession, BuiltinScreenSessionGuard};
+pub(crate) use store::{BuiltinScreenSession, BuiltinScreenSessionGuard, RenameBuiltinScreenSession};
 #[cfg(test)]
 pub(crate) use store::{
     builtin_screen_session_is_alive, parse_builtin_screen_session_record, sanitize_session_file_name,
@@ -27,8 +27,16 @@ pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
 pub(crate) fn register_builtin_screen_session(
     args: &ScreenArgs,
     endpoint: &ScreenIpcEndpoint,
+    session_name: Option<std::sync::Arc<std::sync::Mutex<String>>>,
 ) -> io::Result<Option<BuiltinScreenSessionGuard>> {
-    store::register_builtin_screen_session(args, endpoint)
+    store::register_builtin_screen_session(args, endpoint, session_name)
+}
+
+pub(crate) fn rename_builtin_screen_session(
+    old_name: &str,
+    new_name: &str,
+) -> io::Result<RenameBuiltinScreenSession> {
+    store::rename_builtin_screen_session(old_name, new_name)
 }
 
 pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {

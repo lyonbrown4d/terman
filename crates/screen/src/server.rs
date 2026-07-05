@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     io::{self, Read, Write},
-    sync::mpsc,
+    sync::{Arc, Mutex, mpsc},
     thread,
     time::Duration,
 };
@@ -24,16 +24,18 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
             terman_common::builtin_screen_internal_server_session_required_hint(),
         )));
     };
+    let session_name_state = Arc::new(Mutex::new(session_name.to_string()));
     let endpoint = args
         .internal_endpoint_name
         .as_deref()
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(session_name));
-    let _session_record = register_builtin_screen_session(&args, &endpoint)?;
+    let _session_record =
+        register_builtin_screen_session(&args, &endpoint, Some(session_name_state.clone()))?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
     let _session_service = ScreenSessionService::start(
-        args.session_name.as_deref(),
+        Some(session_name_state),
         endpoint,
         session_bus.clone(),
         control_tx,

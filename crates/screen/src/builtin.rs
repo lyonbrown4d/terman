@@ -2,7 +2,7 @@ use std::{
     error::Error,
     io::{self, Read, Write},
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
         mpsc,
     },
@@ -49,11 +49,16 @@ fn screen_session_endpoint(args: &ScreenArgs) -> ScreenIpcEndpoint {
 }
 pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let endpoint = screen_session_endpoint(&args);
-    let _session_record = register_builtin_screen_session(&args, &endpoint)?;
+    let session_name_state = args
+        .session_name
+        .as_ref()
+        .map(|name| Arc::new(Mutex::new(name.clone())));
+    let _session_record =
+        register_builtin_screen_session(&args, &endpoint, session_name_state.clone())?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
     let _session_service = ScreenSessionService::start(
-        args.session_name.as_deref(),
+        session_name_state,
         endpoint,
         session_bus.clone(),
         control_tx,

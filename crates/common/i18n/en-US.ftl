@@ -12,11 +12,12 @@ builtin-screen-server-timeout = Timed out waiting for the built-in screen sessio
 builtin-screen-internal-server-session-required = Internal screen server requires a session name.
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, detach, resize, info, hardcopy, clear, reset, eval.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, detach, resize, info, hardcopy, clear, reset, eval, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-info = screen info: session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
+builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
 builtin-screen-control-hardcopy-path-required = Specify an output path as screen -X hardcopy <path>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.

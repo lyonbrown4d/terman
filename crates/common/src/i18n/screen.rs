@@ -102,6 +102,13 @@ pub fn builtin_screen_control_info_hint(
     )
 }
 
+pub fn builtin_screen_control_unexpected_response_hint(response: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinScreenControlUnexpectedResponse,
+        &[("response", response)],
+    )
+}
+
 pub fn builtin_screen_control_hardcopy_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlHardcopyPathRequired, &[])
 }

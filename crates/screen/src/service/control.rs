@@ -3,6 +3,7 @@ use std::{fs, io};
 use super::{
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     ipc_client::request_endpoint_response,
+    sessionname::request_sessionname_command,
 };
 use crate::{
     ScreenArgs,
@@ -45,6 +46,7 @@ fn execute_control_command(
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
+        "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
         "stuff" => request_stuff_command(args, inline_payload, extra_args),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -172,10 +174,7 @@ fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "unexpected screen info response",
-        )),
+        response => Err(unexpected_response_error(&response)),
     }
 }
 
@@ -192,10 +191,7 @@ fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "unexpected screen hardcopy response",
-        )),
+        response => Err(unexpected_response_error(&response)),
     }
 }
 
@@ -233,11 +229,15 @@ fn send_session_control_request(args: &ScreenArgs, request: ScreenIpcRequest) ->
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "unexpected screen control response",
-        )),
+        response => Err(unexpected_response_error(&response)),
     }
+}
+
+fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        terman_common::builtin_screen_control_unexpected_response_hint(&format!("{response:?}")),
+    )
 }
 
 fn request_session_response(

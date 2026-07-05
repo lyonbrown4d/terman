@@ -96,6 +96,9 @@ pub(crate) enum ScreenIpcRequest {
     Info,
     Ping,
     Quit,
+    RenameSession {
+        name: String,
+    },
     Reset,
     Input {
         bytes: Vec<u8>,

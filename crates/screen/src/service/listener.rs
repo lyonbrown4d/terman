@@ -1,6 +1,6 @@
 use std::{
     io::{self, BufRead, BufReader, Write},
-    sync::mpsc,
+    sync::{Arc, Mutex, mpsc},
     thread,
 };
 
@@ -17,7 +17,7 @@ pub(crate) struct ScreenSessionService {
 
 impl ScreenSessionService {
     pub(crate) fn start(
-        session_name: Option<&str>,
+        session_name: Option<Arc<Mutex<String>>>,
         endpoint: ScreenIpcEndpoint,
         bus: ScreenSessionBus,
         control_tx: mpsc::Sender<ScreenControlEvent>,
@@ -26,7 +26,6 @@ impl ScreenSessionService {
             return Ok(None);
         };
 
-        let session_name = session_name.to_string();
         let listener = endpoint.listener_options()?.create_sync()?;
         let handle = thread::spawn(move || {
             for stream in listener.incoming() {
@@ -53,7 +52,7 @@ impl ScreenSessionService {
 
 fn handle_client(
     stream: &mut LocalSocketStream,
-    session_name: &str,
+    session_name: &Arc<Mutex<String>>,
     bus: &ScreenSessionBus,
     control_tx: &mpsc::Sender<ScreenControlEvent>,
 ) -> io::Result<()> {
@@ -113,7 +112,7 @@ fn handle_client(
             write_response(
                 stream,
                 &ScreenIpcResponse::Info {
-                    session_name: session_name.to_string(),
+                    session_name: current_session_name(session_name)?,
                     replay_bytes: status.replay_bytes,
                     attach_clients: status.attach_clients,
                     cols: status.cols,
@@ -128,6 +127,15 @@ fn handle_client(
                 .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::RenameSession { name }) => match rename_session(session_name, name) {
+            Ok(()) => write_response(stream, &ScreenIpcResponse::Accepted),
+            Err(err) => write_response(
+                stream,
+                &ScreenIpcResponse::Rejected {
+                    reason: err.to_string(),
+                },
+            ),
+        },
         Ok(ScreenIpcRequest::Input { bytes }) => {
             control_tx
                 .send(ScreenControlEvent::Input(bytes))
@@ -147,6 +155,27 @@ fn handle_client(
             },
         ),
     }
+}
+
+fn current_session_name(session_name: &Arc<Mutex<String>>) -> io::Result<String> {
+    session_name
+        .lock()
+        .map(|name| name.clone())
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))
+}
+
+fn rename_session(session_name: &Arc<Mutex<String>>, name: String) -> io::Result<()> {
+    if name.trim().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_session_name_empty_hint(),
+        ));
+    }
+    let mut session_name = session_name
+        .lock()
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+    *session_name = name;
+    Ok(())
 }
 
 fn stream_attach(
@@ -183,6 +212,3 @@ fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) 
     stream.write_all(b"\n")?;
     stream.flush()
 }
-
-
-

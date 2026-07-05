@@ -12,11 +12,12 @@ builtin-screen-server-timeout = 等待内置 screen 会话服务启动超时。
 builtin-screen-internal-server-session-required = 内置 screen server 需要会话名。
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、detach、resize、info、hardcopy、clear、reset、eval。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、detach、resize、info、hardcopy、clear、reset、eval、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-info = screen 信息：session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
+builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。
 builtin-screen-control-hardcopy-path-required = 请按 screen -X hardcopy <路径> 指定输出路径。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
 builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
