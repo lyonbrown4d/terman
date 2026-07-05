@@ -23,19 +23,25 @@ pub fn command_status_with_timeout(
         .enable_time()
         .build()?;
 
-    runtime.block_on(async move {
-        let mut child = TokioCommand::new(command)
-            .args(args)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(true)
-            .spawn()?;
+    runtime.block_on(command_status_with_timeout_async(command, args, timeout))
+}
 
-        match tokio::time::timeout(timeout, child.wait()).await {
-            Ok(status) => status.map(Some),
-            Err(_) => Ok(None),
-        }
-    })
+pub async fn command_status_with_timeout_async(
+    command: String,
+    args: Vec<OsString>,
+    timeout: Duration,
+) -> io::Result<Option<ExitStatus>> {
+    let mut child = TokioCommand::new(command)
+        .args(args)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .kill_on_drop(true)
+        .spawn()?;
+
+    match tokio::time::timeout(timeout, child.wait()).await {
+        Ok(status) => status.map(Some),
+        Err(_) => Ok(None),
+    }
 }
 pub fn which_binary(name: &str) -> Option<String> {
     which(name)
