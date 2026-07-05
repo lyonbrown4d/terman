@@ -34,7 +34,7 @@ pub enum MessageKey {
 }
 
 impl MessageKey {
-    pub(super) fn fluent_id(self) -> &'static str {
+    pub(crate) fn fluent_id(self) -> &'static str {
         match self {
             Self::NativeToolNotFound => "native-tool-not-found",
             Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
@@ -78,4 +78,5 @@ impl MessageKey {
         }
     }
 }
+
 
