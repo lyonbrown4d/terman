@@ -3,7 +3,7 @@ use std::{
     env, fs,
     hash::{Hash, Hasher},
     io::{self, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use directories::ProjectDirs;
@@ -53,6 +53,7 @@ pub(crate) fn register_builtin_screen_session(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
+    let _ = remove_stale_builtin_screen_session_record(&path)?;
 
     let cwd = env::current_dir()
         .map(|path| path.to_string_lossy().to_string())
@@ -107,7 +108,6 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn wipe_builtin_screen_sessions() -> io::Result<()> {
     let removed = remove_stale_builtin_screen_session_records()?;
     println!("{}", terman_common::builtin_screen_wipe_complete_hint(removed));
@@ -120,30 +120,44 @@ fn remove_stale_builtin_screen_session_records() -> io::Result<usize> {
         return Ok(0);
     }
 
-    let mut system = System::new();
-    system.refresh_processes(ProcessesToUpdate::All, true);
-
     let mut removed = 0;
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         if !entry.file_type()?.is_file() {
             continue;
         }
-
-        let path = entry.path();
-        let stale = fs::read_to_string(&path)
-            .ok()
-            .and_then(|record| parse_builtin_screen_session_record(&record))
-            .map(|session| !builtin_screen_session_is_alive(&session, &system))
-            .unwrap_or(true);
-
-        if stale && fs::remove_file(path).is_ok() {
+        if remove_stale_builtin_screen_session_record(&entry.path())? {
             removed += 1;
         }
     }
 
     Ok(removed)
 }
+
+fn remove_stale_builtin_screen_session_record(path: &Path) -> io::Result<bool> {
+    if !path.exists() {
+        return Ok(false);
+    }
+
+    let mut system = System::new();
+    system.refresh_processes(ProcessesToUpdate::All, true);
+    let stale = fs::read_to_string(path)
+        .ok()
+        .and_then(|record| parse_builtin_screen_session_record(&record))
+        .map(|session| !builtin_screen_session_is_alive(&session, &system))
+        .unwrap_or(true);
+
+    if !stale {
+        return Ok(false);
+    }
+
+    match fs::remove_file(path) {
+        Ok(()) => Ok(true),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(err),
+    }
+}
+
 pub(crate) fn find_builtin_screen_session_for_attach(
     target: Option<&str>,
 ) -> io::Result<BuiltinScreenSession> {
