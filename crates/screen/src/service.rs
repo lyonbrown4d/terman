@@ -110,6 +110,7 @@ fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) ->
         result
     });
 
+    let mut input_decoder = ScreenInputDecoder::new();
     while running.load(Ordering::Acquire) {
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
