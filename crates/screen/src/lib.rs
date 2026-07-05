@@ -14,7 +14,10 @@ mod terminal_input;
 
 pub use cli::{ScreenArgs, run_with_binary_parse};
 use builtin::run_builtin_screen;
-use launcher::{run_detached_named_screen_session, run_named_screen_session};
+use launcher::{
+    run_detached_named_screen_session, run_named_screen_session,
+    run_resume_or_create_screen_session,
+};
 use service::{request_screen_attach, request_screen_control_command};
 use server::run_screen_server;
 use sessions::{

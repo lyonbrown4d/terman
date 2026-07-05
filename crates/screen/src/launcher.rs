@@ -22,6 +22,28 @@ pub(crate) fn run_detached_named_screen_session(args: ScreenArgs) -> Result<(), 
     Ok(())
 }
 
+pub(crate) fn run_resume_or_create_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    let session_name = args.resume_or_create.clone().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            builtin_screen_named_session_required_hint(),
+        )
+    })?;
+
+    let attach_args = ScreenArgs {
+        resume: Some(Some(session_name.clone())),
+        ..ScreenArgs::default()
+    };
+    match request_screen_attach(&attach_args) {
+        Ok(()) => Ok(()),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => run_named_screen_session(ScreenArgs {
+            session_name: Some(session_name),
+            ..ScreenArgs::default()
+        }),
+        Err(err) => Err(Box::new(err)),
+    }
+}
+
 pub(crate) fn run_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let session_name = args.session_name.clone().ok_or_else(|| {
         io::Error::new(
