@@ -5,12 +5,14 @@ use std::{
 };
 
 mod cli;
+mod command;
 mod hints;
 
 pub use cli::{TmuxArgs, run_with_binary_parse};
+use command::TmuxCommand;
 use hints::{
-    is_tmux_detached_without_tmux_command, is_tmux_new_session_command,
-    tmux_failure_message, tmux_has_detached_arg, tmux_launch_failure_hint, tmux_runtime_hints,
+    is_tmux_detached_without_tmux_command, tmux_failure_message, tmux_has_detached_arg,
+    tmux_launch_failure_hint, tmux_runtime_hints,
 };
 
 struct TmuxLaunch {
@@ -23,8 +25,9 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
 
     let mut cmd = Command::new(&launch.cmd);
     let mut passed_args = args.args;
+    let tmux_command = TmuxCommand::parse(&passed_args);
     if args.detached {
-        if is_tmux_new_session_command(&passed_args) {
+        if tmux_command.is_new_session() {
             if !tmux_has_detached_arg(&passed_args) {
                 passed_args.insert(0, String::from("-d"));
             }
