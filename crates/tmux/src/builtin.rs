@@ -4,9 +4,10 @@ use crate::{
     args::{rename_session_name_arg, session_name_arg, target_session_arg},
     command::TmuxCommand,
     sessions::{
-        AddBuiltinTmuxWindow, RenameBuiltinTmuxSession, add_builtin_tmux_window,
-        builtin_tmux_session_exists, load_builtin_tmux_sessions, register_builtin_tmux_session,
-        remove_builtin_tmux_session, rename_builtin_tmux_session,
+        AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
+        add_builtin_tmux_window, builtin_tmux_session_exists, kill_builtin_tmux_window,
+        load_builtin_tmux_sessions, register_builtin_tmux_session, remove_builtin_tmux_session,
+        rename_builtin_tmux_session,
     },
 };
 
@@ -38,6 +39,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::ListWindows => {
             list_builtin_tmux_windows(args)?;
+            Ok(true)
+        }
+        TmuxCommand::KillWindow => {
+            kill_builtin_tmux_window_command(args)?;
             Ok(true)
         }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
@@ -119,6 +124,27 @@ fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
             Ok(())
         }
         AddBuiltinTmuxWindow::SessionMissing => Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&target),
+        ))),
+    }
+}
+
+fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_arg(args)?;
+    match kill_builtin_tmux_window(&target)? {
+        KillBuiltinTmuxWindow::Killed(windows) => {
+            println!(
+                "{}",
+                terman_common::builtin_tmux_window_killed_hint(&target, windows)
+            );
+            Ok(())
+        }
+        KillBuiltinTmuxWindow::SessionKilled => {
+            println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
+            Ok(())
+        }
+        KillBuiltinTmuxWindow::SessionMissing => Err(Box::new(io::Error::new(
             io::ErrorKind::NotFound,
             terman_common::builtin_tmux_session_not_found_hint(&target),
         ))),

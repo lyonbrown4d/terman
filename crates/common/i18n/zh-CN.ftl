@@ -30,3 +30,5 @@ builtin-tmux-session-exists = tmux 会话 {$name} 已存在
 builtin-tmux-session-name-required = 请使用 -s <名称> 指定会话名称
 builtin-tmux-command-unsupported = 内置 tmux 暂不支持命令 {$command}。当前不会调用系统 tmux；请等待后续跨平台实现。
 builtin-tmux-window-created = 已在 tmux 会话 {$session} 中创建窗口，当前共 {$windows} 个窗口
+
+builtin-tmux-window-killed = 已结束 tmux 会话 {$session} 中的一个窗口，当前剩余 {$windows} 个窗口

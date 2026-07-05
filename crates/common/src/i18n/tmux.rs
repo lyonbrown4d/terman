@@ -41,6 +41,14 @@ pub fn builtin_tmux_window_created_hint(session: &str, windows: u32) -> String {
     )
 }
 
+pub fn builtin_tmux_window_killed_hint(session: &str, windows: u32) -> String {
+    let windows = windows.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxWindowKilled,
+        &[("session", session), ("windows", &windows)],
+    )
+}
+
 pub fn builtin_tmux_session_exists_hint(name: &str) -> String {
     localized_message(MessageKey::BuiltinTmuxSessionExists, &[("name", name)])
 }

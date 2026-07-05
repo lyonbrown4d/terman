@@ -31,6 +31,13 @@ pub(crate) enum AddBuiltinTmuxWindow {
     SessionMissing,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum KillBuiltinTmuxWindow {
+    Killed(u32),
+    SessionKilled,
+    SessionMissing,
+}
+
 pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
     write_builtin_tmux_session_record(&BuiltinTmuxSession {
         name: name.to_string(),
@@ -78,6 +85,20 @@ pub(crate) fn add_builtin_tmux_window(name: &str) -> io::Result<AddBuiltinTmuxWi
     Ok(AddBuiltinTmuxWindow::Added(session.windows))
 }
 
+pub(crate) fn kill_builtin_tmux_window(name: &str) -> io::Result<KillBuiltinTmuxWindow> {
+    let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
+        return Ok(KillBuiltinTmuxWindow::SessionMissing);
+    };
+    if session.windows <= 1 {
+        remove_builtin_tmux_session_record(&path)?;
+        return Ok(KillBuiltinTmuxWindow::SessionKilled);
+    }
+
+    session.windows -= 1;
+    replace_builtin_tmux_session_record(&path, &session)?;
+    Ok(KillBuiltinTmuxWindow::Killed(session.windows))
+}
+
 pub(crate) fn rename_builtin_tmux_session(
     old_name: &str,
     new_name: &str,
@@ -121,11 +142,8 @@ pub(crate) fn remove_builtin_tmux_session(name: &str) -> io::Result<bool> {
             .map(|session| session.name == name)
             .unwrap_or(false)
         {
-            match fs::remove_file(path) {
-                Ok(()) => removed = true,
-                Err(err) if err.kind() == io::ErrorKind::NotFound => {}
-                Err(err) => return Err(err),
-            }
+            remove_builtin_tmux_session_record(&path)?;
+            removed = true;
         }
     }
     Ok(removed)
@@ -177,6 +195,14 @@ fn write_builtin_tmux_session_record(session: &BuiltinTmuxSession) -> io::Result
 
 fn replace_builtin_tmux_session_record(path: &Path, session: &BuiltinTmuxSession) -> io::Result<()> {
     fs::write(path, format_builtin_tmux_session_record(session)?)
+}
+
+fn remove_builtin_tmux_session_record(path: &Path) -> io::Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(err),
+    }
 }
 
 fn format_builtin_tmux_session_record(session: &BuiltinTmuxSession) -> io::Result<String> {

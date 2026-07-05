@@ -8,6 +8,7 @@ pub(crate) enum TmuxCommand {
     RenameSession,
     NewWindow,
     ListWindows,
+    KillWindow,
     Other,
 }
 
@@ -22,6 +23,7 @@ impl TmuxCommand {
             Some("rename-session") => Self::RenameSession,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
+            Some("kill-window" | "killw") => Self::KillWindow,
             _ => Self::Other,
         }
     }
@@ -70,6 +72,10 @@ mod tests {
         assert_eq!(
             TmuxCommand::parse(&["lsw".into()]),
             TmuxCommand::ListWindows
+        );
+        assert_eq!(
+            TmuxCommand::parse(&["killw".into()]),
+            TmuxCommand::KillWindow
         );
     }
 

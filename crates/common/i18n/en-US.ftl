@@ -30,3 +30,5 @@ builtin-tmux-session-exists = tmux session {$name} already exists
 builtin-tmux-session-name-required = specify a session name with -s <name>
 builtin-tmux-command-unsupported = Built-in tmux command {$command} is not supported yet. This tool will not call the system tmux binary.
 builtin-tmux-window-created = created a window in tmux session {$session}; {$windows} window(s) now exist
+
+builtin-tmux-window-killed = killed one window in tmux session {$session}; {$windows} window(s) remain
