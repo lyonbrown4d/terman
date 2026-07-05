@@ -185,9 +185,9 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error>> {
-    let status = terman_common::command_status_with_timeout(
+    let status = terman_common::wsl_which_status_with_timeout(
         &launch.cmd,
-        &["-e", "which", "screen"],
+        "screen",
         terman_common::DEFAULT_COMMAND_TIMEOUT,
     )?;
 

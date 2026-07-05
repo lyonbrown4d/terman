@@ -43,6 +43,14 @@ pub async fn command_status_with_timeout_async(
         Err(_) => Ok(None),
     }
 }
+
+pub fn wsl_which_status_with_timeout(
+    wsl_command: &str,
+    tool: &str,
+    timeout: Duration,
+) -> io::Result<Option<ExitStatus>> {
+    command_status_with_timeout(wsl_command, &["-e", "which", tool], timeout)
+}
 pub fn which_binary(name: &str) -> Option<String> {
     which(name)
         .ok()

@@ -110,9 +110,9 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     let mut probe = Command::new(&launch.cmd);
     if launch.kind == TmuxKind::Wsl {
-        let wsl_check = terman_common::command_status_with_timeout(
+        let wsl_check = terman_common::wsl_which_status_with_timeout(
             &launch.cmd,
-            &["-e", "which", "tmux"],
+            "tmux",
             terman_common::DEFAULT_COMMAND_TIMEOUT,
         )?;
 
