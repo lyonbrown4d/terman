@@ -69,14 +69,6 @@ impl ScreenSessionBus {
         Self::default()
     }
 
-    pub(crate) fn subscribe(&self) -> mpsc::Receiver<ScreenSessionEvent> {
-        let (tx, rx) = mpsc::channel();
-        if let Ok(mut state) = self.inner.lock() {
-            state.subscribers.push(tx);
-        }
-        rx
-    }
-
     pub(crate) fn subscribe_with_replay(&self) -> (Vec<u8>, ScreenSessionSubscription) {
         let (tx, rx) = mpsc::channel();
         let mut active = false;
@@ -187,15 +179,6 @@ mod tests {
         assert_eq!(bus.status_snapshot().attach_clients, 1);
         drop(subscription);
         assert_eq!(bus.status_snapshot().attach_clients, 0);
-    }
-
-    #[test]
-    fn publishes_output_to_subscribers() {
-        let bus = ScreenSessionBus::new();
-        let rx = bus.subscribe();
-        bus.publish_output(b"x");
-
-        assert_eq!(rx.try_recv(), Ok(ScreenSessionEvent::Output(b"x".to_vec())));
     }
 
     #[test]

@@ -61,21 +61,18 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         }
     });
 
-    let mut exit_code = None;
     let mut terminate_requested = false;
-    loop {
+    let exit_code = loop {
         match child.try_wait() {
             Ok(Some(status)) => {
                 let code = status.exit_code() as i32;
                 session_bus.publish_exit(code);
-                exit_code = Some(code);
-                break;
+                break code;
             }
             Ok(None) => {}
             Err(_) => {
                 session_bus.publish_exit(-1);
-                exit_code = Some(-1);
-                break;
+                break -1;
             }
         }
 
@@ -109,11 +106,10 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         }
 
         thread::sleep(Duration::from_millis(16));
-    }
+    };
 
     let _ = output_thread.join();
 
-    let exit_code = exit_code.unwrap_or(-1);
     if exit_code == 0 {
         Ok(())
     } else {
