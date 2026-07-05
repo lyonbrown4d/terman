@@ -2,7 +2,6 @@ use std::{
     env,
     error::Error,
     io::{self, Read, Write},
-    process::{Command, ExitStatus, Stdio},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -12,106 +11,21 @@ use std::{
     time::Duration,
 };
 
-use clap::Args;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     terminal::{self, size as terminal_size},
 };
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
-use terman_common;
 
+mod cli;
 mod sessions;
+mod system;
 
+pub use cli::{ScreenArgs, run_with_binary_parse};
 use sessions::{
     list_builtin_screen_sessions, register_builtin_screen_session, validate_screen_session_name,
 };
-
-#[derive(Args, Debug, Clone)]
-#[command(
-    about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -r dev\n  - terman-screen -x dev\n  - terman-screen --system\n  - terman-screen --system --list\n  - terman-screen --system -r dev\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --no-fallback"
-)]
-pub struct ScreenArgs {
-    /// If set, run this command string through the platform shell in built-in mode.
-    #[arg(short, long, value_name = "CMD", conflicts_with = "system")]
-    pub command: Option<String>,
-
-    /// Initial terminal columns.
-    #[arg(long)]
-    pub cols: Option<u16>,
-
-    /// Initial terminal rows.
-    #[arg(long)]
-    pub rows: Option<u16>,
-
-    /// Name the screen session; maps to `screen -S <NAME>` in system mode.
-    #[arg(short = 'S', long = "session", value_name = "NAME")]
-    pub session_name: Option<String>,
-
-    /// List known screen sessions. In system mode this maps to `screen -ls`.
-    #[arg(long, alias = "ls", conflicts_with_all = ["command", "detach"])]
-    pub list: bool,
-
-    /// Resume a detached screen session; maps to `screen -r [NAME]` in system mode.
-    #[arg(
-        short = 'r',
-        long = "resume",
-        value_name = "NAME",
-        num_args = 0..=1,
-        conflicts_with_all = ["command", "detach", "list", "session_name", "multi_attach"]
-    )]
-    pub resume: Option<Option<String>>,
-
-    /// Attach to an existing session without detaching other displays; maps to `screen -x [NAME]`.
-    #[arg(
-        short = 'x',
-        long = "multi-attach",
-        value_name = "NAME",
-        num_args = 0..=1,
-        conflicts_with_all = ["command", "detach", "list", "session_name", "resume"]
-    )]
-    pub multi_attach: Option<Option<String>>,
-
-    /// Prefer using system `screen` if available.
-    #[arg(long)]
-    pub system: bool,
-
-    /// 启动系统 screen 后台模式（等价于 `screen -d -m`）。
-    #[arg(long, requires = "system")]
-    pub detach: bool,
-
-    /// Start a login shell in built-in mode; ignored in system mode.
-    #[arg(long, conflicts_with = "system")]
-    pub login_shell: bool,
-
-    /// 回退到内置 screen（`--system` 启动失败时）。
-    #[arg(long)]
-    pub no_fallback: bool,
-
-
-    /// Extra args passed to system screen when `--system` is enabled.
-    #[arg(trailing_var_arg = true)]
-    pub args: Vec<String>,
-}
-
-impl Default for ScreenArgs {
-    fn default() -> Self {
-        Self {
-            command: None,
-            cols: None,
-            rows: None,
-            session_name: None,
-            list: false,
-            resume: None,
-            multi_attach: None,
-            system: false,
-            detach: false,
-            login_shell: false,
-            no_fallback: false,
-            args: Vec::new(),
-        }
-    }
-}
+use system::{run_system_screen, screen_failure_message, system_screen_fallback_hint};
 
 struct RawMode;
 
@@ -126,10 +40,6 @@ impl Drop for RawMode {
     fn drop(&mut self) {
         let _ = terminal::disable_raw_mode();
     }
-}
-
-struct ScreenLaunch {
-    cmd: String,
 }
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -178,72 +88,6 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     }
 
     run_builtin_screen(args)
-}
-
-fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    let launch = resolve_screen_launch()?;
-    let mut cmd = Command::new(&launch.cmd);
-    let system_args = build_system_screen_args(&args);
-
-    let status: ExitStatus = cmd
-        .args(&system_args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .envs(terman_common::terminal_env())
-        .status()?;
-
-    if status.success() {
-        Ok(())
-    } else {
-        let exit_code = status.code().unwrap_or(-1);
-        Err(Box::new(io::Error::new(
-            io::ErrorKind::Other,
-            format!(
-                "{}",
-                screen_failure_message(
-                    "system screen",
-                    exit_code,
-                    &screen_system_runtime_hints(&system_args, exit_code)
-                )
-            ),
-        )))
-    }
-}
-
-fn build_system_screen_args(args: &ScreenArgs) -> Vec<String> {
-    let mut system_args = Vec::new();
-
-    if args.list {
-        system_args.push(String::from("-ls"));
-    }
-
-    if args.detach {
-        system_args.push(String::from("-d"));
-        system_args.push(String::from("-m"));
-    }
-
-    if let Some(session_name) = &args.session_name {
-        system_args.push(String::from("-S"));
-        system_args.push(session_name.clone());
-    }
-
-    if let Some(target) = &args.resume {
-        system_args.push(String::from("-r"));
-        if let Some(target) = target {
-            system_args.push(target.clone());
-        }
-    }
-
-    if let Some(target) = &args.multi_attach {
-        system_args.push(String::from("-x"));
-        if let Some(target) = target {
-            system_args.push(target.clone());
-        }
-    }
-
-    system_args.extend(args.args.clone());
-    system_args
 }
 
 fn is_builtin_screen_attach_requested(args: &ScreenArgs) -> bool {
@@ -427,26 +271,6 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         )))
     }
 }
-fn system_screen_fallback_hint() -> &'static str {
-    if cfg!(windows) {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先确认本机 screen 可执行文件，或直接使用内置 screen。"
-    } else {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - screen -V\n  - sudo apt/yum/brew install screen\n  - terman-screen --system --no-fallback"
-    }
-}
-fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
-    if let Some(path) = terman_common::which_binary("screen") {
-        return Ok(ScreenLaunch { cmd: path });
-    }
-
-    Err(Box::new(io::Error::new(
-        io::ErrorKind::NotFound,
-        screen_not_found_hint(),
-    )))
-}
-fn screen_not_found_hint() -> String {
-    terman_common::native_tool_not_found_hint("screen")
-}
 fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
 
@@ -604,25 +428,12 @@ fn ctrl_char_bytes(c: char) -> Option<Vec<u8>> {
     };
     Some(vec![b])
 }
-use clap::Parser;
-
-#[derive(Parser)]
-struct Cli {
-    #[command(flatten)]
-    args: ScreenArgs,
-}
-
-pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
-    run(cli.args)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        ScreenArgs, build_system_screen_args, is_builtin_screen_attach_requested,
-        is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg,
-        screen_failure_message, screen_not_found_hint,
+    use super::{ScreenArgs, is_builtin_screen_attach_requested};
+    use super::system::{
+        build_system_screen_args, is_screen_attach_attempt, is_screen_detached_arg,
+        is_screen_session_name_arg, screen_failure_message, screen_not_found_hint,
     };
     use super::sessions::{
         BuiltinScreenSession, builtin_screen_session_is_alive, parse_builtin_screen_session_record,
