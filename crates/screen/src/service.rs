@@ -102,6 +102,8 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
 
 fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) -> io::Result<()> {
     let _raw = AttachRawMode::enter()?;
+    sync_attach_terminal_size(&endpoint)?;
+
     let running = Arc::new(AtomicBool::new(true));
     let output_running = Arc::clone(&running);
     let output_thread = thread::spawn(move || {
@@ -261,3 +263,4 @@ fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) 
     stream.write_all(b"\n")?;
     stream.flush()
 }
+
