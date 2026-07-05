@@ -8,6 +8,7 @@ mod builtin;
 mod cli;
 mod command;
 mod hints;
+mod sessions;
 
 pub use cli::{TmuxArgs, run_with_binary_parse};
 use builtin::try_run_builtin_tmux_command;

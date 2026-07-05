@@ -20,3 +20,4 @@ builtin-screen-control-pastefile-path-required = Specify an input path as screen
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).
 builtin-tmux-no-sessions = no tmux sessions
+builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})

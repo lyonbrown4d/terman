@@ -848,6 +848,9 @@ name = "terman-tmux"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "directories",
+ "serde",
+ "serde_json",
  "terman-common",
  "tokio",
 ]

@@ -28,6 +28,22 @@ pub fn builtin_tmux_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxNoSessions, &[])
 }
 
+pub fn builtin_tmux_session_list_entry_hint(
+    name: &str,
+    windows: u32,
+    attached_clients: u32,
+) -> String {
+    let windows = windows.to_string();
+    let attached_clients = attached_clients.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxSessionListEntry,
+        &[
+            ("name", name),
+            ("windows", &windows),
+            ("attached_clients", &attached_clients),
+        ],
+    )
+}
 pub fn builtin_screen_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinScreenNoSessions, &[])
 }
