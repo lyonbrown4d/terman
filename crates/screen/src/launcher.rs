@@ -40,6 +40,7 @@ pub(crate) fn run_resume_or_create_screen_session(
 
     let attach_args = ScreenArgs {
         resume: Some(Some(session_name.clone())),
+        detach_existing: args.detach_existing,
         ..ScreenArgs::default()
     };
     match request_screen_attach(&attach_args) {
@@ -155,3 +156,4 @@ fn attach_when_ready(args: &ScreenArgs) -> Result<(), Box<dyn Error>> {
         )
     })))
 }
+

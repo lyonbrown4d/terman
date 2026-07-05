@@ -188,6 +188,7 @@ fn normalize_screen_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsStri
 fn is_attach_arg(arg: &OsString) -> bool {
     matches!(
         arg.to_str(),
-        Some("-r") | Some("--resume") | Some("-x") | Some("--multi-attach")
+        Some("-r") | Some("--resume") | Some("-R") | Some("--resume-or-create") | Some("-x") | Some("--multi-attach")
     )
 }
+
