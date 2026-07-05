@@ -9,6 +9,7 @@
   - `crates/screen`：承载 screen 相关能力（内置 PTY + 可选 system screen 委托）。
   - `crates/tmux`：承载 tmux 委托能力（Windows 优先 WSL 回退）。
 - 子命令是独立进程：`terman-screen`、`terman-tmux`，`terman` 默认执行 screen。
+- 边界约束：screen 就是 screen，tmux 就是 tmux；monorepo 只负责统一管理，不把两个工具合并为单进程内部模块。
 
 ## 使用
 
@@ -44,14 +45,15 @@ terman tmux list-sessions
 terman tmux --detached new -s dev
 terman tmux --wsl new -s dev
 terman tmux --help
+```
 
-# screen 最小复现示例（可直接复制）
+## screen 最小复现示例（可直接复制）
 
 ```bash
 # 1) system screen 会话不存在（attach）示例
-terman screen --system attach -t missing-session
+terman screen --system -r missing-session
 if [ $? -ne 0 ]; then
-  echo "screen attach 失败：可先执行 screen --help 检查命令或确认会话是否存在"
+  echo "screen 会话不存在：可先执行 screen -ls 检查命令或确认会话是否存在"
 fi
 
 # 2) 内置 screen 可复现：启动最小命令
@@ -60,16 +62,16 @@ terman screen
 
 ```powershell
 # 1) system screen 会话不存在（attach）示例
-terman screen --system attach -t missing-session
+terman screen --system -r missing-session
 if ($LASTEXITCODE -ne 0) {
-  Write-Output "screen attach 失败：可先执行 screen --help 检查命令或确认会话是否存在"
+  Write-Output "screen 会话不存在：可先执行 screen -ls 检查命令或确认会话是否存在"
 }
 
 # 2) 内置 screen 可复现：启动最小命令
 terman screen
 ```
 
-# tmux 最小复现示例（可直接复制）
+## tmux 最小复现示例（可直接复制）
 
 ```bash
 # 会话不存在复现
@@ -95,7 +97,7 @@ terman tmux new -s demo
 terman tmux new -s demo
 ```
 
-# Windows 可通过 --wsl 强制使用 WSL tmux；如果 WSL 内 tmux 不可用，会返回安装与环境排查建议.
+Windows 可通过 `--wsl` 强制使用 WSL tmux；如果 WSL 内 tmux 不可用，会返回安装与环境排查建议。
 ## 跨平台快速排查（screen / tmux）
 
 ### 常见返回码
@@ -139,7 +141,7 @@ terman tmux new -s demo
 - `terman tmux attach -t <session>` 报会话不存在：先运行 `terman tmux list-sessions` 确认会话名。
 - `terman tmux new -s <name>` 返回会话冲突：改用新的会话名再尝试。
 - Windows 下 tmux 启动异常：优先使用 `terman tmux --wsl ...`。
-- `terman screen --system attach -t <session>` 报会话不存在：先运行 `terman screen --system -ls` 或 `screen -ls` 确认会话。
+- `terman screen --system -r <session>` 报会话不存在：先运行 `terman screen --system -ls` 或 `screen -ls` 确认会话。
 - `terman screen --system -S <name>` 遇到会话名冲突：先检查列表并更换会话名。
 - `terman screen --system --wsl` 相关异常：按顺序执行 `wsl -l -v`、`wsl --status`、`wsl -e screen -V`，再复现命令。
 
@@ -148,4 +150,5 @@ terman tmux new -s demo
 - screen 与 tmux 的 WSL 排查提示已统一复用 `terman-common` 中的共享模板，确保跨平台诊断口径一致。
 - 第一目标（跨平台 screen）保持：优先复用成熟工具（`--system`），回退到内置 PTY。
 - 第二目标（跨平台 tmux）保持：通过成熟 tmux 工具的托管式桥接执行。
+
 
