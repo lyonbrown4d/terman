@@ -8,3 +8,4 @@ clap = { workspace = true }
 crossterm = { workspace = true }
 portable-pty = { workspace = true }
 terman-common = { workspace = true }
+tokio = { workspace = true }
