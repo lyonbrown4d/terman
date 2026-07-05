@@ -36,7 +36,7 @@ pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
     if name.trim().is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "screen 会话名不能为空。",
+            terman_common::builtin_screen_session_name_empty_hint(),
         ));
     }
     Ok(())
