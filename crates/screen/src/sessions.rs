@@ -10,7 +10,7 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 
-use crate::{ScreenArgs, default_shell};
+use crate::{ScreenArgs, shell::default_shell};
 
 pub(crate) struct BuiltinScreenSessionGuard {
     path: PathBuf,
