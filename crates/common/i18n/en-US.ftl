@@ -10,3 +10,4 @@ builtin-screen-server-timeout = Timed out waiting for the built-in screen sessio
 builtin-screen-control-command-required = Specify a screen control command.
 builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, stuff.
 builtin-screen-control-stuff-required = Specify text for `screen -X stuff`.
+builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).

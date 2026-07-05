@@ -31,6 +31,7 @@ pub enum MessageKey {
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
     BuiltinScreenControlStuffRequired,
+    BuiltinScreenWipeComplete,
 }
 
 impl MessageKey {
@@ -48,6 +49,7 @@ impl MessageKey {
             Self::BuiltinScreenControlCommandRequired => "builtin-screen-control-command-required",
             Self::BuiltinScreenControlCommandUnsupported => "builtin-screen-control-command-unsupported",
             Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
+            Self::BuiltinScreenWipeComplete => "builtin-screen-wipe-complete",
         }
     }
 }
@@ -111,6 +113,11 @@ pub fn builtin_screen_control_command_unsupported_hint(command: &str) -> String 
 
 pub fn builtin_screen_control_stuff_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlStuffRequired, &[])
+}
+
+pub fn builtin_screen_wipe_complete_hint(count: usize) -> String {
+    let count = count.to_string();
+    localized_message(MessageKey::BuiltinScreenWipeComplete, &[("count", &count)])
 }
 
 fn localized_message_for_language(
