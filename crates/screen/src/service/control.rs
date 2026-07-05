@@ -3,12 +3,10 @@ use std::{fs, io};
 use super::{
     control_at::request_at_command,
     control_colon::request_colon_command,
-    control_help::request_help_command,
+    control_local::request_local_control_command,
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     control_select::request_select_command,
-    control_sleep::request_sleep_command,
     control_source::request_source_command,
-    control_version::request_version_command,
     control_windows::request_windows_command,
     ipc_client::request_endpoint_response,
     sessionname::request_sessionname_command,
@@ -42,14 +40,15 @@ fn execute_control_command(
     inline_payload: &str,
     extra_args: &[String],
 ) -> io::Result<()> {
-    match command.to_ascii_lowercase().as_str() {
+    let command = command.to_ascii_lowercase();
+    if let Some(result) = request_local_control_command(&command, inline_payload, extra_args) {
+        return result;
+    }
+
+    match command.as_str() {
         "quit" | "kill" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" | "pow_detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
-        "help" => {
-            request_help_command();
-            Ok(())
-        }
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
         "echo" | "wall" => request_echo_command(args, inline_payload, extra_args),
@@ -57,22 +56,17 @@ fn execute_control_command(
         "at" => request_at_command(args, inline_payload, extra_args, execute_control_command),
         "colon" => request_colon_command(args, inline_payload, extra_args, execute_control_command),
         "source" => request_source_command(args, inline_payload, extra_args, execute_control_command),
-        "version" => {
-            request_version_command();
-            Ok(())
-        }
         "windows" => request_windows_command(args, request_session_response),
         "info" => request_session_info(args),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
-        "sleep" => request_sleep_command(inline_payload, extra_args),
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
         "stuff" => request_stuff_command(args, inline_payload, extra_args),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            terman_common::builtin_screen_control_command_unsupported_hint(command),
+            terman_common::builtin_screen_control_command_unsupported_hint(&command),
         )),
     }
 }
