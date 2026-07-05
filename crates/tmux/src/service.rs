@@ -85,6 +85,12 @@ fn handle_client(
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
+        Ok(TmuxIpcRequest::DisplayMessage { message }) => {
+            let mut bytes = message.into_bytes();
+            bytes.extend_from_slice(b"\r\n");
+            bus.publish_transient_output(&bytes);
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }
         Ok(TmuxIpcRequest::Info) => {
             let status = bus.status_snapshot();
             write_response(

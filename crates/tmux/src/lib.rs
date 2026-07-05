@@ -10,6 +10,7 @@ mod ipc;
 mod lifecycle;
 mod new_session;
 mod launcher;
+mod message;
 mod pty;
 mod service;
 mod server;

@@ -12,6 +12,7 @@ use crate::{
         kill_builtin_tmux_server, kill_builtin_tmux_session_command,
         request_builtin_tmux_session_quit,
     },
+    message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
     service::request_endpoint_response,
     sessions::{
@@ -47,6 +48,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::RenameSession => {
             rename_builtin_tmux_session_command(args)?;
+            Ok(true)
+        }
+        TmuxCommand::DisplayMessage => {
+            display_builtin_tmux_message(args)?;
             Ok(true)
         }
         TmuxCommand::NewWindow => {

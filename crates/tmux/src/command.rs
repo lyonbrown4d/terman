@@ -7,6 +7,7 @@ pub(crate) enum TmuxCommand {
     KillServer,
     HasSession,
     RenameSession,
+    DisplayMessage,
     NewWindow,
     ListWindows,
     KillWindow,
@@ -24,6 +25,7 @@ impl TmuxCommand {
             Some("kill-server") => Self::KillServer,
             Some("has-session") => Self::HasSession,
             Some("rename-session") => Self::RenameSession,
+            Some("display-message" | "display") => Self::DisplayMessage,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
             Some("kill-window" | "killw") => Self::KillWindow,
@@ -55,6 +57,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["kill-server".into()]), TmuxCommand::KillServer);
         assert_eq!(TmuxCommand::parse(&["has-session".into()]), TmuxCommand::HasSession);
         assert_eq!(TmuxCommand::parse(&["rename-session".into()]), TmuxCommand::RenameSession);
+        assert_eq!(TmuxCommand::parse(&["display".into()]), TmuxCommand::DisplayMessage);
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
         assert_eq!(TmuxCommand::parse(&["killw".into()]), TmuxCommand::KillWindow);

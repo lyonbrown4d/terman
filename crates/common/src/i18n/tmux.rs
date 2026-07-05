@@ -108,6 +108,17 @@ pub fn builtin_tmux_unexpected_info_response_hint(response: &str) -> String {
     )
 }
 
+pub fn builtin_tmux_unexpected_response_hint(response: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxUnexpectedResponse,
+        &[("response", response)],
+    )
+}
+
+pub fn builtin_tmux_message_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxMessageRequired, &[])
+}
+
 pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
     localized_message(
         MessageKey::BuiltinTmuxCommandUnsupported,

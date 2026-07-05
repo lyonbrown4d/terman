@@ -29,9 +29,23 @@ pub(crate) fn rename_window_name_arg(args: &[String]) -> Option<String> {
     positional_after_command(args, &["rename-window", "renamew"])
 }
 
+pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
+    positional_payload_after_command(args, &["display-message", "display"])
+}
+
 fn positional_after_command(args: &[String], commands: &[&str]) -> Option<String> {
+    positional_payload_after_command(args, commands).and_then(|payload| {
+        payload
+            .split_whitespace()
+            .next()
+            .map(ToString::to_string)
+    })
+}
+
+fn positional_payload_after_command(args: &[String], commands: &[&str]) -> Option<String> {
     let mut seen_command = false;
     let mut skip_next = false;
+    let mut payload = Vec::new();
 
     for arg in args {
         if skip_next {
@@ -51,9 +65,15 @@ fn positional_after_command(args: &[String], commands: &[&str]) -> Option<String
         if arg.starts_with("-t") || arg.starts_with("--target-session=") || arg.starts_with('-') {
             continue;
         }
-        return Some(arg.clone());
+        payload.push(arg.clone());
     }
-    None
+
+    let payload = payload.join(" ");
+    if payload.trim().is_empty() {
+        None
+    } else {
+        Some(payload)
+    }
 }
 
 fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
@@ -75,8 +95,8 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        rename_session_name_arg, rename_window_name_arg, session_name_arg, target_session_arg,
-        target_session_name_arg, target_window_index_arg,
+        display_message_arg, rename_session_name_arg, rename_window_name_arg, session_name_arg,
+        target_session_arg, target_session_name_arg, target_window_index_arg,
     };
 
     #[test]
@@ -104,5 +124,13 @@ mod tests {
     fn parses_rename_names() {
         assert_eq!(rename_session_name_arg(&["rename-session".into(), "-told".into(), "new".into()]), Some(String::from("new")));
         assert_eq!(rename_window_name_arg(&["renamew".into(), "--target-session=dev:0".into(), "api".into()]), Some(String::from("api")));
+    }
+
+    #[test]
+    fn parses_display_message_payload() {
+        assert_eq!(
+            display_message_arg(&["display".into(), "-tdev".into(), "hello".into(), "world".into()]),
+            Some(String::from("hello world"))
+        );
     }
 }
