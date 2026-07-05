@@ -91,6 +91,16 @@ fn detects_screen_hardcopy_prefix() {
 }
 
 #[test]
+fn detects_screen_windows_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let windows = KeyEvent::new(KeyCode::Char('w'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(windows), Some(ScreenInputAction::Windows));
+}
+
+#[test]
 fn detects_screen_help_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);

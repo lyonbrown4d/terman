@@ -15,7 +15,9 @@ use crossterm::{
 use interprocess::local_socket::prelude::*;
 
 use super::{
-    attach_output::{print_attach_hardcopy, print_attach_help, print_attach_info},
+    attach_output::{
+        print_attach_hardcopy, print_attach_help, print_attach_info, print_attach_windows,
+    },
     ipc_client::send_control_request,
 };
 use crate::{
@@ -89,6 +91,7 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Help) => print_attach_help()?,
                     Some(ScreenInputAction::Hardcopy) => print_attach_hardcopy(&endpoint)?,
                     Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,
+                    Some(ScreenInputAction::Windows) => print_attach_windows(&endpoint)?,
                     Some(ScreenInputAction::Kill) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
                         running.store(false, Ordering::Release);

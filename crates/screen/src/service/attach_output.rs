@@ -70,6 +70,37 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
     }
 }
 
+pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
+        ScreenIpcResponse::Info {
+            session_name,
+            replay_bytes,
+            attach_clients,
+            cols,
+            rows,
+        } => {
+            let mut stdout = io::stdout();
+            stdout.write_all(b"\r\n")?;
+            stdout.write_all(
+                terman_common::builtin_screen_control_windows_entry_hint(
+                    &session_name,
+                    replay_bytes,
+                    attach_clients,
+                    cols,
+                    rows,
+                )
+                .as_bytes(),
+            )?;
+            stdout.write_all(b"\r\n")?;
+            stdout.flush()
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        response => Err(unexpected_response_error(&response)),
+    }
+}
+
 fn write_numbered_hardcopy(bytes: &[u8]) -> io::Result<String> {
     let prefix = attach_hardcopy_prefix();
     for index in 0..MAX_ATTACH_HARDCOPY_SLOTS {
