@@ -79,6 +79,14 @@ pub(crate) fn register_builtin_screen_session(
     Ok(Some(BuiltinScreenSessionGuard { path }))
 }
 
+pub(crate) fn remove_builtin_screen_session_record(name: &str) -> io::Result<bool> {
+    let path = builtin_screen_session_record_path(name);
+    match fs::remove_file(path) {
+        Ok(()) => Ok(true),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(err),
+    }
+}
 pub(crate) fn remove_stale_builtin_screen_session_records() -> io::Result<usize> {
     let dir = builtin_screen_sessions_dir();
     if !dir.exists() {

@@ -1,7 +1,7 @@
 mod runtime;
 mod store;
 
-use std::io;
+use std::{io, thread, time::Duration};
 
 pub(crate) use store::{BuiltinScreenSession, BuiltinScreenSessionGuard};
 #[cfg(test)]
@@ -10,6 +10,9 @@ pub(crate) use store::{
 };
 
 use crate::{ScreenArgs, ipc::ScreenIpcEndpoint};
+
+const RUNTIME_STATUS_ATTEMPTS: usize = 8;
+const RUNTIME_STATUS_RETRY_DELAY: Duration = Duration::from_millis(25);
 
 pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
     if name.trim().is_empty() {
@@ -29,7 +32,7 @@ pub(crate) fn register_builtin_screen_session(
 }
 
 pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
-    let sessions = store::load_alive_builtin_screen_sessions()?;
+    let sessions = load_reachable_builtin_screen_sessions()?;
 
     if sessions.is_empty() {
         println!("{}", terman_common::builtin_screen_no_sessions_hint());
@@ -37,32 +40,21 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
     }
 
     println!("{}", terman_common::builtin_screen_session_list_header());
-    for session in sessions {
-        let status = runtime::load_builtin_screen_runtime_status(&session).ok();
-        let attach_clients = status
-            .as_ref()
-            .map(|value| value.attach_clients.to_string())
-            .unwrap_or_else(|| String::from("?"));
-        let replay_bytes = status
-            .as_ref()
-            .map(|value| value.replay_bytes.to_string())
-            .unwrap_or_else(|| String::from("?"));
+    for (session, status) in sessions {
         let cols = status
-            .as_ref()
-            .and_then(|value| value.cols)
+            .cols
             .map(|value| value.to_string())
             .unwrap_or_else(|| String::from("?"));
         let rows = status
-            .as_ref()
-            .and_then(|value| value.rows)
+            .rows
             .map(|value| value.to_string())
             .unwrap_or_else(|| String::from("?"));
         println!(
             "  {}\tpid={}\tattached_clients={}\treplay_bytes={}\tsize={}x{}\tcwd={}\tcommand={}",
             session.name,
             session.pid,
-            attach_clients,
-            replay_bytes,
+            status.attach_clients,
+            status.replay_bytes,
             cols,
             rows,
             session.cwd,
@@ -82,7 +74,10 @@ pub(crate) fn wipe_builtin_screen_sessions() -> io::Result<()> {
 pub(crate) fn find_builtin_screen_session_for_attach(
     target: Option<&str>,
 ) -> io::Result<BuiltinScreenSession> {
-    let sessions = store::load_alive_builtin_screen_sessions()?;
+    let sessions = load_reachable_builtin_screen_sessions()?
+        .into_iter()
+        .map(|(session, _)| session)
+        .collect::<Vec<_>>();
     match target {
         Some(name) => sessions
             .into_iter()
@@ -101,3 +96,35 @@ pub(crate) fn find_builtin_screen_session_for_attach(
     }
 }
 
+fn load_reachable_builtin_screen_sessions(
+) -> io::Result<Vec<(BuiltinScreenSession, runtime::BuiltinScreenSessionRuntimeStatus)>> {
+    let mut reachable = Vec::new();
+    for session in store::load_alive_builtin_screen_sessions()? {
+        match load_runtime_status_with_retry(&session) {
+            Ok(status) => reachable.push((session, status)),
+            Err(_) => {
+                let _ = store::remove_builtin_screen_session_record(&session.name)?;
+            }
+        }
+    }
+    Ok(reachable)
+}
+
+fn load_runtime_status_with_retry(
+    session: &BuiltinScreenSession,
+) -> io::Result<runtime::BuiltinScreenSessionRuntimeStatus> {
+    let mut last_error = None;
+    for _ in 0..RUNTIME_STATUS_ATTEMPTS {
+        match runtime::load_builtin_screen_runtime_status(session) {
+            Ok(status) => return Ok(status),
+            Err(err) => {
+                last_error = Some(err);
+                thread::sleep(RUNTIME_STATUS_RETRY_DELAY);
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| {
+        io::Error::new(io::ErrorKind::TimedOut, "screen session service did not respond")
+    }))
+}
