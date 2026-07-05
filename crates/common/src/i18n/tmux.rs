@@ -81,6 +81,18 @@ pub fn builtin_tmux_target_required_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxTargetRequired, &[])
 }
 
+pub fn builtin_tmux_internal_server_session_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxInternalServerSessionRequired, &[])
+}
+
+pub fn builtin_tmux_internal_server_exited_hint(code: i32) -> String {
+    let code = code.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxInternalServerExited,
+        &[("code", &code)],
+    )
+}
+
 pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
     localized_message(
         MessageKey::BuiltinTmuxCommandUnsupported,

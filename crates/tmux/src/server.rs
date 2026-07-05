@@ -34,7 +34,7 @@ impl TmuxServerConfig {
         let Some(session_name) = args.internal_session_name else {
             return Err(Box::new(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "internal tmux server requires a session name",
+                terman_common::builtin_tmux_internal_server_session_required_hint(),
             )));
         };
         let endpoint = args
@@ -111,7 +111,7 @@ pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Er
     } else {
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("internal tmux server exited with code {exit_code}"),
+            terman_common::builtin_tmux_internal_server_exited_hint(exit_code),
         )))
     }
 }

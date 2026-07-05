@@ -21,7 +21,7 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
     let Some(session_name) = args.session_name.as_deref() else {
         return Err(Box::new(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "internal screen server requires a session name",
+            terman_common::builtin_screen_internal_server_session_required_hint(),
         )));
     };
     let endpoint = args
@@ -124,8 +124,7 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
     } else {
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("internal screen server exited with code {exit_code}"),
+            terman_common::builtin_screen_internal_server_exited_hint(exit_code),
         )))
     }
 }
-

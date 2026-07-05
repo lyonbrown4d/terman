@@ -15,6 +15,8 @@ pub enum MessageKey {
     BuiltinTmuxSessionNotFound,
     BuiltinTmuxTargetRequired,
     BuiltinTmuxCommandUnsupported,
+    BuiltinTmuxInternalServerSessionRequired,
+    BuiltinTmuxInternalServerExited,
     BuiltinScreenNoSessions,
     BuiltinScreenSessionListHeader,
     BuiltinScreenSessionExists,
@@ -25,6 +27,8 @@ pub enum MessageKey {
     BuiltinScreenSessionNotFound,
     BuiltinScreenNamedSessionRequired,
     BuiltinScreenServerTimeout,
+    BuiltinScreenInternalServerSessionRequired,
+    BuiltinScreenInternalServerExited,
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
     BuiltinScreenControlEchoRequired,
@@ -55,6 +59,10 @@ impl MessageKey {
             Self::BuiltinTmuxSessionNotFound => "builtin-tmux-session-not-found",
             Self::BuiltinTmuxTargetRequired => "builtin-tmux-target-required",
             Self::BuiltinTmuxCommandUnsupported => "builtin-tmux-command-unsupported",
+            Self::BuiltinTmuxInternalServerSessionRequired => {
+                "builtin-tmux-internal-server-session-required"
+            }
+            Self::BuiltinTmuxInternalServerExited => "builtin-tmux-internal-server-exited",
             Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
             Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
             Self::BuiltinScreenSessionExists => "builtin-screen-session-exists",
@@ -65,6 +73,10 @@ impl MessageKey {
             Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
             Self::BuiltinScreenNamedSessionRequired => "builtin-screen-named-session-required",
             Self::BuiltinScreenServerTimeout => "builtin-screen-server-timeout",
+            Self::BuiltinScreenInternalServerSessionRequired => {
+                "builtin-screen-internal-server-session-required"
+            }
+            Self::BuiltinScreenInternalServerExited => "builtin-screen-internal-server-exited",
             Self::BuiltinScreenControlCommandRequired => "builtin-screen-control-command-required",
             Self::BuiltinScreenControlCommandUnsupported => {
                 "builtin-screen-control-command-unsupported"

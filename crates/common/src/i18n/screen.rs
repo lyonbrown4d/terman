@@ -40,6 +40,18 @@ pub fn builtin_screen_server_timeout_hint() -> String {
     localized_message(MessageKey::BuiltinScreenServerTimeout, &[])
 }
 
+pub fn builtin_screen_internal_server_session_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenInternalServerSessionRequired, &[])
+}
+
+pub fn builtin_screen_internal_server_exited_hint(code: i32) -> String {
+    let code = code.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenInternalServerExited,
+        &[("code", &code)],
+    )
+}
+
 pub fn builtin_screen_control_command_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlCommandRequired, &[])
 }
@@ -72,8 +84,12 @@ pub fn builtin_screen_control_info_hint(
 ) -> String {
     let replay_bytes = replay_bytes.to_string();
     let attach_clients = attach_clients.to_string();
-    let cols = cols.map(|value| value.to_string()).unwrap_or_else(|| String::from("?"));
-    let rows = rows.map(|value| value.to_string()).unwrap_or_else(|| String::from("?"));
+    let cols = cols
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    let rows = rows
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
     localized_message(
         MessageKey::BuiltinScreenControlInfo,
         &[
