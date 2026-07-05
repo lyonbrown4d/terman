@@ -6,6 +6,7 @@ mod control_at;
 mod control_colon;
 mod control_parse;
 mod control_select;
+mod control_sleep;
 mod control_source;
 mod control_version;
 mod control_windows;
