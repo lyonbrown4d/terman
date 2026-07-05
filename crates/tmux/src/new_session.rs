@@ -21,10 +21,11 @@ pub(crate) fn create_builtin_tmux_session(
         )));
     }
 
+    let endpoint = TmuxIpcEndpoint::for_new_session(&name);
     let command_args = new_session_command_args(args);
-    let server_pid = spawn_detached_tmux_server(&name, &command_args)?;
+    let server_pid = spawn_detached_tmux_server(&name, endpoint.raw_name(), &command_args)?;
     let command = session_command(&command_args);
-    if !register_builtin_tmux_session(&name, Some(server_pid.to_string()), command)? {
+    if !register_builtin_tmux_session(&name, Some(server_pid.to_string()), command, &endpoint)? {
         return Err(Box::new(io::Error::new(
             io::ErrorKind::AlreadyExists,
             terman_common::builtin_tmux_session_exists_hint(&name),
@@ -33,7 +34,7 @@ pub(crate) fn create_builtin_tmux_session(
 
     println!("{}", terman_common::builtin_tmux_session_created_hint(&name));
     if attached {
-        wait_for_session_server(&name)?;
+        wait_for_session_server(&endpoint)?;
         attach_builtin_tmux_session(&attach_session_args(&name))?;
     }
     Ok(())
@@ -48,12 +49,11 @@ fn required_session_name_arg(args: &[String]) -> Result<String, Box<dyn Error>> 
     })
 }
 
-fn wait_for_session_server(session_name: &str) -> io::Result<()> {
-    let endpoint = TmuxIpcEndpoint::for_session(session_name);
+fn wait_for_session_server(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let mut last_error = None;
 
     for _ in 0..50 {
-        match request_endpoint_response(&endpoint, TmuxIpcRequest::Ping) {
+        match request_endpoint_response(endpoint, TmuxIpcRequest::Ping) {
             Ok(_) => return Ok(()),
             Err(err) => {
                 last_error = Some(err);

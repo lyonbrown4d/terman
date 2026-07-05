@@ -11,6 +11,7 @@ use portable_pty::{PtySize, native_pty_system};
 
 use crate::{
     TmuxArgs,
+    ipc::TmuxIpcEndpoint,
     pty::{TmuxPtyCommandSpec, build_tmux_pty_command},
     service::TmuxSessionService,
     session_core::{TmuxControlEvent, TmuxSessionBus},
@@ -19,6 +20,7 @@ use crate::{
 
 pub(crate) struct TmuxServerConfig {
     session_name: String,
+    endpoint: TmuxIpcEndpoint,
     cwd: String,
     command: Option<String>,
     windows: u32,
@@ -35,9 +37,15 @@ impl TmuxServerConfig {
                 "internal tmux server requires a session name",
             )));
         };
+        let endpoint = args
+            .internal_endpoint_name
+            .as_deref()
+            .map(TmuxIpcEndpoint::from_raw_name)
+            .unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session_name));
 
         Ok(Self {
             session_name,
+            endpoint,
             cwd: current_tmux_cwd(),
             command: command_from_args(args.args),
             windows: 1,
@@ -54,6 +62,7 @@ pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Er
     let (control_tx, control_rx) = mpsc::channel::<TmuxControlEvent>();
     let _session_service = TmuxSessionService::start(
         &config.session_name,
+        config.endpoint.clone(),
         config.cwd.clone(),
         session_bus.clone(),
         control_tx,
@@ -172,6 +181,7 @@ fn current_tmux_cwd() -> String {
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|_| String::from("<unknown>"))
 }
+
 struct SessionRecordGuard {
     session_name: String,
 }

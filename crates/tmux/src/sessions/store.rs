@@ -16,8 +16,8 @@ pub(crate) fn register_builtin_tmux_session(
     name: &str,
     pid: Option<String>,
     command: Option<String>,
+    ipc_endpoint: &TmuxIpcEndpoint,
 ) -> io::Result<bool> {
-    let ipc_endpoint = TmuxIpcEndpoint::for_session(name);
     let _ = ipc_endpoint.socket_name()?;
 
     write_new_session_record(&BuiltinTmuxSession {
@@ -152,6 +152,3 @@ fn ensure_window_names(session: &mut BuiltinTmuxSession) {
     }
     session.window_names.truncate(window_count);
 }
-
-
-

@@ -20,11 +20,11 @@ impl TmuxSessionService {
     #[allow(dead_code)]
     pub(crate) fn start(
         session_name: &str,
+        endpoint: TmuxIpcEndpoint,
         cwd: String,
         bus: TmuxSessionBus,
         control_tx: mpsc::Sender<TmuxControlEvent>,
     ) -> io::Result<Self> {
-        let endpoint = TmuxIpcEndpoint::for_session(session_name);
         let listener = endpoint.listener_options()?.create_sync()?;
         let session_name = session_name.to_string();
         let handle = thread::spawn(move || {

@@ -5,6 +5,7 @@ use std::{
 
 pub(crate) fn spawn_detached_tmux_server(
     session_name: &str,
+    endpoint_name: &str,
     command_args: &[String],
 ) -> io::Result<u32> {
     let mut command = Command::new(env::current_exe()?);
@@ -12,6 +13,8 @@ pub(crate) fn spawn_detached_tmux_server(
         .arg("--__tmux-server")
         .arg("--__session-name")
         .arg(session_name)
+        .arg("--__endpoint-name")
+        .arg(endpoint_name)
         .args(command_args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

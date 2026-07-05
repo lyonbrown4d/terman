@@ -21,6 +21,10 @@ pub struct TmuxArgs {
     #[arg(long = "__session-name", hide = true, requires = "internal_server")]
     pub internal_session_name: Option<String>,
 
+    /// Internal server IPC endpoint name.
+    #[arg(long = "__endpoint-name", hide = true, requires = "internal_server")]
+    pub internal_endpoint_name: Option<String>,
+
     /// Arguments parsed by the built-in tmux-compatible command dispatcher.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -36,4 +40,3 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     crate::run(cli.args)
 }
-
