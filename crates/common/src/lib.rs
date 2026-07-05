@@ -14,8 +14,8 @@ use which::which;
 
 pub const DEFAULT_COMMAND_TIMEOUT: Duration = Duration::from_secs(8);
 
-const ZH_CN_MESSAGES: &str = include_str!("../i18n/zh-CN.ftl");
-const EN_US_MESSAGES: &str = include_str!("../i18n/en-US.ftl");
+const ZH_CN_MESSAGES: &[u8] = include_bytes!("../i18n/zh-CN.ftl");
+const EN_US_MESSAGES: &[u8] = include_bytes!("../i18n/en-US.ftl");
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MessageKey {
@@ -67,7 +67,10 @@ fn localized_message_for_language(
     key: MessageKey,
     vars: &[(&str, &str)],
 ) -> String {
-    let Ok(resource) = FluentResource::try_new(messages_for_language(language).to_string()) else {
+    let Ok(messages) = std::str::from_utf8(messages_for_language(language)) else {
+        return fallback_message(key, vars);
+    };
+    let Ok(resource) = FluentResource::try_new(messages.to_owned()) else {
         return fallback_message(key, vars);
     };
 
@@ -111,7 +114,7 @@ fn message_language_from_tag(tag: &str) -> MessageLanguage {
     }
 }
 
-fn messages_for_language(language: MessageLanguage) -> &'static str {
+fn messages_for_language(language: MessageLanguage) -> &'static [u8] {
     match language {
         MessageLanguage::ZhCn => ZH_CN_MESSAGES,
         MessageLanguage::EnUs => EN_US_MESSAGES,
@@ -128,27 +131,14 @@ fn language_identifier(language: MessageLanguage) -> LanguageIdentifier {
 }
 
 fn fallback_message(key: MessageKey, vars: &[(&str, &str)]) -> String {
-    let tool = vars
-        .iter()
-        .find_map(|(name, value)| (*name == "tool").then_some(*value))
-        .unwrap_or("tool");
-    let session_name = vars
-        .iter()
-        .find_map(|(name, value)| (*name == "name").then_some(*value))
-        .unwrap_or("session");
-
-    match key {
-        MessageKey::NativeToolNotFound => format!(
-            "{tool} was not found on this platform. Install a native {tool} executable or use the built-in implementation when available."
-        ),
-        MessageKey::BuiltinScreenNoSessions => String::from(
-            "No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.",
-        ),
-        MessageKey::BuiltinScreenSessionListHeader => String::from("Built-in screen sessions:"),
-        MessageKey::BuiltinScreenSessionExists => format!(
-            "Built-in screen session `{session_name}` already exists. Run `terman-screen --list` to inspect existing sessions, or choose another name."
-        ),
+    let mut message = key.fluent_id().to_string();
+    for (name, value) in vars {
+        message.push(' ');
+        message.push_str(name);
+        message.push('=');
+        message.push_str(value);
     }
+    message
 }
 
 pub fn command_status_with_timeout(

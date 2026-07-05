@@ -23,6 +23,7 @@ use crossterm::{
 };
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use serde::{Deserialize, Serialize};
+use sysinfo::{Pid, ProcessesToUpdate, System};
 use terman_common;
 
 #[derive(Args, Debug, Clone)]
@@ -397,17 +398,25 @@ fn list_builtin_screen_sessions() -> io::Result<()> {
         return Ok(());
     }
 
+    let mut system = System::new();
+    system.refresh_processes(ProcessesToUpdate::All, true);
+
     let mut sessions = Vec::new();
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         if !entry.file_type()?.is_file() {
             continue;
         }
-        let Ok(record) = fs::read_to_string(entry.path()) else {
+        let path = entry.path();
+        let Ok(record) = fs::read_to_string(&path) else {
             continue;
         };
         if let Some(session) = parse_builtin_screen_session_record(&record) {
-            sessions.push(session);
+            if builtin_screen_session_is_alive(&session, &system) {
+                sessions.push(session);
+            } else {
+                let _ = fs::remove_file(path);
+            }
         }
     }
 
@@ -429,6 +438,14 @@ fn list_builtin_screen_sessions() -> io::Result<()> {
     Ok(())
 }
 
+fn builtin_screen_session_is_alive(session: &BuiltinScreenSession, system: &System) -> bool {
+    session
+        .pid
+        .parse::<u32>()
+        .ok()
+        .map(|pid| system.process(Pid::from_u32(pid)).is_some())
+        .unwrap_or(false)
+}
 fn parse_builtin_screen_session_record(record: &str) -> Option<BuiltinScreenSession> {
     serde_json::from_str(record).ok()
 }
@@ -770,8 +787,9 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::{
         ScreenArgs, build_system_screen_args,
-        is_builtin_screen_attach_requested, is_screen_attach_attempt, is_screen_detached_arg,
-        is_screen_session_name_arg, parse_builtin_screen_session_record, sanitize_session_file_name,
+        builtin_screen_session_is_alive, BuiltinScreenSession, is_builtin_screen_attach_requested,
+        is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg,
+        parse_builtin_screen_session_record, sanitize_session_file_name,
         screen_failure_message, screen_not_found_hint,
     };
 
@@ -901,6 +919,19 @@ mod tests {
         assert_eq!(parsed.pid, "42");
         assert_eq!(parsed.cwd, "C:/repo");
         assert_eq!(parsed.command, "pwsh");
+    }
+
+    #[test]
+    fn treats_invalid_session_pid_as_dead() {
+        let system = System::new();
+        let session = BuiltinScreenSession {
+            name: String::from("dev"),
+            pid: String::from("not-a-pid"),
+            cwd: String::from("C:/repo"),
+            command: String::from("pwsh"),
+        };
+
+        assert!(!builtin_screen_session_is_alive(&session, &system));
     }
 
 }
