@@ -24,6 +24,10 @@ pub fn native_tool_not_found_hint(tool: &str) -> String {
     localized_message(MessageKey::NativeToolNotFound, &[("tool", tool)])
 }
 
+pub fn builtin_tmux_no_sessions_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxNoSessions, &[])
+}
+
 pub fn builtin_screen_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinScreenNoSessions, &[])
 }

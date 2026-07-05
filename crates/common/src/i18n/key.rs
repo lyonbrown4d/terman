@@ -1,6 +1,7 @@
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MessageKey {
     NativeToolNotFound,
+    BuiltinTmuxNoSessions,
     BuiltinScreenNoSessions,
     BuiltinScreenSessionListHeader,
     BuiltinScreenSessionExists,
@@ -27,6 +28,7 @@ impl MessageKey {
     pub(super) fn fluent_id(self) -> &'static str {
         match self {
             Self::NativeToolNotFound => "native-tool-not-found",
+            Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
             Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
             Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
             Self::BuiltinScreenSessionExists => "builtin-screen-session-exists",

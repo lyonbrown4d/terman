@@ -4,11 +4,13 @@ use std::{
     process::{Command, ExitStatus, Stdio},
 };
 
+mod builtin;
 mod cli;
 mod command;
 mod hints;
 
 pub use cli::{TmuxArgs, run_with_binary_parse};
+use builtin::try_run_builtin_tmux_command;
 use command::TmuxCommand;
 use hints::{
     is_tmux_detached_without_tmux_command, tmux_failure_message, tmux_has_detached_arg,
@@ -20,12 +22,16 @@ struct TmuxLaunch {
 }
 
 pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
+    let mut passed_args = args.args;
+    let tmux_command = TmuxCommand::parse(&passed_args);
+    if try_run_builtin_tmux_command(&tmux_command)? {
+        return Ok(());
+    }
+
     let launch = resolve_tmux_launch()?;
     validate_tmux_launch(&launch)?;
 
     let mut cmd = Command::new(&launch.cmd);
-    let mut passed_args = args.args;
-    let tmux_command = TmuxCommand::parse(&passed_args);
     if args.detached {
         if tmux_command.is_new_session() {
             if !tmux_has_detached_arg(&passed_args) {

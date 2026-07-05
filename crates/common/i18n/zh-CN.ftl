@@ -19,9 +19,4 @@ builtin-screen-control-hardcopy-path-required = 请按 screen -X hardcopy <路�
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
 builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
 builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
-
-
-
-
-
-
+builtin-tmux-no-sessions = 当前没有 tmux 会话
