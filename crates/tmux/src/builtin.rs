@@ -3,7 +3,8 @@ use std::{error::Error, io};
 use crate::{
     command::TmuxCommand,
     sessions::{
-        load_builtin_tmux_sessions, register_builtin_tmux_session, remove_builtin_tmux_session,
+        builtin_tmux_session_exists, load_builtin_tmux_sessions, register_builtin_tmux_session,
+        remove_builtin_tmux_session,
     },
 };
 
@@ -19,6 +20,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::KillSession => {
             kill_builtin_tmux_session(args)?;
+            Ok(true)
+        }
+        TmuxCommand::HasSession => {
+            has_builtin_tmux_session(args)?;
             Ok(true)
         }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
@@ -69,13 +74,7 @@ fn create_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
 }
 
 fn kill_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let Some(target) = target_session_arg(args) else {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_tmux_target_required_hint(),
-        )));
-    };
-
+    let target = required_target_session_arg(args)?;
     if remove_builtin_tmux_session(&target)? {
         println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
         Ok(())
@@ -85,6 +84,27 @@ fn kill_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
             terman_common::builtin_tmux_session_not_found_hint(&target),
         )))
     }
+}
+
+fn has_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_arg(args)?;
+    if builtin_tmux_session_exists(&target)? {
+        Ok(())
+    } else {
+        Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&target),
+        )))
+    }
+}
+
+fn required_target_session_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
+    target_session_arg(args).ok_or_else(|| {
+        Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_tmux_target_required_hint(),
+        )) as Box<dyn Error>
+    })
 }
 
 fn new_session_is_detached(args: &[String], detached: bool) -> bool {

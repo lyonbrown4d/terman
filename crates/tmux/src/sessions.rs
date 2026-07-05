@@ -65,6 +65,11 @@ pub(crate) fn load_builtin_tmux_sessions() -> io::Result<Vec<BuiltinTmuxSession>
     Ok(sessions)
 }
 
+pub(crate) fn builtin_tmux_session_exists(name: &str) -> io::Result<bool> {
+    Ok(load_builtin_tmux_sessions()?
+        .into_iter()
+        .any(|session| session.name == name))
+}
 pub(crate) fn remove_builtin_tmux_session(name: &str) -> io::Result<bool> {
     let dir = builtin_tmux_sessions_dir();
     if !dir.exists() {

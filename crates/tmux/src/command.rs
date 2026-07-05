@@ -4,6 +4,7 @@ pub(crate) enum TmuxCommand {
     AttachSession,
     ListSessions,
     KillSession,
+    HasSession,
     Other,
 }
 
@@ -14,6 +15,7 @@ impl TmuxCommand {
             Some("attach" | "attach-session") => Self::AttachSession,
             Some("list-sessions" | "ls") => Self::ListSessions,
             Some("kill-session") => Self::KillSession,
+            Some("has-session") => Self::HasSession,
             _ => Self::Other,
         }
     }
@@ -50,6 +52,10 @@ mod tests {
         assert_eq!(
             TmuxCommand::parse(&["kill-session".into()]),
             TmuxCommand::KillSession
+        );
+        assert_eq!(
+            TmuxCommand::parse(&["has-session".into()]),
+            TmuxCommand::HasSession
         );
     }
 
