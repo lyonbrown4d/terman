@@ -374,7 +374,7 @@ fn register_builtin_screen_session(
 fn list_builtin_screen_sessions() -> io::Result<()> {
     let dir = builtin_screen_sessions_dir();
     if !dir.exists() {
-        println!("未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。");
+        println!("{}", terman_common::builtin_screen_no_sessions_hint());
         return Ok(());
     }
 
@@ -395,11 +395,11 @@ fn list_builtin_screen_sessions() -> io::Result<()> {
     sessions.sort_by(|left, right| left.name.cmp(&right.name));
 
     if sessions.is_empty() {
-        println!("未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。");
+        println!("{}", terman_common::builtin_screen_no_sessions_hint());
         return Ok(());
     }
 
-    println!("内置 screen 会话:");
+    println!("{}", terman_common::builtin_screen_session_list_header());
     for session in sessions {
         println!(
             "  {}\tpid={}\tcwd={}\tcommand={}",

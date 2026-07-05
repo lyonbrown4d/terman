@@ -26,6 +26,8 @@ impl MessageKey {
     fn fluent_id(self) -> &'static str {
         match self {
             Self::NativeToolNotFound => "native-tool-not-found",
+            Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
+            Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
         }
     }
 }
@@ -188,6 +190,7 @@ pub fn terminal_env() -> Vec<(String, String)> {
 mod tests {
     use super::{
         MessageKey, MessageLanguage, command_status_with_timeout, localized_message_for_language,
+        builtin_screen_no_sessions_hint, builtin_screen_session_list_header,
         message_language_from_tag, native_tool_not_found_hint,
     };
     use std::time::Duration;
