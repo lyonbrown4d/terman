@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = { workspace = true }
+crossterm = { workspace = true }
 interprocess = { workspace = true }
 portable-pty = { workspace = true }
 terman-common = { workspace = true }

@@ -848,6 +848,7 @@ name = "terman-tmux"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "crossterm",
  "directories",
  "interprocess",
  "portable-pty",
