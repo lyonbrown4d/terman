@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "跨平台 screen 终端会话工具（自实现内置后端）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -dmS dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -dmS dev\n  - terman-screen -D -r dev\n  - terman-screen -d -r dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -32,6 +32,14 @@ pub struct ScreenArgs {
         conflicts_with_all = ["list", "wipe", "resume", "multi_attach", "execute", "internal_server"]
     )]
     pub detached: bool,
+
+    /// Accept GNU screen detach-existing attach syntax; attach behavior is handled by the built-in session service.
+    #[arg(
+        long = "detach-existing",
+        hide = true,
+        conflicts_with_all = ["command", "list", "wipe", "execute", "internal_server"]
+    )]
+    pub detach_existing: bool,
 
     /// List known screen sessions.
     #[arg(long, alias = "ls", conflicts_with_all = ["command", "wipe"])]
@@ -112,6 +120,7 @@ impl Default for ScreenArgs {
             rows: None,
             session_name: None,
             detached: false,
+            detach_existing: false,
             list: false,
             wipe: false,
             execute: None,
@@ -137,12 +146,16 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn normalize_screen_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    let args: Vec<OsString> = args.into_iter().collect();
+    let attach_requested = args.iter().any(is_attach_arg);
     let mut normalized = Vec::new();
 
     for arg in args {
         match arg.to_str() {
             Some("-ls") | Some("-list") => normalized.push(OsString::from("--list")),
             Some("-wipe") => normalized.push(OsString::from("--wipe")),
+            Some("-D") => normalized.push(OsString::from("--detach-existing")),
+            Some("-d") if attach_requested => normalized.push(OsString::from("--detach-existing")),
             Some("-dm") => normalized.push(OsString::from("-d")),
             Some("-dmS") => {
                 normalized.push(OsString::from("-d"));
@@ -158,4 +171,11 @@ fn normalize_screen_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsStri
     }
 
     normalized
+}
+
+fn is_attach_arg(arg: &OsString) -> bool {
+    matches!(
+        arg.to_str(),
+        Some("-r") | Some("--resume") | Some("-x") | Some("--multi-attach")
+    )
 }
