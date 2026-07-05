@@ -72,6 +72,11 @@ pub(super) fn attach_interactive(
                         running.store(false, Ordering::Release);
                         return Ok(());
                     }
+                    Some(ScreenInputAction::DetachAll) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::DetachAll)?;
+                        running.store(false, Ordering::Release);
+                        return Ok(());
+                    }
                     Some(ScreenInputAction::Help) => print_attach_help()?,
                     Some(ScreenInputAction::Hardcopy) => print_attach_hardcopy(&endpoint)?,
                     Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,

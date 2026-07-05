@@ -7,6 +7,7 @@ pub(crate) enum ScreenInputAction {
     Bytes(Vec<u8>),
     Clear,
     Detach,
+    DetachAll,
     Help,
     Hardcopy,
     Info,
@@ -53,6 +54,9 @@ impl ScreenInputDecoder {
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
                 Some(ScreenInputAction::Clear)
+            }
+            KeyCode::Char('D') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::DetachAll)
             }
             KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Detach)
@@ -200,6 +204,18 @@ mod tests {
 
         assert_eq!(decoder.decode_key(prefix), None);
         assert_eq!(decoder.decode_key(clear), Some(ScreenInputAction::Clear));
+    }
+    #[test]
+    fn detects_screen_detach_all_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let detach_all = KeyEvent::new(KeyCode::Char('D'), KeyModifiers::SHIFT);
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(
+            decoder.decode_key(detach_all),
+            Some(ScreenInputAction::DetachAll)
+        );
     }
     #[test]
     fn detects_screen_detach_prefix() {
