@@ -5,6 +5,7 @@ const SCREEN_CONTROL_PREFIX: u8 = 0x01;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenInputAction {
     Bytes(Vec<u8>),
+    Clear,
     Detach,
     Help,
     Hardcopy,
@@ -42,6 +43,11 @@ impl ScreenInputDecoder {
 
     fn decode_prefixed_key(&mut self, key: KeyEvent) -> Option<ScreenInputAction> {
         match key.code {
+            KeyCode::Char('C')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::Clear)
+            }
             KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Detach)
             }
@@ -171,6 +177,15 @@ mod tests {
         assert_eq!(key_to_bytes(key), Some(vec![0x1b, b'[', b'A']));
     }
 
+    #[test]
+    fn detects_screen_clear_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let clear = KeyEvent::new(KeyCode::Char('C'), KeyModifiers::SHIFT);
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(decoder.decode_key(clear), Some(ScreenInputAction::Clear));
+    }
     #[test]
     fn detects_screen_detach_prefix() {
         let mut decoder = ScreenInputDecoder::new();
