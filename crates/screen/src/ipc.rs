@@ -17,6 +17,12 @@ pub(crate) struct ScreenIpcEndpoint {
 }
 
 impl ScreenIpcEndpoint {
+    pub(crate) fn from_raw_name(raw_name: &str) -> Self {
+        Self {
+            raw_name: raw_name.to_string(),
+        }
+    }
+
     pub(crate) fn for_session(session_name: &str) -> Self {
         let mut hasher = DefaultHasher::new();
         session_name.hash(&mut hasher);
@@ -74,6 +80,7 @@ pub(crate) enum ScreenIpcRequest {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub(crate) enum ScreenIpcResponse {
     Accepted,
+    Attached { replay: Vec<u8> },
     Rejected { reason: String },
 }
 
@@ -98,7 +105,7 @@ fn sanitize_ipc_component(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScreenAttachMode, ScreenIpcEndpoint, ScreenIpcRequest};
+    use super::{ScreenAttachMode, ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse};
 
     #[test]
     fn creates_stable_endpoint_name_for_session() {
@@ -107,6 +114,13 @@ mod tests {
 
         assert_eq!(left.raw_name(), right.raw_name());
         assert!(left.raw_name().starts_with("terman-screen-dev_session-"));
+    }
+
+    #[test]
+    fn preserves_raw_endpoint_name_from_session_record() {
+        let endpoint = ScreenIpcEndpoint::from_raw_name("terman-screen-dev");
+
+        assert_eq!(endpoint.raw_name(), "terman-screen-dev");
     }
 
     #[test]
@@ -121,6 +135,18 @@ mod tests {
             ScreenIpcRequest::Attach {
                 mode: ScreenAttachMode::Resume,
                 target: Some(String::from("dev")),
+            }
+        );
+    }
+
+    #[test]
+    fn models_attach_replay_response() {
+        assert_eq!(
+            ScreenIpcResponse::Attached {
+                replay: b"hello".to_vec()
+            },
+            ScreenIpcResponse::Attached {
+                replay: b"hello".to_vec()
             }
         );
     }

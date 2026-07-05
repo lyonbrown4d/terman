@@ -23,6 +23,9 @@ pub enum MessageKey {
     BuiltinScreenNoSessions,
     BuiltinScreenSessionListHeader,
     BuiltinScreenSessionExists,
+    BuiltinScreenAttachUnsupported,
+    BuiltinScreenAttachTargetRequired,
+    BuiltinScreenSessionNotFound,
 }
 
 impl MessageKey {
@@ -32,6 +35,9 @@ impl MessageKey {
             Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
             Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
             Self::BuiltinScreenSessionExists => "builtin-screen-session-exists",
+            Self::BuiltinScreenAttachUnsupported => "builtin-screen-attach-unsupported",
+            Self::BuiltinScreenAttachTargetRequired => "builtin-screen-attach-target-required",
+            Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
         }
     }
 }
@@ -60,6 +66,18 @@ pub fn builtin_screen_session_list_header() -> String {
 
 pub fn builtin_screen_session_exists_hint(name: &str) -> String {
     localized_message(MessageKey::BuiltinScreenSessionExists, &[("name", name)])
+}
+
+pub fn builtin_screen_attach_unsupported_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenAttachUnsupported, &[])
+}
+
+pub fn builtin_screen_attach_target_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenAttachTargetRequired, &[])
+}
+
+pub fn builtin_screen_session_not_found_hint(name: &str) -> String {
+    localized_message(MessageKey::BuiltinScreenSessionNotFound, &[("name", name)])
 }
 
 fn localized_message_for_language(
@@ -206,11 +224,11 @@ pub fn terminal_env() -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::{
-        MessageKey, MessageLanguage, command_status_with_timeout, localized_message_for_language,
-        builtin_screen_attach_target_required_hint, builtin_screen_attach_unsupported_hint,
-        builtin_screen_no_sessions_hint, builtin_screen_session_exists_hint,
-        builtin_screen_session_list_header, builtin_screen_session_not_found_hint,
-        message_language_from_tag, native_tool_not_found_hint,
+        MessageKey, MessageLanguage, builtin_screen_attach_target_required_hint,
+        builtin_screen_attach_unsupported_hint, builtin_screen_no_sessions_hint,
+        builtin_screen_session_exists_hint, builtin_screen_session_list_header,
+        builtin_screen_session_not_found_hint, command_status_with_timeout,
+        localized_message_for_language, message_language_from_tag, native_tool_not_found_hint,
     };
     use std::time::Duration;
 
@@ -256,6 +274,9 @@ mod tests {
         assert!(builtin_screen_no_sessions_hint().contains("screen"));
         assert!(builtin_screen_session_list_header().contains("screen"));
         assert!(builtin_screen_session_exists_hint("dev").contains("dev"));
+        assert!(builtin_screen_attach_unsupported_hint().contains("screen"));
+        assert!(builtin_screen_attach_target_required_hint().contains("screen"));
+        assert!(builtin_screen_session_not_found_hint("dev").contains("dev"));
     }
 
     #[test]

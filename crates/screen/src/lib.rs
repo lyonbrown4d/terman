@@ -4,6 +4,7 @@ mod builtin;
 mod cli;
 mod ipc;
 mod service;
+mod session_core;
 mod sessions;
 mod shell;
 

@@ -19,6 +19,7 @@ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use crate::{
     ScreenArgs,
     service::ScreenSessionService,
+    session_core::ScreenSessionBus,
     sessions::register_builtin_screen_session,
     shell::{default_shell, shell_command_args},
 };
@@ -122,6 +123,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                         pixel_height: 0,
                     };
                     let _ = master.resize(size);
+                    session_bus.publish_resize(cols, rows);
                 }
                 Ok(_) => {}
                 Err(_) => break,

@@ -8,6 +8,7 @@ use interprocess::local_socket::prelude::*;
 use crate::{
     ScreenArgs,
     ipc::{ScreenAttachMode, ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
+    session_core::ScreenSessionBus,
     sessions::find_builtin_screen_session_for_attach,
 };
 
@@ -16,7 +17,10 @@ pub(crate) struct ScreenSessionService {
 }
 
 impl ScreenSessionService {
-    pub(crate) fn start(session_name: Option<&str>) -> io::Result<Option<Self>> {
+    pub(crate) fn start(
+        session_name: Option<&str>,
+        bus: ScreenSessionBus,
+    ) -> io::Result<Option<Self>> {
         let Some(session_name) = session_name else {
             return Ok(None);
         };
@@ -28,7 +32,7 @@ impl ScreenSessionService {
                 let Ok(mut stream) = stream else {
                     continue;
                 };
-                let _ = handle_client(&mut stream);
+                let _ = handle_client(&mut stream, &bus);
             }
         });
 
@@ -72,11 +76,18 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
 
     match response {
         ScreenIpcResponse::Accepted => Ok(()),
-        ScreenIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::Unsupported, reason)),
+        ScreenIpcResponse::Attached { replay } => {
+            let mut stdout = io::stdout();
+            stdout.write_all(&replay)?;
+            stdout.flush()
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
     }
 }
 
-fn handle_client(stream: &mut LocalSocketStream) -> io::Result<()> {
+fn handle_client(stream: &mut LocalSocketStream, bus: &ScreenSessionBus) -> io::Result<()> {
     let mut request = String::new();
     {
         let mut reader = BufReader::new(&mut *stream);
@@ -84,8 +95,8 @@ fn handle_client(stream: &mut LocalSocketStream) -> io::Result<()> {
     }
 
     let response = match serde_json::from_str::<ScreenIpcRequest>(request.trim_end()) {
-        Ok(ScreenIpcRequest::Attach { .. }) => ScreenIpcResponse::Rejected {
-            reason: terman_common::builtin_screen_attach_unsupported_hint(),
+        Ok(ScreenIpcRequest::Attach { .. }) => ScreenIpcResponse::Attached {
+            replay: bus.replay_snapshot(),
         },
         Ok(ScreenIpcRequest::Detach) => ScreenIpcResponse::Accepted,
         Ok(ScreenIpcRequest::Input { .. } | ScreenIpcRequest::Resize { .. }) => {
