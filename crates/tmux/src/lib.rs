@@ -14,6 +14,7 @@ mod launcher;
 mod message;
 mod pty;
 mod service;
+mod send_keys;
 mod server;
 mod session_core;
 mod sessions;

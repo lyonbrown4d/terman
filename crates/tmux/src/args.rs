@@ -33,6 +33,10 @@ pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
     positional_payload_after_command(args, &["display-message", "display"])
 }
 
+pub(crate) fn send_keys_args(args: &[String]) -> Vec<String> {
+    positional_args_after_command(args, &["send-keys", "send"])
+}
+
 fn positional_after_command(args: &[String], commands: &[&str]) -> Option<String> {
     positional_payload_after_command(args, commands).and_then(|payload| {
         payload
@@ -43,6 +47,15 @@ fn positional_after_command(args: &[String], commands: &[&str]) -> Option<String
 }
 
 fn positional_payload_after_command(args: &[String], commands: &[&str]) -> Option<String> {
+    let payload = positional_args_after_command(args, commands).join(" ");
+    if payload.trim().is_empty() {
+        None
+    } else {
+        Some(payload)
+    }
+}
+
+fn positional_args_after_command(args: &[String], commands: &[&str]) -> Vec<String> {
     let mut seen_command = false;
     let mut skip_next = false;
     let mut payload = Vec::new();
@@ -68,12 +81,7 @@ fn positional_payload_after_command(args: &[String], commands: &[&str]) -> Optio
         payload.push(arg.clone());
     }
 
-    let payload = payload.join(" ");
-    if payload.trim().is_empty() {
-        None
-    } else {
-        Some(payload)
-    }
+    payload
 }
 
 fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
@@ -95,8 +103,8 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        display_message_arg, rename_session_name_arg, rename_window_name_arg, session_name_arg,
-        target_session_arg, target_session_name_arg, target_window_index_arg,
+        display_message_arg, rename_session_name_arg, rename_window_name_arg, send_keys_args,
+        session_name_arg, target_session_arg, target_session_name_arg, target_window_index_arg,
     };
 
     #[test]
@@ -131,6 +139,14 @@ mod tests {
         assert_eq!(
             display_message_arg(&["display".into(), "-tdev".into(), "hello".into(), "world".into()]),
             Some(String::from("hello world"))
+        );
+    }
+
+    #[test]
+    fn parses_send_keys_payload() {
+        assert_eq!(
+            send_keys_args(&["send".into(), "-tdev".into(), "echo hi".into(), "Enter".into()]),
+            vec![String::from("echo hi"), String::from("Enter")]
         );
     }
 }

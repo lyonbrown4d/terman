@@ -119,6 +119,10 @@ pub fn builtin_tmux_message_required_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxMessageRequired, &[])
 }
 
+pub fn builtin_tmux_keys_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxKeysRequired, &[])
+}
+
 pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
     localized_message(
         MessageKey::BuiltinTmuxCommandUnsupported,

@@ -43,6 +43,7 @@ builtin-tmux-server-not-ready = Built-in tmux server did not become ready.
 builtin-tmux-unexpected-info-response = Unexpected tmux info response: {$response}.
 builtin-tmux-unexpected-response = Unexpected tmux response: {$response}.
 builtin-tmux-message-required = Specify a message for tmux display-message.
+builtin-tmux-keys-required = Specify keys for tmux send-keys.
 builtin-tmux-window-created = created a window in tmux session {$session}; {$windows} window(s) now exist
 builtin-tmux-window-killed = killed one window in tmux session {$session}; {$windows} window(s) remain
 builtin-tmux-window-name-required = specify a new tmux window name

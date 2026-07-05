@@ -15,6 +15,7 @@ use crate::{
     },
     message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
+    send_keys::send_builtin_tmux_keys,
     service::request_endpoint_response,
     sessions::{
         AddBuiltinTmuxWindow, BuiltinTmuxSession, KillBuiltinTmuxWindow,
@@ -57,6 +58,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::CapturePane => {
             capture_builtin_tmux_pane(args)?;
+            Ok(true)
+        }
+        TmuxCommand::SendKeys => {
+            send_builtin_tmux_keys(args)?;
             Ok(true)
         }
         TmuxCommand::NewWindow => {
