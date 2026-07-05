@@ -66,7 +66,8 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
 }
 
 pub(crate) fn wipe_builtin_screen_sessions() -> io::Result<()> {
-    let removed = store::remove_stale_builtin_screen_session_records()?;
+    let removed = store::remove_stale_builtin_screen_session_records()?
+        + remove_unreachable_builtin_screen_sessions()?;
     println!("{}", terman_common::builtin_screen_wipe_complete_hint(removed));
     Ok(())
 }
@@ -108,6 +109,18 @@ fn load_reachable_builtin_screen_sessions(
         }
     }
     Ok(reachable)
+}
+
+fn remove_unreachable_builtin_screen_sessions() -> io::Result<usize> {
+    let mut removed = 0;
+    for session in store::load_alive_builtin_screen_sessions()? {
+        if load_runtime_status_with_retry(&session).is_err()
+            && store::remove_builtin_screen_session_record(&session.name)?
+        {
+            removed += 1;
+        }
+    }
+    Ok(removed)
 }
 
 fn load_runtime_status_with_retry(
