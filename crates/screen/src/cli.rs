@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "跨平台 screen 终端会话工具（自实现内置后端）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -dmS dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -23,6 +23,15 @@ pub struct ScreenArgs {
     /// Name the screen session.
     #[arg(short = 'S', long = "session", value_name = "NAME")]
     pub session_name: Option<String>,
+
+    /// Start a named screen session without attaching to it.
+    #[arg(
+        short = 'd',
+        long = "detached",
+        requires = "session_name",
+        conflicts_with_all = ["list", "wipe", "resume", "multi_attach", "execute", "internal_server"]
+    )]
+    pub detached: bool,
 
     /// List known screen sessions.
     #[arg(long, alias = "ls", conflicts_with_all = ["command", "wipe"])]
@@ -47,6 +56,24 @@ pub struct ScreenArgs {
     /// Extra arguments for the screen control command.
     #[arg(value_name = "ARG", trailing_var_arg = true, requires = "execute")]
     pub execute_args: Vec<String>,
+
+    /// Resume an existing session, or create a named session when it does not exist.
+    #[arg(
+        short = 'R',
+        long = "resume-or-create",
+        value_name = "NAME",
+        conflicts_with_all = [
+            "command",
+            "list",
+            "wipe",
+            "session_name",
+            "resume",
+            "multi_attach",
+            "execute",
+            "internal_server"
+        ]
+    )]
+    pub resume_or_create: Option<String>,
 
     /// Resume a detached screen session once the built-in session service is available.
     #[arg(
@@ -84,10 +111,12 @@ impl Default for ScreenArgs {
             cols: None,
             rows: None,
             session_name: None,
+            detached: false,
             list: false,
             wipe: false,
             execute: None,
             execute_args: Vec::new(),
+            resume_or_create: None,
             resume: None,
             multi_attach: None,
             login_shell: false,
@@ -108,11 +137,25 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn normalize_screen_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
-    args.into_iter()
-        .map(|arg| match arg.to_str() {
-            Some("-ls") | Some("-list") => OsString::from("--list"),
-            Some("-wipe") => OsString::from("--wipe"),
-            _ => arg,
-        })
-        .collect()
+    let mut normalized = Vec::new();
+
+    for arg in args {
+        match arg.to_str() {
+            Some("-ls") | Some("-list") => normalized.push(OsString::from("--list")),
+            Some("-wipe") => normalized.push(OsString::from("--wipe")),
+            Some("-dm") => normalized.push(OsString::from("-d")),
+            Some("-dmS") => {
+                normalized.push(OsString::from("-d"));
+                normalized.push(OsString::from("-S"));
+            }
+            Some(value) if value.starts_with("-dmS") && value.len() > 4 => {
+                normalized.push(OsString::from("-d"));
+                normalized.push(OsString::from("-S"));
+                normalized.push(OsString::from(&value[4..]));
+            }
+            _ => normalized.push(arg),
+        }
+    }
+
+    normalized
 }
