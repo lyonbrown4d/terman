@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 clap = { workspace = true }
 crossterm = { workspace = true }
+directories = { workspace = true }
 portable-pty = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

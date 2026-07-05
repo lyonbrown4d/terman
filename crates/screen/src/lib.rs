@@ -16,6 +16,7 @@ use std::{
 };
 
 use clap::Args;
+use directories::ProjectDirs;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     terminal::{self, size as terminal_size},
@@ -428,7 +429,9 @@ fn builtin_screen_session_record_path(name: &str) -> PathBuf {
 }
 
 fn builtin_screen_sessions_dir() -> PathBuf {
-    env::temp_dir().join("terman-screen").join("sessions")
+    ProjectDirs::from("", "", "terman")
+        .map(|dirs| dirs.data_local_dir().join("screen").join("sessions"))
+        .unwrap_or_else(|| env::temp_dir().join("terman-screen").join("sessions"))
 }
 
 fn sanitize_session_file_name(name: &str) -> String {
