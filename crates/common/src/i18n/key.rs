@@ -13,6 +13,7 @@ pub enum MessageKey {
     BuiltinScreenServerTimeout,
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
+    BuiltinScreenControlEchoRequired,
     BuiltinScreenControlStuffRequired,
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlInfo,
@@ -40,6 +41,7 @@ impl MessageKey {
             Self::BuiltinScreenControlCommandUnsupported => {
                 "builtin-screen-control-command-unsupported"
             }
+            Self::BuiltinScreenControlEchoRequired => "builtin-screen-control-echo-required",
             Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
             Self::BuiltinScreenControlResizeRequired => "builtin-screen-control-resize-required",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",

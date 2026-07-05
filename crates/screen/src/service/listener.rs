@@ -81,6 +81,12 @@ fn handle_client(
             bus.clear_replay();
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::Echo { message }) => {
+            let mut bytes = message.into_bytes();
+            bytes.extend_from_slice(b"\r\n");
+            bus.publish_transient_output(&bytes);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Reset) => {
             bus.clear_replay();
             bus.publish_transient_output(b"\x1bc");

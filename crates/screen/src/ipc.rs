@@ -71,6 +71,9 @@ pub(crate) enum ScreenIpcRequest {
     Detach,
     DetachAll,
     Clear,
+    Echo {
+        message: String,
+    },
     Hardcopy,
     Info,
     Ping,

@@ -75,6 +75,9 @@ pub fn builtin_screen_control_command_unsupported_hint(command: &str) -> String 
     )
 }
 
+pub fn builtin_screen_control_echo_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlEchoRequired, &[])
+}
 pub fn builtin_screen_control_stuff_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlStuffRequired, &[])
 }

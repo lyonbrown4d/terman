@@ -29,6 +29,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
         "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
+        "echo" => request_echo_command(args, inline_payload),
         "info" => request_session_info(args),
         "hardcopy" => request_hardcopy_command(args, inline_payload),
         "pastefile" => request_pastefile_command(args, inline_payload),
@@ -41,6 +42,16 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
     }
 }
 
+fn request_echo_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
+    let message = control_command_payload(inline_payload, &args.execute_args);
+    if message.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_echo_required_hint(),
+        ));
+    }
+    send_session_control_request(args, ScreenIpcRequest::Echo { message })
+}
 fn request_hardcopy_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
     let path = control_command_payload(inline_payload, &args.execute_args);
     if path.is_empty() {
