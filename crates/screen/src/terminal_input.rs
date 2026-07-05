@@ -11,6 +11,7 @@ pub(crate) enum ScreenInputAction {
     Hardcopy,
     Info,
     Kill,
+    Reset,
 }
 
 #[derive(Default)]
@@ -43,6 +44,11 @@ impl ScreenInputDecoder {
 
     fn decode_prefixed_key(&mut self, key: KeyEvent) -> Option<ScreenInputAction> {
         match key.code {
+            KeyCode::Char('Z')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::Reset)
+            }
             KeyCode::Char('C')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
@@ -177,6 +183,15 @@ mod tests {
         assert_eq!(key_to_bytes(key), Some(vec![0x1b, b'[', b'A']));
     }
 
+    #[test]
+    fn detects_screen_reset_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let reset = KeyEvent::new(KeyCode::Char('Z'), KeyModifiers::SHIFT);
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(decoder.decode_key(reset), Some(ScreenInputAction::Reset));
+    }
     #[test]
     fn detects_screen_clear_prefix() {
         let mut decoder = ScreenInputDecoder::new();

@@ -64,6 +64,9 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Clear) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Clear)?;
                     }
+                    Some(ScreenInputAction::Reset) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::Reset)?;
+                    }
                     Some(ScreenInputAction::Detach) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Detach)?;
                         running.store(false, Ordering::Release);
