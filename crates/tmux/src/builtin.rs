@@ -1,10 +1,12 @@
 use std::{error::Error, io};
 
 use crate::{
+    args::{rename_session_name_arg, session_name_arg, target_session_arg},
     command::TmuxCommand,
     sessions::{
-        RenameBuiltinTmuxSession, builtin_tmux_session_exists, load_builtin_tmux_sessions,
-        register_builtin_tmux_session, remove_builtin_tmux_session, rename_builtin_tmux_session,
+        AddBuiltinTmuxWindow, RenameBuiltinTmuxSession, add_builtin_tmux_window,
+        builtin_tmux_session_exists, load_builtin_tmux_sessions, register_builtin_tmux_session,
+        remove_builtin_tmux_session, rename_builtin_tmux_session,
     },
 };
 
@@ -28,6 +30,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::RenameSession => {
             rename_builtin_tmux_session_command(args)?;
+            Ok(true)
+        }
+        TmuxCommand::NewWindow => {
+            create_builtin_tmux_window(args)?;
             Ok(true)
         }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
@@ -74,6 +80,23 @@ fn create_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
             io::ErrorKind::AlreadyExists,
             terman_common::builtin_tmux_session_exists_hint(&name),
         )))
+    }
+}
+
+fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_arg(args)?;
+    match add_builtin_tmux_window(&target)? {
+        AddBuiltinTmuxWindow::Added(windows) => {
+            println!(
+                "{}",
+                terman_common::builtin_tmux_window_created_hint(&target, windows)
+            );
+            Ok(())
+        }
+        AddBuiltinTmuxWindow::SessionMissing => Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&target),
+        ))),
     }
 }
 
@@ -137,115 +160,9 @@ fn new_session_is_detached(args: &[String], detached: bool) -> bool {
     detached || args.iter().any(|arg| arg == "-d" || arg == "--detached")
 }
 
-fn session_name_arg(args: &[String]) -> Option<String> {
-    named_arg(args, "-s", "--session-name")
-}
-
-fn target_session_arg(args: &[String]) -> Option<String> {
-    named_arg(args, "-t", "--target-session")
-}
-
-fn rename_session_name_arg(args: &[String]) -> Option<String> {
-    let mut seen_command = false;
-    let mut skip_next = false;
-
-    for arg in args {
-        if skip_next {
-            skip_next = false;
-            continue;
-        }
-        if !seen_command {
-            if arg == "rename-session" {
-                seen_command = true;
-            }
-            continue;
-        }
-        if arg == "-t" || arg == "--target-session" {
-            skip_next = true;
-            continue;
-        }
-        if arg.starts_with("-t") || arg.starts_with("--target-session=") || arg.starts_with('-') {
-            continue;
-        }
-        return Some(arg.clone());
-    }
-    None
-}
-
-fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
-    let mut iter = args.iter();
-    while let Some(arg) = iter.next() {
-        if arg == short || arg == long {
-            return iter.next().cloned();
-        }
-        if let Some(value) = arg.strip_prefix(short).filter(|value| !value.is_empty()) {
-            return Some(value.to_string());
-        }
-        if let Some(value) = arg.strip_prefix(&format!("{long}=")) {
-            return Some(value.to_string());
-        }
-    }
-    None
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        new_session_is_detached, rename_session_name_arg, session_name_arg, target_session_arg,
-    };
-
-    #[test]
-    fn parses_session_name_arg() {
-        assert_eq!(
-            session_name_arg(&["new".into(), "-s".into(), "dev".into()]),
-            Some(String::from("dev"))
-        );
-        assert_eq!(
-            session_name_arg(&["new".into(), "-sdev".into()]),
-            Some(String::from("dev"))
-        );
-        assert_eq!(
-            session_name_arg(&["new".into(), "--session-name=dev".into()]),
-            Some(String::from("dev"))
-        );
-    }
-
-    #[test]
-    fn parses_target_session_arg() {
-        assert_eq!(
-            target_session_arg(&["kill-session".into(), "-t".into(), "dev".into()]),
-            Some(String::from("dev"))
-        );
-        assert_eq!(
-            target_session_arg(&["kill-session".into(), "-tdev".into()]),
-            Some(String::from("dev"))
-        );
-        assert_eq!(
-            target_session_arg(&["kill-session".into(), "--target-session=dev".into()]),
-            Some(String::from("dev"))
-        );
-    }
-
-    #[test]
-    fn parses_rename_session_name_arg() {
-        assert_eq!(
-            rename_session_name_arg(&[
-                "rename-session".into(),
-                "-t".into(),
-                "old".into(),
-                "new".into(),
-            ]),
-            Some(String::from("new"))
-        );
-        assert_eq!(
-            rename_session_name_arg(&[
-                "rename-session".into(),
-                "--target-session=old".into(),
-                "new".into(),
-            ]),
-            Some(String::from("new"))
-        );
-    }
+    use super::new_session_is_detached;
 
     #[test]
     fn detects_detached_new_session() {

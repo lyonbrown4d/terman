@@ -3,7 +3,7 @@ use std::{
     env, fs,
     hash::{Hash, Hasher},
     io::{self, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use directories::ProjectDirs;
@@ -23,6 +23,12 @@ pub(crate) enum RenameBuiltinTmuxSession {
     Renamed,
     SourceMissing,
     DestinationExists,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum AddBuiltinTmuxWindow {
+    Added(u32),
+    SessionMissing,
 }
 
 pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
@@ -61,6 +67,15 @@ pub(crate) fn builtin_tmux_session_exists(name: &str) -> io::Result<bool> {
     Ok(load_builtin_tmux_sessions()?
         .into_iter()
         .any(|session| session.name == name))
+}
+
+pub(crate) fn add_builtin_tmux_window(name: &str) -> io::Result<AddBuiltinTmuxWindow> {
+    let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
+        return Ok(AddBuiltinTmuxWindow::SessionMissing);
+    };
+    session.windows = session.windows.saturating_add(1);
+    replace_builtin_tmux_session_record(&path, &session)?;
+    Ok(AddBuiltinTmuxWindow::Added(session.windows))
 }
 
 pub(crate) fn rename_builtin_tmux_session(
@@ -150,17 +165,24 @@ fn write_builtin_tmux_session_record(session: &BuiltinTmuxSession) -> io::Result
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let record = serde_json::to_string_pretty(session)
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
-
     match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
         Ok(mut file) => {
-            file.write_all(format!("{record}\n").as_bytes())?;
+            file.write_all(format_builtin_tmux_session_record(session)?.as_bytes())?;
             Ok(true)
         }
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => Ok(false),
         Err(err) => Err(err),
     }
+}
+
+fn replace_builtin_tmux_session_record(path: &Path, session: &BuiltinTmuxSession) -> io::Result<()> {
+    fs::write(path, format_builtin_tmux_session_record(session)?)
+}
+
+fn format_builtin_tmux_session_record(session: &BuiltinTmuxSession) -> io::Result<String> {
+    let record = serde_json::to_string_pretty(session)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    Ok(format!("{record}\n"))
 }
 
 fn builtin_tmux_session_record_path(name: &str) -> PathBuf {

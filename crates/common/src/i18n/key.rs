@@ -4,6 +4,7 @@ pub enum MessageKey {
     BuiltinTmuxNoSessions,
     BuiltinTmuxSessionListEntry,
     BuiltinTmuxSessionCreated,
+    BuiltinTmuxWindowCreated,
     BuiltinTmuxSessionExists,
     BuiltinTmuxSessionKilled,
     BuiltinTmuxSessionNameRequired,
@@ -39,6 +40,7 @@ impl MessageKey {
             Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
             Self::BuiltinTmuxSessionListEntry => "builtin-tmux-session-list-entry",
             Self::BuiltinTmuxSessionCreated => "builtin-tmux-session-created",
+            Self::BuiltinTmuxWindowCreated => "builtin-tmux-window-created",
             Self::BuiltinTmuxSessionExists => "builtin-tmux-session-exists",
             Self::BuiltinTmuxSessionKilled => "builtin-tmux-session-killed",
             Self::BuiltinTmuxSessionNameRequired => "builtin-tmux-session-name-required",
@@ -76,3 +78,4 @@ impl MessageKey {
         }
     }
 }
+

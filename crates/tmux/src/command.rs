@@ -6,6 +6,7 @@ pub(crate) enum TmuxCommand {
     KillSession,
     HasSession,
     RenameSession,
+    NewWindow,
     Other,
 }
 
@@ -18,10 +19,10 @@ impl TmuxCommand {
             Some("kill-session") => Self::KillSession,
             Some("has-session") => Self::HasSession,
             Some("rename-session") => Self::RenameSession,
+            Some("new-window" | "neww") => Self::NewWindow,
             _ => Self::Other,
         }
     }
-
 }
 
 fn first_command_token(args: &[String]) -> Option<&String> {
@@ -60,6 +61,10 @@ mod tests {
             TmuxCommand::parse(&["rename-session".into()]),
             TmuxCommand::RenameSession
         );
+        assert_eq!(
+            TmuxCommand::parse(&["neww".into()]),
+            TmuxCommand::NewWindow
+        );
     }
 
     #[test]
@@ -71,4 +76,3 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["--detached".into()]), TmuxCommand::Other);
     }
 }
-
