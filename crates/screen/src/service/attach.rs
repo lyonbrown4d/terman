@@ -41,6 +41,7 @@ impl Drop for AttachRawMode {
 pub(super) fn attach_interactive(
     endpoint: ScreenIpcEndpoint,
     stream: LocalSocketStream,
+    client_id: String,
 ) -> io::Result<()> {
     let _raw = AttachRawMode::enter()?;
     sync_attach_terminal_size(&endpoint)?;
@@ -71,7 +72,12 @@ pub(super) fn attach_interactive(
                         sync_attach_terminal_size(&endpoint)?;
                     }
                     Some(ScreenInputAction::Detach) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Detach)?;
+                        send_control_request(
+                            &endpoint,
+                            ScreenIpcRequest::DetachClient {
+                                client_id: client_id.clone(),
+                            },
+                        )?;
                         running.store(false, Ordering::Release);
                         return Ok(());
                     }

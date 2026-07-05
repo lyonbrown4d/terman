@@ -80,8 +80,12 @@ pub(crate) enum ScreenIpcRequest {
         mode: ScreenAttachMode,
         target: Option<String>,
         detach_existing: bool,
+        client_id: Option<String>,
     },
     Detach,
+    DetachClient {
+        client_id: String,
+    },
     DetachAll,
     Bell,
     Clear,
@@ -172,6 +176,7 @@ mod tests {
             mode: ScreenAttachMode::Resume,
             target: Some(String::from("dev")),
             detach_existing: false,
+            client_id: Some(String::from("client")),
         };
 
         assert_eq!(
@@ -180,6 +185,7 @@ mod tests {
                 mode: ScreenAttachMode::Resume,
                 target: Some(String::from("dev")),
                 detach_existing: false,
+                client_id: Some(String::from("client")),
             }
         );
     }

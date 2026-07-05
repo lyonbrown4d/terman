@@ -65,17 +65,20 @@ fn handle_client(
 
     match serde_json::from_str::<ScreenIpcRequest>(request.trim_end()) {
         Ok(ScreenIpcRequest::Attach {
-            detach_existing, ..
+            client_id,
+            detach_existing,
+            ..
         }) => {
             if detach_existing {
                 bus.publish_detach();
             }
-            stream_attach(stream, bus)
+            stream_attach(stream, bus, client_id)
         }
-        Ok(ScreenIpcRequest::Detach) => {
-            bus.detach_client();
+        Ok(ScreenIpcRequest::Detach) => write_response(stream, &ScreenIpcResponse::Accepted),
+        Ok(ScreenIpcRequest::DetachClient { client_id }) => {
+            bus.detach_client(&client_id);
             write_response(stream, &ScreenIpcResponse::Accepted)
-        },
+        }
         Ok(ScreenIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &ScreenIpcResponse::Accepted)
@@ -146,8 +149,12 @@ fn handle_client(
     }
 }
 
-fn stream_attach(stream: &mut LocalSocketStream, bus: &ScreenSessionBus) -> io::Result<()> {
-    let (replay, events) = bus.subscribe_with_replay();
+fn stream_attach(
+    stream: &mut LocalSocketStream,
+    bus: &ScreenSessionBus,
+    client_id: Option<String>,
+) -> io::Result<()> {
+    let (replay, events) = bus.subscribe_with_replay(client_id);
     write_response(stream, &ScreenIpcResponse::Attached { replay })?;
 
     while let Ok(event) = events.recv() {

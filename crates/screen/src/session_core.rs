@@ -30,10 +30,15 @@ pub(crate) struct ScreenSessionBus {
     inner: Arc<Mutex<ScreenSessionState>>,
 }
 
+struct ScreenSessionSubscriber {
+    client_id: Option<String>,
+    sender: mpsc::Sender<ScreenSessionEvent>,
+}
+
 #[derive(Default)]
 struct ScreenSessionState {
     replay: Vec<u8>,
-    subscribers: Vec<mpsc::Sender<ScreenSessionEvent>>,
+    subscribers: Vec<ScreenSessionSubscriber>,
     attach_clients: usize,
     cols: Option<u16>,
     rows: Option<u16>,
@@ -73,12 +78,18 @@ impl ScreenSessionBus {
         Self::default()
     }
 
-    pub(crate) fn subscribe_with_replay(&self) -> (Vec<u8>, ScreenSessionSubscription) {
+    pub(crate) fn subscribe_with_replay(
+        &self,
+        client_id: Option<String>,
+    ) -> (Vec<u8>, ScreenSessionSubscription) {
         let (tx, rx) = mpsc::channel();
         let mut active = false;
         let replay = if let Ok(mut state) = self.inner.lock() {
             let replay = state.replay.clone();
-            state.subscribers.push(tx);
+            state.subscribers.push(ScreenSessionSubscriber {
+                client_id,
+                sender: tx,
+            });
             state.attach_clients += 1;
             active = true;
             replay
@@ -147,9 +158,11 @@ impl ScreenSessionBus {
         });
     }
 
-    pub(crate) fn detach_client(&self) {
+    pub(crate) fn detach_client(&self, client_id: &str) {
         if let Ok(mut state) = self.inner.lock() {
-            state.attach_clients = state.attach_clients.saturating_sub(1);
+            state
+                .subscribers
+                .retain(|subscriber| subscriber.client_id.as_deref() != Some(client_id));
         }
     }
 
@@ -168,7 +181,7 @@ impl ScreenSessionBus {
         update(&mut state);
         state
             .subscribers
-            .retain(|subscriber| subscriber.send(event.clone()).is_ok());
+            .retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
     }
 }
 
@@ -188,7 +201,7 @@ mod tests {
     fn subscribes_with_replay_without_losing_snapshot() {
         let bus = ScreenSessionBus::new();
         bus.publish_output(b"hello");
-        let (replay, subscription) = bus.subscribe_with_replay();
+        let (replay, subscription) = bus.subscribe_with_replay(None);
         bus.publish_output(b"!");
 
         assert_eq!(replay, b"hello".to_vec());
@@ -201,7 +214,7 @@ mod tests {
     #[test]
     fn tracks_attach_client_count_for_replay_subscriptions() {
         let bus = ScreenSessionBus::new();
-        let (_replay, subscription) = bus.subscribe_with_replay();
+        let (_replay, subscription) = bus.subscribe_with_replay(None);
 
         assert_eq!(bus.status_snapshot().attach_clients, 1);
         drop(subscription);
@@ -211,12 +224,13 @@ mod tests {
     #[test]
     fn detaches_one_client_without_broadcasting() {
         let bus = ScreenSessionBus::new();
-        let (_replay, subscription) = bus.subscribe_with_replay();
+        let (_replay, subscription) = bus.subscribe_with_replay(Some(String::from("client")));
 
-        bus.detach_client();
+        bus.detach_client("client");
 
+        assert!(subscription.recv().is_err());
+        drop(subscription);
         assert_eq!(bus.status_snapshot().attach_clients, 0);
-        assert!(subscription.try_recv().is_err());
     }
 
     #[test]

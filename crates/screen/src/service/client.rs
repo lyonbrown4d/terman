@@ -1,4 +1,8 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    process,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use super::{attach::attach_interactive, ipc_client::send_control_request};
 use crate::{
@@ -25,11 +29,13 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
         .as_deref()
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
+    let client_id = new_attach_client_id();
     let mut stream = endpoint.connect_options()?.connect_sync()?;
     let request = ScreenIpcRequest::Attach {
         mode,
         target: Some(session.name),
         detach_existing: args.detach_existing,
+        client_id: Some(client_id.clone()),
     };
 
     serde_json::to_writer(&mut stream, &request)
@@ -37,9 +43,17 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     stream.write_all(b"\n")?;
     stream.flush()?;
 
-    attach_interactive(endpoint, stream)
+    attach_interactive(endpoint, stream, client_id)
 }
 
 pub(crate) fn request_screen_server_ready(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     send_control_request(endpoint, ScreenIpcRequest::Ping)
+}
+
+fn new_attach_client_id() -> String {
+    let entropy = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    format!("{:x}-{entropy:x}", process::id())
 }
