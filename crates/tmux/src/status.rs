@@ -76,12 +76,11 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
     let endpoint = session_endpoint(session);
     match request_endpoint_response(&endpoint, TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info {
-            session_name,
             windows,
             attached_clients,
             ..
         } => Ok(LiveTmuxSession {
-            name: session_name,
+            name: session.name.clone(),
             windows,
             attached_clients,
         }),
