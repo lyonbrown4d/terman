@@ -1,5 +1,60 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
+const SCREEN_CONTROL_PREFIX: u8 = 0x01;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ScreenInputAction {
+    Bytes(Vec<u8>),
+    Detach,
+}
+
+#[derive(Default)]
+pub(crate) struct ScreenInputDecoder {
+    pending_prefix: bool,
+}
+
+impl ScreenInputDecoder {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    pub(crate) fn decode_key(&mut self, key: KeyEvent) -> Option<ScreenInputAction> {
+        if key.kind != KeyEventKind::Press {
+            return None;
+        }
+
+        if self.pending_prefix {
+            self.pending_prefix = false;
+            return self.decode_prefixed_key(key);
+        }
+
+        if is_screen_prefix_key(key) {
+            self.pending_prefix = true;
+            return None;
+        }
+
+        key_to_bytes(key).map(ScreenInputAction::Bytes)
+    }
+
+    fn decode_prefixed_key(&mut self, key: KeyEvent) -> Option<ScreenInputAction> {
+        match key.code {
+            KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::Detach)
+            }
+            _ if is_screen_prefix_key(key) => {
+                Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
+            }
+            _ => {
+                let mut bytes = vec![SCREEN_CONTROL_PREFIX];
+                if let Some(mut key_bytes) = key_to_bytes(key) {
+                    bytes.append(&mut key_bytes);
+                }
+                Some(ScreenInputAction::Bytes(bytes))
+            }
+        }
+    }
+}
+
 pub(crate) fn key_to_bytes(key: KeyEvent) -> Option<Vec<u8>> {
     if key.kind != KeyEventKind::Press {
         return None;
@@ -39,10 +94,15 @@ pub(crate) fn key_to_bytes(key: KeyEvent) -> Option<Vec<u8>> {
     }
 }
 
+fn is_screen_prefix_key(key: KeyEvent) -> bool {
+    matches!(key.code, KeyCode::Char('a') | KeyCode::Char('A'))
+        && key.modifiers.contains(KeyModifiers::CONTROL)
+}
+
 fn ctrl_char_bytes(c: char) -> Option<Vec<u8>> {
     let lower = c.to_ascii_lowercase();
     let b = match lower {
-        'a' => 0x01,
+        'a' => SCREEN_CONTROL_PREFIX,
         'b' => 0x02,
         'c' => 0x03,
         'd' => 0x04,
@@ -80,7 +140,7 @@ fn ctrl_char_bytes(c: char) -> Option<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use super::key_to_bytes;
+    use super::{ScreenInputAction, ScreenInputDecoder, key_to_bytes};
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     #[test]
@@ -95,5 +155,27 @@ mod tests {
         let key = KeyEvent::new(KeyCode::Up, KeyModifiers::empty());
 
         assert_eq!(key_to_bytes(key), Some(vec![0x1b, b'[', b'A']));
+    }
+
+    #[test]
+    fn detects_screen_detach_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let detach = KeyEvent::new(KeyCode::Char('d'), KeyModifiers::empty());
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(decoder.decode_key(detach), Some(ScreenInputAction::Detach));
+    }
+
+    #[test]
+    fn sends_literal_prefix_when_prefix_is_repeated() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(
+            decoder.decode_key(prefix),
+            Some(ScreenInputAction::Bytes(vec![0x01]))
+        );
     }
 }

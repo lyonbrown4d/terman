@@ -17,7 +17,7 @@ use crate::{
     ipc::{ScreenAttachMode, ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     session_core::{ScreenControlEvent, ScreenSessionBus, ScreenSessionEvent},
     sessions::find_builtin_screen_session_for_attach,
-    terminal_input::key_to_bytes,
+    terminal_input::{ScreenInputAction, ScreenInputDecoder},
 };
 
 struct AttachRawMode;
@@ -113,11 +113,16 @@ fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) ->
     while running.load(Ordering::Acquire) {
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
-                Ok(Event::Key(key)) => {
-                    if let Some(bytes) = key_to_bytes(key) {
+                Ok(Event::Key(key)) => match input_decoder.decode_key(key) {
+                    Some(ScreenInputAction::Bytes(bytes)) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Input { bytes })?;
                     }
-                }
+                    Some(ScreenInputAction::Detach) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::Detach)?;
+                        running.store(false, Ordering::Release);
+                    }
+                    None => {}
+                },
                 Ok(Event::Resize(cols, rows)) => {
                     send_control_request(&endpoint, ScreenIpcRequest::Resize { cols, rows })?;
                 }
