@@ -24,6 +24,7 @@ builtin-screen-session-list-header = Built-in screen sessions:
 builtin-screen-session-list-entry =   {$name} pid={$pid} attached_clients={$attach_clients} replay_bytes={$replay_bytes} size={$cols}x{$rows} cwd={$cwd} command={$command}
 builtin-screen-session-exists = Built-in screen session `{$name}` already exists. Run `terman-screen --list` to inspect existing sessions, or choose another name.
 builtin-screen-session-name-empty = Screen session name cannot be empty.
+builtin-screen-session-record-invalid = Built-in screen session record is invalid.
 builtin-screen-unexpected-response = Unexpected screen response: {$response}.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
 builtin-screen-attach-help = screen keys: Ctrl-A d detach | Ctrl-A D detach all | Ctrl-A k kill session | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A h hardcopy | Ctrl-A i info | Ctrl-A ? help | Ctrl-A Ctrl-A send literal Ctrl-A

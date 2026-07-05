@@ -112,7 +112,7 @@ pub(crate) fn rename_builtin_screen_session(
     let Some(mut session) = parse_builtin_screen_session_record(&record) else {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "invalid built-in screen session record",
+            terman_common::builtin_screen_session_record_invalid_hint(),
         ));
     };
     session.name = new_name.to_string();

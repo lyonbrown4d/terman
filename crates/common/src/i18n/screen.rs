@@ -57,6 +57,10 @@ pub fn builtin_screen_session_name_empty_hint() -> String {
     localized_message(MessageKey::BuiltinScreenSessionNameEmpty, &[])
 }
 
+pub fn builtin_screen_session_record_invalid_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenSessionRecordInvalid, &[])
+}
+
 pub fn builtin_screen_unexpected_response_hint(response: &str) -> String {
     localized_message(
         MessageKey::BuiltinScreenUnexpectedResponse,

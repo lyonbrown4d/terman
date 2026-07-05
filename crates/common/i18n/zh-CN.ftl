@@ -24,6 +24,7 @@ builtin-screen-session-list-header = 内置 screen 会话:
 builtin-screen-session-list-entry =   {$name} pid={$pid} attached_clients={$attach_clients} replay_bytes={$replay_bytes} size={$cols}x{$rows} cwd={$cwd} command={$command}
 builtin-screen-session-exists = 内置 screen 会话 `{$name}` 已存在。请先使用 `terman-screen --list` 查看现有会话，或换一个会话名。
 builtin-screen-session-name-empty = screen 会话名不能为空。
+builtin-screen-session-record-invalid = 内置 screen 会话记录无效。
 builtin-screen-unexpected-response = 非预期的 screen 响应：{$response}。
 builtin-screen-attach-unsupported = 内置 screen 暂未开放 attach。跨平台 attach 将由内置会话服务处理。
 builtin-screen-attach-help = screen 快捷键：Ctrl-A d 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k 结束会话 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 同步尺寸 | Ctrl-A h 生成 hardcopy | Ctrl-A i 显示信息 | Ctrl-A ? 显示帮助 | Ctrl-A Ctrl-A 发送字面 Ctrl-A
