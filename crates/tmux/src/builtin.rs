@@ -2,12 +2,15 @@ use std::{error::Error, io};
 
 use crate::{
     command::TmuxCommand,
-    sessions::{load_builtin_tmux_sessions, remove_builtin_tmux_session},
+    sessions::{
+        load_builtin_tmux_sessions, register_builtin_tmux_session, remove_builtin_tmux_session,
+    },
 };
 
 pub(crate) fn try_run_builtin_tmux_command(
     command: &TmuxCommand,
     args: &[String],
+    detached: bool,
 ) -> Result<bool, Box<dyn Error>> {
     match command {
         TmuxCommand::ListSessions => {
@@ -16,6 +19,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::KillSession => {
             kill_builtin_tmux_session(args)?;
+            Ok(true)
+        }
+        TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
+            create_builtin_tmux_session(args)?;
             Ok(true)
         }
         _ => Ok(false),
@@ -42,6 +49,25 @@ fn list_builtin_tmux_sessions() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn create_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let Some(name) = session_name_arg(args) else {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_tmux_session_name_required_hint(),
+        )));
+    };
+
+    if register_builtin_tmux_session(&name)? {
+        println!("{}", terman_common::builtin_tmux_session_created_hint(&name));
+        Ok(())
+    } else {
+        Err(Box::new(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            terman_common::builtin_tmux_session_exists_hint(&name),
+        )))
+    }
+}
+
 fn kill_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     let Some(target) = target_session_arg(args) else {
         return Err(Box::new(io::Error::new(
@@ -61,17 +87,29 @@ fn kill_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
 }
 
+fn new_session_is_detached(args: &[String], detached: bool) -> bool {
+    detached || args.iter().any(|arg| arg == "-d" || arg == "--detached")
+}
+
+fn session_name_arg(args: &[String]) -> Option<String> {
+    named_arg(args, "-s", "--session-name")
+}
+
 fn target_session_arg(args: &[String]) -> Option<String> {
+    named_arg(args, "-t", "--target-session")
+}
+
+fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
-        if arg == "-t" || arg == "--target-session" {
+        if arg == short || arg == long {
             return iter.next().cloned();
         }
-        if let Some(target) = arg.strip_prefix("-t").filter(|value| !value.is_empty()) {
-            return Some(target.to_string());
+        if let Some(value) = arg.strip_prefix(short).filter(|value| !value.is_empty()) {
+            return Some(value.to_string());
         }
-        if let Some(target) = arg.strip_prefix("--target-session=") {
-            return Some(target.to_string());
+        if let Some(value) = arg.strip_prefix(&format!("{long}=")) {
+            return Some(value.to_string());
         }
     }
     None
@@ -79,7 +117,23 @@ fn target_session_arg(args: &[String]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::target_session_arg;
+    use super::{new_session_is_detached, session_name_arg, target_session_arg};
+
+    #[test]
+    fn parses_session_name_arg() {
+        assert_eq!(
+            session_name_arg(&["new".into(), "-s".into(), "dev".into()]),
+            Some(String::from("dev"))
+        );
+        assert_eq!(
+            session_name_arg(&["new".into(), "-sdev".into()]),
+            Some(String::from("dev"))
+        );
+        assert_eq!(
+            session_name_arg(&["new".into(), "--session-name=dev".into()]),
+            Some(String::from("dev"))
+        );
+    }
 
     #[test]
     fn parses_target_session_arg() {
@@ -95,5 +149,12 @@ mod tests {
             target_session_arg(&["kill-session".into(), "--target-session=dev".into()]),
             Some(String::from("dev"))
         );
+    }
+
+    #[test]
+    fn detects_detached_new_session() {
+        assert!(new_session_is_detached(&["new".into(), "-d".into()], false));
+        assert!(new_session_is_detached(&["new".into()], true));
+        assert!(!new_session_is_detached(&["new".into()], false));
     }
 }

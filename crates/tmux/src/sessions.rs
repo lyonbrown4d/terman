@@ -1,5 +1,8 @@
 use std::{
-    env, fs, io,
+    collections::hash_map::DefaultHasher,
+    env, fs,
+    hash::{Hash, Hasher},
+    io::{self, Write},
     path::PathBuf,
 };
 
@@ -13,6 +16,29 @@ pub(crate) struct BuiltinTmuxSession {
     pub(crate) windows: u32,
     #[serde(default)]
     pub(crate) attached_clients: u32,
+}
+
+pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
+    let path = builtin_tmux_session_record_path(name);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let record = BuiltinTmuxSession {
+        name: name.to_string(),
+        windows: 1,
+        attached_clients: 0,
+    };
+    let record = serde_json::to_string_pretty(&record)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+
+    match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+        Ok(mut file) => {
+            file.write_all(format!("{record}\n").as_bytes())?;
+            Ok(true)
+        }
+        Err(err) if err.kind() == io::ErrorKind::AlreadyExists => Ok(false),
+        Err(err) => Err(err),
+    }
 }
 
 pub(crate) fn load_builtin_tmux_sessions() -> io::Result<Vec<BuiltinTmuxSession>> {
@@ -73,10 +99,39 @@ pub(crate) fn parse_builtin_tmux_session_record(record: &str) -> Option<BuiltinT
     serde_json::from_str(record).ok()
 }
 
+fn builtin_tmux_session_record_path(name: &str) -> PathBuf {
+    let mut hasher = DefaultHasher::new();
+    name.hash(&mut hasher);
+    builtin_tmux_sessions_dir().join(format!(
+        "{}-{:016x}.session",
+        sanitize_session_file_name(name),
+        hasher.finish()
+    ))
+}
+
 fn builtin_tmux_sessions_dir() -> PathBuf {
     ProjectDirs::from("", "", "terman")
         .map(|dirs| dirs.data_local_dir().join("tmux").join("sessions"))
         .unwrap_or_else(|| env::temp_dir().join("terman-tmux").join("sessions"))
+}
+
+fn sanitize_session_file_name(name: &str) -> String {
+    let sanitized: String = name
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    if sanitized.is_empty() {
+        String::from("session")
+    } else {
+        sanitized
+    }
 }
 
 fn default_window_count() -> u32 {
@@ -85,7 +140,9 @@ fn default_window_count() -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{BuiltinTmuxSession, parse_builtin_tmux_session_record};
+    use super::{
+        BuiltinTmuxSession, parse_builtin_tmux_session_record, sanitize_session_file_name,
+    };
 
     #[test]
     fn parses_tmux_session_record_with_defaults() {
@@ -99,5 +156,11 @@ mod tests {
                 attached_clients: 0,
             }
         );
+    }
+
+    #[test]
+    fn sanitizes_session_file_name() {
+        assert_eq!(sanitize_session_file_name("dev/main"), "dev_main");
+        assert_eq!(sanitize_session_file_name(""), "session");
     }
 }
