@@ -26,4 +26,4 @@ builtin-tmux-session-not-found = tmux session {$name} not found
 builtin-tmux-target-required = specify a target session with -t <name>
 builtin-tmux-session-created = created tmux session {$name}
 builtin-tmux-session-exists = tmux session {$name} already exists
-builtin-tmux-session-name-required = specify a session name with -s <name>
+builtin-tmux-session-name-required = specify a session name with -s <name>builtin-tmux-command-unsupported = Built-in tmux command {$command} is not supported yet. This tool will not call the system tmux binary.

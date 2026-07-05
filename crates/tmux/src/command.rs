@@ -22,9 +22,6 @@ impl TmuxCommand {
         }
     }
 
-    pub(crate) fn is_new_session(&self) -> bool {
-        matches!(self, Self::NewSession)
-    }
 }
 
 fn first_command_token(args: &[String]) -> Option<&String> {
@@ -74,3 +71,4 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["--detached".into()]), TmuxCommand::Other);
     }
 }
+

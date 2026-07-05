@@ -26,4 +26,4 @@ builtin-tmux-session-not-found = 未找到 tmux 会话 {$name}
 builtin-tmux-target-required = 请使用 -t <名称> 指定目标会话
 builtin-tmux-session-created = 已创建 tmux 会话 {$name}
 builtin-tmux-session-exists = tmux 会话 {$name} 已存在
-builtin-tmux-session-name-required = 请使用 -s <名称> 指定会话名称
+builtin-tmux-session-name-required = 请使用 -s <名称> 指定会话名称builtin-tmux-command-unsupported = 内置 tmux 暂不支持命令 {$command}。当前不会调用系统 tmux；请等待后续跨平台实现。

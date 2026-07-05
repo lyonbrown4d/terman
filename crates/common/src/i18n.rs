@@ -66,6 +66,14 @@ pub fn builtin_tmux_session_not_found_hint(name: &str) -> String {
 pub fn builtin_tmux_target_required_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxTargetRequired, &[])
 }
+
+pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxCommandUnsupported,
+        &[("command", command)],
+    )
+}
+
 pub fn builtin_screen_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinScreenNoSessions, &[])
 }
@@ -276,6 +284,7 @@ mod tests {
         assert!(message.contains("native tmux executable"));
     }
 }
+
 
 
 
