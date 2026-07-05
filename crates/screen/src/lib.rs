@@ -185,13 +185,22 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error>> {
-    let status = Command::new(&launch.cmd)
-        .arg("-e")
-        .arg("which")
-        .arg("screen")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()?;
+    let status = terman_common::command_status_with_timeout(
+        &launch.cmd,
+        &["-e", "which", "screen"],
+        terman_common::DEFAULT_COMMAND_TIMEOUT,
+    )?;
+
+    let Some(status) = status else {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::TimedOut,
+            screen_failure_message(
+                "system screen WSL 预检",
+                -1,
+                &format!("WSL screen 预检超时。{}", screen_wsl_runtime_hint()),
+            ),
+        )));
+    };
 
     if status.success() {
         return Ok(());

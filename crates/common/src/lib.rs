@@ -1,7 +1,42 @@
-use std::env;
+use std::{
+    env,
+    ffi::OsString,
+    io,
+    process::{ExitStatus, Stdio},
+    time::Duration,
+};
 
+use tokio::process::Command as TokioCommand;
 use which::which;
 
+pub const DEFAULT_COMMAND_TIMEOUT: Duration = Duration::from_secs(8);
+
+pub fn command_status_with_timeout(
+    command: &str,
+    args: &[&str],
+    timeout: Duration,
+) -> io::Result<Option<ExitStatus>> {
+    let command = command.to_string();
+    let args: Vec<OsString> = args.iter().map(OsString::from).collect();
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_time()
+        .build()?;
+
+    runtime.block_on(async move {
+        let mut child = TokioCommand::new(command)
+            .args(args)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .kill_on_drop(true)
+            .spawn()?;
+
+        match tokio::time::timeout(timeout, child.wait()).await {
+            Ok(status) => status.map(Some),
+            Err(_) => Ok(None),
+        }
+    })
+}
 pub fn which_binary(name: &str) -> Option<String> {
     which(name)
         .ok()

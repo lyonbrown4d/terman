@@ -7,8 +7,9 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-clap = { version = "4.5.20", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 crossterm = "0.29.0"
-portable-pty = "0.8"
+portable-pty = "0.9.0"
 terman-common = { path = "crates/common" }
-which = "6.0"
+tokio = { version = "1.52.3", features = ["process", "rt", "time"] }
+which = "8.0.4"

@@ -110,13 +110,22 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     let mut probe = Command::new(&launch.cmd);
     if launch.kind == TmuxKind::Wsl {
-        let wsl_check = Command::new(&launch.cmd)
-            .arg("-e")
-            .arg("which")
-            .arg("tmux")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()?;
+        let wsl_check = terman_common::command_status_with_timeout(
+            &launch.cmd,
+            &["-e", "which", "tmux"],
+            terman_common::DEFAULT_COMMAND_TIMEOUT,
+        )?;
+
+        let Some(wsl_check) = wsl_check else {
+            return Err(Box::new(io::Error::new(
+                io::ErrorKind::TimedOut,
+                tmux_failure_message(
+                    "tmux WSL 预检",
+                    -1,
+                    &format!("WSL tmux 预检超时。{}", tmux_wsl_runtime_hint()),
+                ),
+            )));
+        };
 
         if !wsl_check.success() {
             let code = wsl_check.code().unwrap_or(-1);
