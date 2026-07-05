@@ -388,7 +388,7 @@ mod tests {
         assert!(!is_tmux_attach_without_target(&args));
         assert!(is_tmux_attach_without_target(&["attach".to_string()]));
         assert!(is_tmux_list_sessions_command(&["list-sessions".to_string()]));
-        assert!(!is_tmux_list_sessions_command(&["ls".to_string()]));
+        assert!(is_tmux_list_sessions_command(&["ls".to_string()]));
         assert!(is_tmux_new_session_command(&["new".to_string()]));
     }
 
@@ -411,6 +411,7 @@ mod tests {
         assert_eq!(msg, "tmux 失败（退出码 1）：命令返回失败");
     }
 }
+
 
 
 
