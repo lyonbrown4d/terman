@@ -7,12 +7,13 @@ use crate::{
         target_session_name_arg, target_window_index_arg,
     },
     command::TmuxCommand,
+    lifecycle::{kill_builtin_tmux_server, kill_builtin_tmux_session_command},
     launcher::spawn_detached_tmux_server,
     sessions::{
         AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
         RenameBuiltinTmuxWindow, add_builtin_tmux_window, builtin_tmux_session_exists,
         kill_builtin_tmux_window, load_builtin_tmux_sessions, register_builtin_tmux_session,
-        remove_builtin_tmux_session, rename_builtin_tmux_session, rename_builtin_tmux_window,
+rename_builtin_tmux_session, rename_builtin_tmux_window,
     },
 };
 
@@ -27,7 +28,11 @@ pub(crate) fn try_run_builtin_tmux_command(
             Ok(true)
         }
         TmuxCommand::KillSession => {
-            kill_builtin_tmux_session(args)?;
+            kill_builtin_tmux_session_command(args)?;
+            Ok(true)
+        }
+        TmuxCommand::KillServer => {
+            kill_builtin_tmux_server()?;
             Ok(true)
         }
         TmuxCommand::HasSession => {
@@ -181,16 +186,6 @@ fn rename_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Err
         RenameBuiltinTmuxWindow::Renamed => Ok(()),
         RenameBuiltinTmuxWindow::SessionMissing => Err(session_not_found_error(&target)),
         RenameBuiltinTmuxWindow::WindowMissing => Err(window_not_found_error(&target, window_index)),
-    }
-}
-
-fn kill_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_arg(args)?;
-    if remove_builtin_tmux_session(&target)? {
-        println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
-        Ok(())
-    } else {
-        Err(session_not_found_error(&target))
     }
 }
 

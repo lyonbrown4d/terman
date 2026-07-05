@@ -3,7 +3,7 @@ mod record;
 mod store;
 
 pub(crate) use model::{
-    AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
+    AddBuiltinTmuxWindow, BuiltinTmuxSession, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
     RenameBuiltinTmuxWindow,
 };
 pub(crate) use store::{

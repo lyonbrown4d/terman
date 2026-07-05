@@ -7,6 +7,7 @@ mod builtin;
 mod cli;
 mod command;
 mod ipc;
+mod lifecycle;
 mod launcher;
 mod pty;
 mod service;
