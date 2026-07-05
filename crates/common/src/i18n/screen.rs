@@ -4,6 +4,14 @@ pub fn builtin_screen_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinScreenNoSessions, &[])
 }
 
+pub fn builtin_screen_cli_about() -> String {
+    localized_message(MessageKey::BuiltinScreenCliAbout, &[])
+}
+
+pub fn builtin_screen_cli_examples() -> String {
+    localized_message(MessageKey::BuiltinScreenCliExamples, &[])
+}
+
 pub fn builtin_screen_session_list_header() -> String {
     localized_message(MessageKey::BuiltinScreenSessionListHeader, &[])
 }

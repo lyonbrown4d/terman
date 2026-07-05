@@ -1,5 +1,24 @@
 native-tool-not-found = {$tool} was not found on this platform. Install a native {$tool} executable or use the built-in implementation when available.
 builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
+builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
+builtin-screen-cli-examples =
+    Common examples:
+      - terman-screen
+      - terman-screen -S dev
+      - terman-screen --list
+      - terman-screen -ls
+      - terman-screen -d -S dev
+      - terman-screen -d -m -S dev
+      - terman-screen -dmS dev
+      - terman-screen -D -r dev
+      - terman-screen -d -r dev
+      - terman-screen -R dev
+      - terman-screen -wipe
+      - terman-screen -S dev -X quit
+      - terman-screen -S dev -X stuff "echo hi\n"
+      - terman-screen -S dev -p 0 -X stuff "echo hi\n"
+      - terman-screen -r dev
+      - terman-screen -x dev
 builtin-screen-session-list-header = Built-in screen sessions:
 builtin-screen-session-list-entry =   {$name} pid={$pid} attached_clients={$attach_clients} replay_bytes={$replay_bytes} size={$cols}x{$rows} cwd={$cwd} command={$command}
 builtin-screen-session-exists = Built-in screen session `{$name}` already exists. Run `terman-screen --list` to inspect existing sessions, or choose another name.

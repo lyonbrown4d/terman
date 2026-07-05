@@ -1,12 +1,8 @@
 use std::ffi::OsString;
 
-use clap::{Args, Parser};
+use clap::{Args, CommandFactory, FromArgMatches, Parser};
 
 #[derive(Args, Debug, Clone)]
-#[command(
-    about = "跨平台 screen 终端会话工具（自实现内置后端）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -d -m -S dev\n  - terman-screen -dmS dev\n  - terman-screen -D -r dev\n  - terman-screen -d -r dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -S dev -p 0 -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
-)]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
     #[arg(short, long, value_name = "CMD")]
@@ -157,7 +153,11 @@ struct Cli {
 }
 
 pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse_from(normalize_screen_args(std::env::args_os()));
+    let matches = Cli::command()
+        .about(terman_common::builtin_screen_cli_about())
+        .after_help(terman_common::builtin_screen_cli_examples())
+        .try_get_matches_from(normalize_screen_args(std::env::args_os()))?;
+    let cli = Cli::from_arg_matches(&matches)?;
     crate::run(cli.args)
 }
 

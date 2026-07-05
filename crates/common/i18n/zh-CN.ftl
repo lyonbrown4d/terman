@@ -1,5 +1,24 @@
 native-tool-not-found = 当前平台未检测到 {$tool}。请安装本机 {$tool} 可执行文件，或在可用时使用内置实现。
 builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
+builtin-screen-cli-about = 跨平台 screen 终端会话工具（自实现内置后端）。
+builtin-screen-cli-examples =
+    常见用法示例：
+      - terman-screen
+      - terman-screen -S dev
+      - terman-screen --list
+      - terman-screen -ls
+      - terman-screen -d -S dev
+      - terman-screen -d -m -S dev
+      - terman-screen -dmS dev
+      - terman-screen -D -r dev
+      - terman-screen -d -r dev
+      - terman-screen -R dev
+      - terman-screen -wipe
+      - terman-screen -S dev -X quit
+      - terman-screen -S dev -X stuff "echo hi\n"
+      - terman-screen -S dev -p 0 -X stuff "echo hi\n"
+      - terman-screen -r dev
+      - terman-screen -x dev
 builtin-screen-session-list-header = 内置 screen 会话:
 builtin-screen-session-list-entry =   {$name} pid={$pid} attached_clients={$attach_clients} replay_bytes={$replay_bytes} size={$cols}x{$rows} cwd={$cwd} command={$command}
 builtin-screen-session-exists = 内置 screen 会话 `{$name}` 已存在。请先使用 `terman-screen --list` 查看现有会话，或换一个会话名。
