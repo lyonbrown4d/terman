@@ -84,6 +84,7 @@ pub(crate) enum TmuxIpcRequest {
     Ping,
     Quit,
     RenameSession { name: String },
+    UpdateWindows { windows: u32 },
     Resize { cols: u16, rows: u16 },
 }
 

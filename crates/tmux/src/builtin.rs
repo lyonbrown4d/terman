@@ -101,8 +101,15 @@ fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn Error>> {
 
 fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
+    let session = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target);
+
     match add_builtin_tmux_window(&target)? {
         AddBuiltinTmuxWindow::Added(windows) => {
+            if let Some(session) = session.as_ref() {
+                request_builtin_tmux_windows_update(session, windows);
+            }
             println!(
                 "{}",
                 terman_common::builtin_tmux_window_created_hint(&target, windows)
@@ -121,6 +128,9 @@ fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error
 
     match kill_builtin_tmux_window(&target)? {
         KillBuiltinTmuxWindow::Killed(windows) => {
+            if let Some(session) = session.as_ref() {
+                request_builtin_tmux_windows_update(session, windows);
+            }
             println!(
                 "{}",
                 terman_common::builtin_tmux_window_killed_hint(&target, windows)
@@ -195,6 +205,11 @@ fn request_builtin_tmux_session_rename(session: &BuiltinTmuxSession, name: &str)
             name: name.to_string(),
         },
     );
+}
+
+fn request_builtin_tmux_windows_update(session: &BuiltinTmuxSession, windows: u32) {
+    let endpoint = session_endpoint(session);
+    let _ = request_endpoint_response(&endpoint, TmuxIpcRequest::UpdateWindows { windows });
 }
 
 fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {

@@ -110,6 +110,10 @@ fn handle_client(
             rename_session(session_name, name)?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
+        Ok(TmuxIpcRequest::UpdateWindows { windows }) => {
+            bus.set_windows(windows);
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }
         Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             send_control(control_tx, TmuxControlEvent::Resize { cols, rows })?;
             write_response(stream, &TmuxIpcResponse::Accepted)

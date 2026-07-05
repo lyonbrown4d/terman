@@ -172,6 +172,12 @@ impl TmuxSessionBus {
         });
     }
 
+    pub(crate) fn set_windows(&self, windows: u32) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.windows = windows.max(1);
+        }
+    }
+
     pub(crate) fn detach_client(&self, client_id: &str) {
         if let Ok(mut state) = self.inner.lock() {
             state
