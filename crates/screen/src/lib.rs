@@ -23,7 +23,7 @@ use terman_common;
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman screen\n  - terman screen --system\n  - terman screen --system -S dev\n  - terman screen --system --detach\n  - terman screen --system --wsl\n  - terman screen --system --no-fallback"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen --system\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -239,19 +239,19 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
 
     if is_screen_attach_attempt(args) {
         hints.push(
-            "检测到恢复会话参数 (-r/-R/-x)。若会话不存在，先执行 `screen -ls`（或 `terman screen --system -ls`）确认会话名后重试。".to_string(),
+            "检测到恢复会话参数 (-r/-R/-x)。若会话不存在，先执行 `screen -ls`（或 `terman-screen --system -ls`）确认会话名后重试。".to_string(),
         );
     }
 
     if is_screen_session_name_arg(args) && exit_code == 1 {
         hints.push(
-            "检测到 `-S <name>` 场景，退出码 1 常见于会话名不存在或已有同名会话。先执行 `terman screen --system -ls`/`screen -ls` 查看后重试。".to_string(),
+            "检测到 `-S <name>` 场景，退出码 1 常见于会话名不存在或已有同名会话。先执行 `terman-screen --system -ls`/`screen -ls` 查看后重试。".to_string(),
         );
     }
 
     let runtime_hint = match exit_code {
         1 => {
-            "参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman screen --system --help` 复现最小命令。"
+            "参数错误、会话名不存在，或参数与 screen 版本不兼容。建议先用 `terman-screen --system --help` 复现最小命令。"
         }
         2 => {
             "通常与权限、终端环境或可执行文件上下文有关。建议在普通终端重试，或先确认 screen 安装和 shell 环境。"
@@ -259,7 +259,7 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
         126 => "无法执行，请确认 screen 可执行文件有执行权限。",
         127 => "未找到可执行文件，请先确认 screen 安装正常且在 PATH。",
         _ => {
-            "返回非预期状态，建议先执行 `terman screen --system --help` 获取可用参数并用最小参数重试。"
+            "返回非预期状态，建议先执行 `terman-screen --system --help` 获取可用参数并用最小参数重试。"
         }
     };
     hints.push(runtime_hint.to_string());
@@ -395,9 +395,9 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 }
 fn system_screen_fallback_hint() -> &'static str {
     if cfg!(windows) {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - wsl -e screen -V\n  - wsl -e sudo apt install screen\n  - terman screen --system --no-fallback"
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - wsl -e screen -V\n  - wsl -e sudo apt install screen\n  - terman-screen --system --no-fallback"
     } else {
-        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - screen -V\n  - sudo apt/yum/brew install screen\n  - terman screen --system --no-fallback"
+        "提示：默认会在 system 失败后回退到内置 screen；如需严格仅用系统 screen，请加 --no-fallback。\n建议先执行：\n  - screen -V\n  - sudo apt/yum/brew install screen\n  - terman-screen --system --no-fallback"
     }
 }
 fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> {

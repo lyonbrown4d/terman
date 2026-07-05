@@ -12,7 +12,7 @@ use clap::Args;
 #[derive(Args, Debug)]
 #[command(
     about = "tmux 桥接入口（按原生命令参数透传）",
-    after_help = "常见用法示例：\n  - terman tmux new -s dev\n  - terman tmux new-session -s dev\n  - terman tmux attach -t <session>\n  - terman tmux attach-session -t <session>\n  - terman tmux list-sessions\n  - terman tmux --detached new -s dev\n  - terman tmux --detached --wsl new -s dev\n  - terman tmux --wsl new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman tmux attach -t missing-session\n  - 先查看会话：terman tmux list-sessions\n  - 名称冲突：terman tmux new -s demo\n  - 再复现冲突：terman tmux new -s demo\n"
+    after_help = "常见用法示例：\n  - terman-tmux new -s dev\n  - terman-tmux new-session -s dev\n  - terman-tmux attach -t <session>\n  - terman-tmux attach-session -t <session>\n  - terman-tmux list-sessions\n  - terman-tmux --detached new -s dev\n  - terman-tmux --detached --wsl new -s dev\n  - terman-tmux --wsl new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman-tmux attach -t missing-session\n  - 先查看会话：terman-tmux list-sessions\n  - 名称冲突：terman-tmux new -s demo\n  - 再复现冲突：terman-tmux new -s demo\n"
 )]
 pub struct TmuxArgs {
     /// 等价于 tmux -d，启动会话前台/后台分离。
@@ -68,7 +68,7 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
             );
             if is_tmux_detached_without_tmux_command(&passed_args) {
                 eprintln!(
-                    "提示：当前只传了 -d/--detached 未带子命令时易触发预期外行为。建议显式指定 new/new-session 再启动。\n示例：`terman tmux --detached new -s <name>`"
+                    "提示：当前只传了 -d/--detached 未带子命令时易触发预期外行为。建议显式指定 new/new-session 再启动。\n示例：`terman-tmux --detached new -s <name>`"
                 );
             }
         }
@@ -191,29 +191,29 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
 
     if is_tmux_detached_without_tmux_command(args) {
         hints.push(
-            "你仅使用了 --detached/ -d 且未带会话子命令。建议改为 `terman tmux --detached new -s <name>` 或先确认当前参数。".to_string(),
+            "你仅使用了 --detached/ -d 且未带会话子命令。建议改为 `terman-tmux --detached new -s <name>` 或先确认当前参数。".to_string(),
         );
     }
 
     if is_tmux_detached_without_new_session(args) {
         hints.push(
-            "你使用了 -d/--detached，但未与 new/new-session 组合。当前会话未新增时该参数常被透传下发，建议改用：terman tmux new -d -s <name> 或 terman tmux --detached new -s <name>。".to_string(),
+            "你使用了 -d/--detached，但未与 new/new-session 组合。当前会话未新增时该参数常被透传下发，建议改用：terman-tmux new -d -s <name> 或 terman-tmux --detached new -s <name>。".to_string(),
         );
     } else if is_tmux_attach_without_target(args) {
         hints.push(
-            "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman tmux attach -t <session-name>；或先运行 terman tmux list-sessions 查看可用会话。".to_string(),
+            "你执行了 tmux attach 但未显式指定会话（-t）。建议：terman-tmux attach -t <session-name>；或先运行 terman-tmux list-sessions 查看可用会话。".to_string(),
         );
     } else if is_tmux_list_sessions_command(args) && exit_code == 1 {
         hints.push(
-            "你执行 list-sessions 失败，常见为用户权限或 tmux 服务端无法启动。可先执行 `tmux -v` / `wsl -e tmux -v` 输出调试信息，或重试 `terman tmux list-sessions`。".to_string(),
+            "你执行 list-sessions 失败，常见为用户权限或 tmux 服务端无法启动。可先执行 `tmux -v` / `wsl -e tmux -v` 输出调试信息，或重试 `terman-tmux list-sessions`。".to_string(),
         );
     } else if is_tmux_attach_command(args) && exit_code == 1 {
         hints.push(
-            "attach 指定了会话但命令返回 1，常见因为目标会话不存在。请先运行 terman tmux list-sessions，确认会话名后重试。".to_string(),
+            "attach 指定了会话但命令返回 1，常见因为目标会话不存在。请先运行 terman-tmux list-sessions，确认会话名后重试。".to_string(),
         );
     } else if is_tmux_new_session_command(args) && exit_code == 1 {
         hints.push(
-            "新建会话命令返回 1，常见为会话名冲突或会话无法创建。建议先运行 terman tmux list-sessions 确认现有会话，再换名重试。".to_string(),
+            "新建会话命令返回 1，常见为会话名冲突或会话无法创建。建议先运行 terman-tmux list-sessions 确认现有会话，再换名重试。".to_string(),
         );
     }
     if hints.is_empty() {
@@ -345,7 +345,7 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
 }
 fn tmux_not_found_hint() -> &'static str {
     if cfg!(windows) {
-        "未检测到 tmux。可选方案：1) 使用 WSL 安装 tmux（推荐）：wsl -e sudo apt install tmux；2) 安装 Windows tmux（如 Scoop 安装）：scoop install tmux；3) 先使用 terman screen 继续工作。"
+        "未检测到 tmux。可选方案：1) 使用 WSL 安装 tmux（推荐）：wsl -e sudo apt install tmux；2) 安装 Windows tmux（如 Scoop 安装）：scoop install tmux；3) 先使用 terman-screen 继续工作。"
     } else {
         "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。"
     }
