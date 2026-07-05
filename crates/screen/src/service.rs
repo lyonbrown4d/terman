@@ -126,6 +126,11 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
     match command.to_ascii_lowercase().as_str() {
         "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
+        "resize" => {
+            let payload = control_command_payload(inline_payload, &args.execute_args);
+            let (cols, rows) = parse_resize_payload(&payload)?;
+            send_session_control_request(args, ScreenIpcRequest::Resize { cols, rows })
+        }
         "stuff" => {
             let payload = control_command_payload(inline_payload, &args.execute_args);
             if payload.is_empty() {
@@ -146,6 +151,27 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
             terman_common::builtin_screen_control_command_unsupported_hint(command),
         )),
     }
+}
+
+fn parse_resize_payload(payload: &str) -> io::Result<(u16, u16)> {
+    let mut parts = payload.split_whitespace();
+    let Some(cols) = parts.next().and_then(|value| value.parse::<u16>().ok()) else {
+        return Err(invalid_resize_payload());
+    };
+    let Some(rows) = parts.next().and_then(|value| value.parse::<u16>().ok()) else {
+        return Err(invalid_resize_payload());
+    };
+    if cols == 0 || rows == 0 || parts.next().is_some() {
+        return Err(invalid_resize_payload());
+    }
+    Ok((cols, rows))
+}
+
+fn invalid_resize_payload() -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_screen_control_resize_required_hint(),
+    )
 }
 
 fn split_control_command(command: &str) -> (&str, &str) {
