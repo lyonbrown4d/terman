@@ -2,7 +2,7 @@ use std::{
     collections::hash_map::DefaultHasher,
     env, fs,
     hash::{Hash, Hasher},
-    io::{self, Write},
+    io::{self, BufRead, BufReader, Write},
     path::{Path, PathBuf},
 };
 
@@ -10,7 +10,11 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 
-use crate::{ScreenArgs, ipc::ScreenIpcEndpoint, shell::default_shell};
+use crate::{
+    ScreenArgs,
+    ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
+    shell::default_shell,
+};
 
 pub(crate) struct BuiltinScreenSessionGuard {
     path: PathBuf,
@@ -30,6 +34,12 @@ pub(crate) struct BuiltinScreenSession {
     pub(crate) command: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) ipc_endpoint: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct BuiltinScreenSessionRuntimeStatus {
+    replay_bytes: usize,
+    attach_clients: usize,
 }
 
 pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
@@ -99,9 +109,18 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
 
     println!("{}", terman_common::builtin_screen_session_list_header());
     for session in sessions {
+        let status = load_builtin_screen_runtime_status(&session).ok();
+        let attach_clients = status
+            .as_ref()
+            .map(|value| value.attach_clients.to_string())
+            .unwrap_or_else(|| String::from("?"));
+        let replay_bytes = status
+            .as_ref()
+            .map(|value| value.replay_bytes.to_string())
+            .unwrap_or_else(|| String::from("?"));
         println!(
-            "  {}\tpid={}\tcwd={}\tcommand={}",
-            session.name, session.pid, session.cwd, session.command
+            "  {}\tpid={}\tattached_clients={}\treplay_bytes={}\tcwd={}\tcommand={}",
+            session.name, session.pid, attach_clients, replay_bytes, session.cwd, session.command
         );
     }
 
@@ -210,6 +229,46 @@ fn load_alive_builtin_screen_sessions() -> io::Result<Vec<BuiltinScreenSession>>
 
     sessions.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(sessions)
+}
+
+fn load_builtin_screen_runtime_status(
+    session: &BuiltinScreenSession,
+) -> io::Result<BuiltinScreenSessionRuntimeStatus> {
+    let endpoint = builtin_screen_session_endpoint(session);
+    let mut stream = endpoint.connect_options()?.connect_sync()?;
+    serde_json::to_writer(&mut stream, &ScreenIpcRequest::Info)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    stream.write_all(b"\n")?;
+    stream.flush()?;
+
+    let mut response = String::new();
+    BufReader::new(stream).read_line(&mut response)?;
+    match serde_json::from_str(response.trim_end())
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?
+    {
+        ScreenIpcResponse::Info {
+            replay_bytes,
+            attach_clients,
+        } => Ok(BuiltinScreenSessionRuntimeStatus {
+            replay_bytes,
+            attach_clients,
+        }),
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected screen list status response",
+        )),
+    }
+}
+
+fn builtin_screen_session_endpoint(session: &BuiltinScreenSession) -> ScreenIpcEndpoint {
+    session
+        .ipc_endpoint
+        .as_deref()
+        .map(ScreenIpcEndpoint::from_raw_name)
+        .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name))
 }
 
 pub(crate) fn builtin_screen_session_is_alive(
