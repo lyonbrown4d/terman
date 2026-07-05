@@ -36,7 +36,7 @@ fn execute_control_command(
 ) -> io::Result<()> {
     match command.to_ascii_lowercase().as_str() {
         "quit" | "kill" => send_session_control_request(args, ScreenIpcRequest::Quit),
-        "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
+        "detach" | "pow_detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
