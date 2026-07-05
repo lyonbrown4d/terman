@@ -171,6 +171,33 @@ pub fn builtin_screen_control_info_hint(
     )
 }
 
+pub fn builtin_screen_control_windows_entry_hint(
+    session_name: &str,
+    replay_bytes: usize,
+    attach_clients: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
+) -> String {
+    let replay_bytes = replay_bytes.to_string();
+    let attach_clients = attach_clients.to_string();
+    let cols = cols
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    let rows = rows
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    localized_message(
+        MessageKey::BuiltinScreenControlWindowsEntry,
+        &[
+            ("session_name", session_name),
+            ("replay_bytes", &replay_bytes),
+            ("attach_clients", &attach_clients),
+            ("cols", &cols),
+            ("rows", &rows),
+        ],
+    )
+}
+
 pub fn builtin_screen_control_unexpected_response_hint(response: &str) -> String {
     localized_message(
         MessageKey::BuiltinScreenControlUnexpectedResponse,
