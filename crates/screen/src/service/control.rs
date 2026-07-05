@@ -30,7 +30,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
-        "echo" => request_echo_command(args, inline_payload),
+        "echo" | "wall" => request_echo_command(args, inline_payload),
         "info" => request_session_info(args),
         "hardcopy" => request_hardcopy_command(args, inline_payload),
         "pastefile" => request_pastefile_command(args, inline_payload),
