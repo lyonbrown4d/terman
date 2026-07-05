@@ -8,4 +8,5 @@ builtin-screen-session-not-found = Built-in screen session `{$name}` was not fou
 builtin-screen-named-session-required = Named screen session launch requires a session name.
 builtin-screen-server-timeout = Timed out waiting for the built-in screen session server.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, stuff.
+builtin-screen-control-stuff-required = Specify text for `screen -X stuff`.

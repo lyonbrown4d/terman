@@ -99,6 +99,12 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
                     let _ = master.resize(size);
                     session_bus.publish_resize(cols, rows);
                 }
+                ScreenControlEvent::Terminate => {
+                    if !terminate_requested {
+                        terminate_requested = true;
+                        let _ = child.kill();
+                    }
+                }
             }
         }
 
@@ -106,7 +112,6 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
     }
 
     let _ = output_thread.join();
-    let _ = child_wait_handle.join();
 
     let exit_code = exit_code.unwrap_or(-1);
     if exit_code == 0 {

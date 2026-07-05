@@ -30,6 +30,7 @@ pub enum MessageKey {
     BuiltinScreenServerTimeout,
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
+    BuiltinScreenControlStuffRequired,
 }
 
 impl MessageKey {
@@ -46,6 +47,7 @@ impl MessageKey {
             Self::BuiltinScreenServerTimeout => "builtin-screen-server-timeout",
             Self::BuiltinScreenControlCommandRequired => "builtin-screen-control-command-required",
             Self::BuiltinScreenControlCommandUnsupported => "builtin-screen-control-command-unsupported",
+            Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
         }
     }
 }
@@ -105,6 +107,10 @@ pub fn builtin_screen_control_command_unsupported_hint(command: &str) -> String 
         MessageKey::BuiltinScreenControlCommandUnsupported,
         &[("command", command)],
     )
+}
+
+pub fn builtin_screen_control_stuff_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlStuffRequired, &[])
 }
 
 fn localized_message_for_language(

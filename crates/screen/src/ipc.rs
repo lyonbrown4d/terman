@@ -68,6 +68,7 @@ pub(crate) enum ScreenIpcRequest {
         target: Option<String>,
     },
     Detach,
+    Quit,
     Input {
         bytes: Vec<u8>,
     },

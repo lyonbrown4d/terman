@@ -9,7 +9,10 @@ use std::{
     time::Duration,
 };
 
-use crossterm::{event::{self, Event}, terminal};
+use crossterm::{
+    event::{self, Event},
+    terminal,
+};
 use interprocess::local_socket::prelude::*;
 
 use crate::{
@@ -100,9 +103,8 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     attach_interactive(endpoint, stream)
 }
 
-
 pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()> {
-    let Some(command) = args
+    let Some(command_text) = args
         .execute
         .as_deref()
         .map(str::trim)
@@ -114,13 +116,82 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
         ));
     };
 
+    let (command, inline_payload) = split_control_command(command_text);
     match command.to_ascii_lowercase().as_str() {
         "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
+        "stuff" => {
+            let payload = control_command_payload(inline_payload, &args.execute_args);
+            if payload.is_empty() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    terman_common::builtin_screen_control_stuff_required_hint(),
+                ));
+            }
+            send_session_control_request(
+                args,
+                ScreenIpcRequest::Input {
+                    bytes: decode_stuff_payload(&payload),
+                },
+            )
+        }
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             terman_common::builtin_screen_control_command_unsupported_hint(command),
         )),
     }
+}
+
+fn split_control_command(command: &str) -> (&str, &str) {
+    let command = command.trim();
+    let command_end = command.find(char::is_whitespace).unwrap_or(command.len());
+    let verb = &command[..command_end];
+    let payload = command[command_end..].trim_start();
+    (verb, payload)
+}
+
+fn control_command_payload(inline_payload: &str, args: &[String]) -> String {
+    let mut payload = String::new();
+    if !inline_payload.is_empty() {
+        payload.push_str(inline_payload);
+    }
+    for arg in args {
+        if !payload.is_empty() {
+            payload.push(' ');
+        }
+        payload.push_str(arg);
+    }
+    payload
+}
+
+fn decode_stuff_payload(payload: &str) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(payload.len());
+    let mut chars = payload.chars();
+
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            push_utf8(&mut bytes, ch);
+            continue;
+        }
+
+        match chars.next() {
+            Some('n') => bytes.push(b'\n'),
+            Some('r') => bytes.push(b'\r'),
+            Some('t') => bytes.push(b'\t'),
+            Some('\\') => bytes.push(b'\\'),
+            Some(other) => {
+                bytes.push(b'\\');
+                push_utf8(&mut bytes, other);
+            }
+            None => bytes.push(b'\\'),
+        }
+    }
+
+    bytes
+}
+
+fn push_utf8(bytes: &mut Vec<u8>, ch: char) {
+    let mut buf = [0u8; 4];
+    bytes.extend_from_slice(ch.encode_utf8(&mut buf).as_bytes());
 }
 
 fn send_session_control_request(args: &ScreenArgs, request: ScreenIpcRequest) -> io::Result<()> {
@@ -133,6 +204,7 @@ fn send_session_control_request(args: &ScreenArgs, request: ScreenIpcRequest) ->
 
     send_control_request(&endpoint, request)
 }
+
 fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) -> io::Result<()> {
     let _raw = AttachRawMode::enter()?;
     sync_attach_terminal_size(&endpoint)?;
@@ -178,6 +250,11 @@ fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) ->
             "screen attach output thread panicked",
         )),
     }
+}
+
+fn sync_attach_terminal_size(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    let (cols, rows) = terminal::size()?;
+    send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
 }
 
 fn send_control_request(endpoint: &ScreenIpcEndpoint, request: ScreenIpcRequest) -> io::Result<()> {
@@ -249,6 +326,12 @@ fn handle_client(
     match serde_json::from_str::<ScreenIpcRequest>(request.trim_end()) {
         Ok(ScreenIpcRequest::Attach { .. }) => stream_attach(stream, bus),
         Ok(ScreenIpcRequest::Detach) => write_response(stream, &ScreenIpcResponse::Accepted),
+        Ok(ScreenIpcRequest::Quit) => {
+            control_tx
+                .send(ScreenControlEvent::Terminate)
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Input { bytes }) => {
             control_tx
                 .send(ScreenControlEvent::Input(bytes))
@@ -296,4 +379,3 @@ fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) 
     stream.write_all(b"\n")?;
     stream.flush()
 }
-

@@ -13,6 +13,7 @@ pub(crate) enum ScreenSessionEvent {
 pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
     Resize { cols: u16, rows: u16 },
+    Terminate,
 }
 
 #[derive(Clone, Default)]
