@@ -2,7 +2,7 @@ use std::{
     env,
     error::Error,
     io::{self, Read, Write},
-    sync::mpsc,
+    sync::{Arc, Mutex, mpsc},
     thread,
     time::Duration,
 };
@@ -57,11 +57,12 @@ impl TmuxServerConfig {
 }
 
 pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Error>> {
-    let _record_guard = SessionRecordGuard::new(config.session_name.clone());
+    let session_name = Arc::new(Mutex::new(config.session_name.clone()));
+    let _record_guard = SessionRecordGuard::new(session_name.clone());
     let session_bus = TmuxSessionBus::new(config.windows);
     let (control_tx, control_rx) = mpsc::channel::<TmuxControlEvent>();
     let _session_service = TmuxSessionService::start(
-        &config.session_name,
+        session_name,
         config.endpoint.clone(),
         config.cwd.clone(),
         session_bus.clone(),
@@ -183,17 +184,20 @@ fn current_tmux_cwd() -> String {
 }
 
 struct SessionRecordGuard {
-    session_name: String,
+    session_name: Arc<Mutex<String>>,
 }
 
 impl SessionRecordGuard {
-    fn new(session_name: String) -> Self {
+    fn new(session_name: Arc<Mutex<String>>) -> Self {
         Self { session_name }
     }
 }
 
 impl Drop for SessionRecordGuard {
     fn drop(&mut self) {
-        let _ = remove_builtin_tmux_session(&self.session_name);
+        let Ok(session_name) = self.session_name.lock() else {
+            return;
+        };
+        let _ = remove_builtin_tmux_session(&session_name);
     }
 }

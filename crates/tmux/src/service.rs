@@ -1,6 +1,6 @@
 use std::{
     io::{self, BufRead, BufReader, Write},
-    sync::mpsc,
+    sync::{Arc, Mutex, mpsc},
     thread,
 };
 
@@ -19,14 +19,13 @@ pub(crate) struct TmuxSessionService {
 impl TmuxSessionService {
     #[allow(dead_code)]
     pub(crate) fn start(
-        session_name: &str,
+        session_name: Arc<Mutex<String>>,
         endpoint: TmuxIpcEndpoint,
         cwd: String,
         bus: TmuxSessionBus,
         control_tx: mpsc::Sender<TmuxControlEvent>,
     ) -> io::Result<Self> {
         let listener = endpoint.listener_options()?.create_sync()?;
-        let session_name = session_name.to_string();
         let handle = thread::spawn(move || {
             for stream in listener.incoming() {
                 let Ok(mut stream) = stream else {
@@ -64,7 +63,7 @@ pub(crate) fn request_endpoint_response(
 
 fn handle_client(
     stream: &mut LocalSocketStream,
-    session_name: &str,
+    session_name: &Arc<Mutex<String>>,
     cwd: &str,
     bus: &TmuxSessionBus,
     control_tx: &mpsc::Sender<TmuxControlEvent>,
@@ -91,7 +90,7 @@ fn handle_client(
             write_response(
                 stream,
                 &TmuxIpcResponse::Info {
-                    session_name: session_name.to_string(),
+                    session_name: current_session_name(session_name)?,
                     windows: status.windows,
                     attached_clients: status.attached_clients,
                     cwd: cwd.to_string(),
@@ -107,6 +106,10 @@ fn handle_client(
             send_control(control_tx, TmuxControlEvent::Terminate)?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
+        Ok(TmuxIpcRequest::RenameSession { name }) => {
+            rename_session(session_name, name)?;
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }
         Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             send_control(control_tx, TmuxControlEvent::Resize { cols, rows })?;
             write_response(stream, &TmuxIpcResponse::Accepted)
@@ -118,6 +121,21 @@ fn handle_client(
             },
         ),
     }
+}
+
+fn current_session_name(session_name: &Arc<Mutex<String>>) -> io::Result<String> {
+    session_name
+        .lock()
+        .map(|name| name.clone())
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))
+}
+
+fn rename_session(session_name: &Arc<Mutex<String>>, name: String) -> io::Result<()> {
+    let mut session_name = session_name
+        .lock()
+        .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+    *session_name = name;
+    Ok(())
 }
 
 fn stream_attach(

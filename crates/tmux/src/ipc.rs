@@ -83,6 +83,7 @@ pub(crate) enum TmuxIpcRequest {
     Input { bytes: Vec<u8> },
     Ping,
     Quit,
+    RenameSession { name: String },
     Resize { cols: u16, rows: u16 },
 }
 

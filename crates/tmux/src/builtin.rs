@@ -7,15 +7,18 @@ use crate::{
         target_session_name_arg, target_window_index_arg,
     },
     command::TmuxCommand,
+    ipc::{TmuxIpcEndpoint, TmuxIpcRequest},
     lifecycle::{
         kill_builtin_tmux_server, kill_builtin_tmux_session_command,
         request_builtin_tmux_session_quit,
     },
     new_session::create_builtin_tmux_session,
+    service::request_endpoint_response,
     sessions::{
-        AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
-        RenameBuiltinTmuxWindow, add_builtin_tmux_window, kill_builtin_tmux_window,
-        load_builtin_tmux_sessions, rename_builtin_tmux_session, rename_builtin_tmux_window,
+        AddBuiltinTmuxWindow, BuiltinTmuxSession, KillBuiltinTmuxWindow,
+        RenameBuiltinTmuxSession, RenameBuiltinTmuxWindow, add_builtin_tmux_window,
+        kill_builtin_tmux_window, load_builtin_tmux_sessions, rename_builtin_tmux_session,
+        rename_builtin_tmux_window,
     },
     status::{list_builtin_tmux_sessions, require_live_builtin_tmux_session},
 };
@@ -165,15 +168,41 @@ fn rename_builtin_tmux_session_command(args: &[String]) -> Result<(), Box<dyn Er
             terman_common::builtin_tmux_session_name_required_hint(),
         )));
     };
+    let source_session = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target);
 
     match rename_builtin_tmux_session(&target, &new_name)? {
-        RenameBuiltinTmuxSession::Renamed => Ok(()),
+        RenameBuiltinTmuxSession::Renamed => {
+            if let Some(session) = source_session {
+                request_builtin_tmux_session_rename(&session, &new_name);
+            }
+            Ok(())
+        }
         RenameBuiltinTmuxSession::SourceMissing => Err(session_not_found_error(&target)),
         RenameBuiltinTmuxSession::DestinationExists => Err(Box::new(io::Error::new(
             io::ErrorKind::AlreadyExists,
             terman_common::builtin_tmux_session_exists_hint(&new_name),
         ))),
     }
+}
+
+fn request_builtin_tmux_session_rename(session: &BuiltinTmuxSession, name: &str) {
+    let endpoint = session_endpoint(session);
+    let _ = request_endpoint_response(
+        &endpoint,
+        TmuxIpcRequest::RenameSession {
+            name: name.to_string(),
+        },
+    );
+}
+
+fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
+    session
+        .ipc_endpoint
+        .as_deref()
+        .map(TmuxIpcEndpoint::from_raw_name)
+        .unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
 }
 
 fn required_target_session_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
@@ -220,4 +249,3 @@ mod tests {
         assert!(!new_session_is_detached(&["new".into()], false));
     }
 }
-
