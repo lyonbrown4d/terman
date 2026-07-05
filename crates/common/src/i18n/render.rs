@@ -1,4 +1,4 @@
-use std::env;
+use std::{cell::RefCell, env};
 
 use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
 use sys_locale::get_locale;
@@ -8,6 +8,11 @@ use super::MessageKey;
 
 const ZH_CN_MESSAGES: &[u8] = include_bytes!("../../i18n/zh-CN.ftl");
 const EN_US_MESSAGES: &[u8] = include_bytes!("../../i18n/en-US.ftl");
+
+thread_local! {
+    static ZH_CN_BUNDLE: RefCell<Option<FluentBundle<FluentResource>>> = const { RefCell::new(None) };
+    static EN_US_BUNDLE: RefCell<Option<FluentBundle<FluentResource>>> = const { RefCell::new(None) };
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum MessageLanguage {
@@ -28,24 +33,45 @@ fn localized_message_for_language(
     key: MessageKey,
     vars: &[(&str, &str)],
 ) -> String {
-    let Ok(messages) = std::str::from_utf8(messages_for_language(language)) else {
-        return fallback_message(key, vars);
-    };
-    let Ok(resource) = FluentResource::try_new(messages.to_owned()) else {
-        return fallback_message(key, vars);
-    };
+    format_with_cached_bundle(language, key, vars).unwrap_or_else(|| fallback_message(key, vars))
+}
 
-    let mut bundle = FluentBundle::new(vec![language_identifier(language)]);
-    if bundle.add_resource(resource).is_err() {
-        return fallback_message(key, vars);
+fn format_with_cached_bundle(
+    language: MessageLanguage,
+    key: MessageKey,
+    vars: &[(&str, &str)],
+) -> Option<String> {
+    match language {
+        MessageLanguage::ZhCn => ZH_CN_BUNDLE.with(|bundle| {
+            let mut bundle = bundle.borrow_mut();
+            format_with_bundle_slot(&mut bundle, language, key, vars)
+        }),
+        MessageLanguage::EnUs => EN_US_BUNDLE.with(|bundle| {
+            let mut bundle = bundle.borrow_mut();
+            format_with_bundle_slot(&mut bundle, language, key, vars)
+        }),
     }
+}
 
-    let Some(message) = bundle.get_message(key.fluent_id()) else {
-        return fallback_message(key, vars);
-    };
-    let Some(pattern) = message.value() else {
-        return fallback_message(key, vars);
-    };
+fn format_with_bundle_slot(
+    bundle: &mut Option<FluentBundle<FluentResource>>,
+    language: MessageLanguage,
+    key: MessageKey,
+    vars: &[(&str, &str)],
+) -> Option<String> {
+    if bundle.is_none() {
+        *bundle = build_bundle(language);
+    }
+    format_with_bundle(bundle.as_ref()?, key, vars)
+}
+
+fn format_with_bundle(
+    bundle: &FluentBundle<FluentResource>,
+    key: MessageKey,
+    vars: &[(&str, &str)],
+) -> Option<String> {
+    let message = bundle.get_message(key.fluent_id())?;
+    let pattern = message.value()?;
 
     let mut args = FluentArgs::new();
     for (name, value) in vars {
@@ -53,9 +79,11 @@ fn localized_message_for_language(
     }
 
     let mut errors = Vec::new();
-    bundle
-        .format_pattern(pattern, Some(&args), &mut errors)
-        .into_owned()
+    Some(
+        bundle
+            .format_pattern(pattern, Some(&args), &mut errors)
+            .into_owned(),
+    )
 }
 
 fn current_message_language() -> MessageLanguage {
@@ -73,6 +101,14 @@ fn message_language_from_tag(tag: &str) -> MessageLanguage {
     } else {
         MessageLanguage::EnUs
     }
+}
+
+fn build_bundle(language: MessageLanguage) -> Option<FluentBundle<FluentResource>> {
+    let messages = std::str::from_utf8(messages_for_language(language)).ok()?;
+    let resource = FluentResource::try_new(messages.to_owned()).ok()?;
+    let mut bundle = FluentBundle::new(vec![language_identifier(language)]);
+    bundle.add_resource(resource).ok()?;
+    Some(bundle)
 }
 
 fn messages_for_language(language: MessageLanguage) -> &'static [u8] {
