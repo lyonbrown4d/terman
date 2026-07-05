@@ -8,6 +8,7 @@ resolver = "2"
 
 [workspace.dependencies]
 fluent-bundle = "0.16.0"
+interprocess = "2.4.2"
 clap = { version = "4.6.1", features = ["derive"] }
 crossterm = "0.29.0"
 directories = "6.0.0"
