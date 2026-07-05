@@ -12,6 +12,7 @@ pub(crate) enum ScreenInputAction {
     Hardcopy,
     Info,
     Kill,
+    Resize,
     Reset,
 }
 
@@ -45,6 +46,9 @@ impl ScreenInputDecoder {
 
     fn decode_prefixed_key(&mut self, key: KeyEvent) -> Option<ScreenInputAction> {
         match key.code {
+            KeyCode::Char('r') | KeyCode::Char('R') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::Resize)
+            }
             KeyCode::Char('Z')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
