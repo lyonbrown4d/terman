@@ -186,6 +186,10 @@ pub fn builtin_screen_control_pastefile_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlPastefilePathRequired, &[])
 }
 
+pub fn builtin_screen_control_source_path_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlSourcePathRequired, &[])
+}
+
 pub fn builtin_screen_control_hardcopy_complete_hint(path: &str, bytes: usize) -> String {
     let bytes = bytes.to_string();
     localized_message(

@@ -18,6 +18,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -Q info
       - terman-screen -S dev -X at 0 info
       - terman-screen -S dev -X colon "info"
+      - terman-screen -S dev -X source .screenrc
       - terman-screen -S dev -X stuff "echo hi\n"
       - terman-screen -S dev -p 0 -X stuff "echo hi\n"
       - terman-screen -r dev
@@ -41,7 +42,7 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, detach, pow_detach, resize, info, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, info, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
@@ -49,6 +50,7 @@ builtin-screen-control-info = screen info: session={$session_name} replay_bytes=
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
 builtin-screen-control-hardcopy-path-required = Specify an output path as screen -X hardcopy <path>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
+builtin-screen-control-source-path-required = Specify a command file path as screen -X source <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).
 builtin-tmux-no-sessions = no tmux sessions

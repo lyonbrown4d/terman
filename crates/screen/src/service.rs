@@ -5,6 +5,7 @@ mod control;
 mod control_at;
 mod control_colon;
 mod control_parse;
+mod control_source;
 mod ipc_client;
 mod listener;
 mod sessionname;
