@@ -4,6 +4,7 @@ mod args;
 mod builtin;
 mod cli;
 mod command;
+mod ipc;
 mod sessions;
 
 pub use cli::{TmuxArgs, run_with_binary_parse};
@@ -45,3 +46,4 @@ mod tests {
         assert_eq!(unsupported_command_name(&["--detached".into()]), "unknown");
     }
 }
+

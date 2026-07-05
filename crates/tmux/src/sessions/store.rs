@@ -1,4 +1,6 @@
 use std::io;
+
+use crate::ipc::TmuxIpcEndpoint;
 use std::path::PathBuf;
 
 use super::model::{
@@ -11,6 +13,9 @@ use super::record::{
 };
 
 pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
+    let ipc_endpoint = TmuxIpcEndpoint::for_session(name);
+    let _ = ipc_endpoint.socket_name()?;
+
     write_new_session_record(&BuiltinTmuxSession {
         name: name.to_string(),
         windows: 1,
@@ -18,7 +23,7 @@ pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
         cwd: current_tmux_cwd(),
         command: None,
         pid: None,
-        ipc_endpoint: None,
+        ipc_endpoint: Some(ipc_endpoint.raw_name().to_string()),
         window_names: vec![String::from("0")],
     })
 }
@@ -143,3 +148,5 @@ fn ensure_window_names(session: &mut BuiltinTmuxSession) {
     }
     session.window_names.truncate(window_count);
 }
+
+
