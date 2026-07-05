@@ -21,6 +21,7 @@ use crossterm::{
     terminal::{self, size as terminal_size},
 };
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use serde::{Deserialize, Serialize};
 use terman_common;
 
 #[derive(Args, Debug, Clone)]
@@ -326,6 +327,7 @@ impl Drop for BuiltinScreenSessionGuard {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize)]
 struct BuiltinScreenSession {
     name: String,
     pid: String,
@@ -359,15 +361,16 @@ fn register_builtin_screen_session(
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|_| String::from("<unknown>"));
     let command = args.command.clone().unwrap_or_else(default_shell);
-    let record = format!(
-        "name={}\npid={}\ncwd={}\ncommand={}\n",
-        clean_session_record_value(session_name),
-        std::process::id(),
-        clean_session_record_value(&cwd),
-        clean_session_record_value(&command),
-    );
+    let record = BuiltinScreenSession {
+        name: session_name.clone(),
+        pid: std::process::id().to_string(),
+        cwd,
+        command,
+    };
+    let record = serde_json::to_string_pretty(&record)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
 
-    fs::write(&path, record)?;
+    fs::write(&path, format!("{record}\n"))?;
     Ok(Some(BuiltinScreenSessionGuard { path }))
 }
 
@@ -411,30 +414,7 @@ fn list_builtin_screen_sessions() -> io::Result<()> {
 }
 
 fn parse_builtin_screen_session_record(record: &str) -> Option<BuiltinScreenSession> {
-    let mut name = None;
-    let mut pid = None;
-    let mut cwd = None;
-    let mut command = None;
-
-    for line in record.lines() {
-        let Some((key, value)) = line.split_once('=') else {
-            continue;
-        };
-        match key {
-            "name" => name = Some(value.to_string()),
-            "pid" => pid = Some(value.to_string()),
-            "cwd" => cwd = Some(value.to_string()),
-            "command" => command = Some(value.to_string()),
-            _ => {}
-        }
-    }
-
-    Some(BuiltinScreenSession {
-        name: name?,
-        pid: pid.unwrap_or_else(|| String::from("unknown")),
-        cwd: cwd.unwrap_or_else(|| String::from("unknown")),
-        command: command.unwrap_or_else(|| String::from("unknown")),
-    })
+    serde_json::from_str(record).ok()
 }
 
 fn builtin_screen_session_record_path(name: &str) -> PathBuf {
@@ -470,12 +450,6 @@ fn sanitize_session_file_name(name: &str) -> String {
     }
 }
 
-fn clean_session_record_value(value: &str) -> String {
-    value
-        .chars()
-        .map(|ch| if ch == '\n' || ch == '\r' || ch == '\t' { ' ' } else { ch })
-        .collect()
-}
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _session_record = register_builtin_screen_session(&args)?;
     let _raw = RawMode::enter()?;
@@ -777,7 +751,7 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ScreenArgs, build_system_screen_args, clean_session_record_value,
+        ScreenArgs, build_system_screen_args,
         is_builtin_screen_attach_requested, is_screen_attach_attempt, is_screen_detached_arg,
         is_screen_session_name_arg, parse_builtin_screen_session_record, sanitize_session_file_name,
         screen_failure_message, screen_not_found_hint,
@@ -902,7 +876,7 @@ mod tests {
 
     #[test]
     fn parses_builtin_session_record() {
-        let record = "name=dev\npid=42\ncwd=C:/repo\ncommand=pwsh\n";
+        let record = r#"{"name":"dev","pid":"42","cwd":"C:/repo","command":"pwsh"}"#;
         let parsed = parse_builtin_screen_session_record(record).expect("record should parse");
 
         assert_eq!(parsed.name, "dev");
@@ -911,8 +885,4 @@ mod tests {
         assert_eq!(parsed.command, "pwsh");
     }
 
-    #[test]
-    fn cleans_multiline_session_record_values() {
-        assert_eq!(clean_session_record_value("a\nb\tc"), "a b c");
-    }
 }
