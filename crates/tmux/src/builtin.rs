@@ -8,6 +8,7 @@ use crate::{
         target_session_name_arg, target_window_index_arg,
     },
     command::TmuxCommand,
+    detach_client::detach_builtin_tmux_clients,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest},
     lifecycle::{
         kill_builtin_tmux_server, kill_builtin_tmux_session_command,
@@ -58,6 +59,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::CapturePane => {
             capture_builtin_tmux_pane(args)?;
+            Ok(true)
+        }
+        TmuxCommand::DetachClient => {
+            detach_builtin_tmux_clients(args)?;
             Ok(true)
         }
         TmuxCommand::SendKeys => {

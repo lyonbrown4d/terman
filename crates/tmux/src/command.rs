@@ -9,6 +9,7 @@ pub(crate) enum TmuxCommand {
     RenameSession,
     DisplayMessage,
     CapturePane,
+    DetachClient,
     SendKeys,
     NewWindow,
     ListWindows,
@@ -29,6 +30,7 @@ impl TmuxCommand {
             Some("rename-session") => Self::RenameSession,
             Some("display-message" | "display") => Self::DisplayMessage,
             Some("capture-pane" | "capturep") => Self::CapturePane,
+            Some("detach-client" | "detach") => Self::DetachClient,
             Some("send-keys" | "send") => Self::SendKeys,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
@@ -63,6 +65,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["rename-session".into()]), TmuxCommand::RenameSession);
         assert_eq!(TmuxCommand::parse(&["display".into()]), TmuxCommand::DisplayMessage);
         assert_eq!(TmuxCommand::parse(&["capturep".into()]), TmuxCommand::CapturePane);
+        assert_eq!(TmuxCommand::parse(&["detach".into()]), TmuxCommand::DetachClient);
         assert_eq!(TmuxCommand::parse(&["send".into()]), TmuxCommand::SendKeys);
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);

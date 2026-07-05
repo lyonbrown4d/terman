@@ -7,6 +7,7 @@ mod builtin;
 mod capture;
 mod cli;
 mod command;
+mod detach_client;
 mod ipc;
 mod lifecycle;
 mod new_session;
