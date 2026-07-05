@@ -125,6 +125,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
     let (command, inline_payload) = split_control_command(command_text);
     match command.to_ascii_lowercase().as_str() {
         "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
+        "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "stuff" => {
             let payload = control_command_payload(inline_payload, &args.execute_args);
             if payload.is_empty() {
@@ -345,6 +346,10 @@ fn handle_client(
             stream_attach(stream, bus)
         },
         Ok(ScreenIpcRequest::Detach) => write_response(stream, &ScreenIpcResponse::Accepted),
+        Ok(ScreenIpcRequest::DetachAll) => {
+            bus.publish_detach();
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Quit) => {
             control_tx
                 .send(ScreenControlEvent::Terminate)

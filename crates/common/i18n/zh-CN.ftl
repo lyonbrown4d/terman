@@ -9,6 +9,6 @@ builtin-screen-session-not-found = 未找到内置 screen 会话 `{$name}`。
 builtin-screen-named-session-required = 启动命名 screen 会话需要指定会话名。
 builtin-screen-server-timeout = 等待内置 screen 会话服务启动超时。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、stuff。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、stuff、detach。
 builtin-screen-control-stuff-required = 请为 `screen -X stuff` 指定要输入的文本。
 builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
