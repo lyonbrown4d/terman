@@ -23,7 +23,7 @@ use terman_common;
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen --system\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --system\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -37,6 +37,10 @@ pub struct ScreenArgs {
     /// Initial terminal rows.
     #[arg(long)]
     pub rows: Option<u16>,
+
+    /// Name the screen session; maps to `screen -S <NAME>` in system mode.
+    #[arg(short = 'S', long = "session", value_name = "NAME")]
+    pub session_name: Option<String>,
 
     /// Prefer using system `screen` if available.
     #[arg(long)]
@@ -69,6 +73,7 @@ impl Default for ScreenArgs {
             command: None,
             cols: None,
             rows: None,
+            session_name: None,
             system: false,
             detach: false,
             login_shell: false,
@@ -142,12 +147,7 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     }
 
     let mut cmd = Command::new(&launch.cmd);
-    let mut system_args = args.args;
-
-    if args.detach {
-        system_args.insert(0, String::from("-m"));
-        system_args.insert(0, String::from("-d"));
-    }
+    let system_args = build_system_screen_args(&args);
 
     if let ScreenKind::Wsl = launch.kind {
         cmd.args(&launch.extra_args);
@@ -218,6 +218,22 @@ fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error
             ),
         ),
     )))
+}
+fn build_system_screen_args(args: &ScreenArgs) -> Vec<String> {
+    let mut system_args = Vec::new();
+
+    if args.detach {
+        system_args.push(String::from("-d"));
+        system_args.push(String::from("-m"));
+    }
+
+    if let Some(session_name) = &args.session_name {
+        system_args.push(String::from("-S"));
+        system_args.push(session_name.clone());
+    }
+
+    system_args.extend(args.args.clone());
+    system_args
 }
 
 fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
@@ -467,25 +483,32 @@ fn screen_not_found_hint() -> &'static str {
 fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
 
-    match args.command.clone() {
+    let mut builder = match args.command.clone() {
         Some(cmd) => {
             let mut builder = CommandBuilder::new(&shell);
             for arg in shell_command_args(&shell, args.login_shell) {
                 builder.arg(arg);
             }
             builder.arg(cmd);
-            Ok(builder)
+            builder
         }
         None => {
             if !cfg!(windows) && args.login_shell {
                 let mut builder = CommandBuilder::new(&shell);
                 builder.arg("-l");
-                Ok(builder)
+                builder
             } else {
-                Ok(CommandBuilder::new(shell))
+                CommandBuilder::new(shell)
             }
         }
+    };
+
+    if let Some(session_name) = &args.session_name {
+        builder.env("STY", session_name.as_str());
+        builder.env("TERMAN_SCREEN_SESSION", session_name.as_str());
     }
+
+    Ok(builder)
 }
 
 fn shell_command_args(shell: &str, login_shell: bool) -> Vec<String> {
@@ -630,8 +653,8 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::{
-        is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg,
-        screen_failure_message,
+        ScreenArgs, build_system_screen_args, is_screen_attach_attempt, is_screen_detached_arg,
+        is_screen_session_name_arg, screen_failure_message,
     };
 
     #[test]
@@ -664,5 +687,27 @@ mod tests {
     fn screen_failure_message_formats_error() {
         let msg = screen_failure_message("system screen", 127, "未找到 screen");
         assert_eq!(msg, "system screen 失败（退出码 127）：未找到 screen");
+    }
+
+    #[test]
+    fn builds_system_args_with_detach_session_and_passthrough_args() {
+        let args = ScreenArgs {
+            system: true,
+            detach: true,
+            session_name: Some(String::from("dev")),
+            args: vec![String::from("-ls")],
+            ..ScreenArgs::default()
+        };
+
+        assert_eq!(
+            build_system_screen_args(&args),
+            vec![
+                String::from("-d"),
+                String::from("-m"),
+                String::from("-S"),
+                String::from("dev"),
+                String::from("-ls"),
+            ]
+        );
     }
 }
