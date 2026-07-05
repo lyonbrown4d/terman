@@ -42,6 +42,7 @@ fn execute_control_command(
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
         "echo" | "wall" => request_echo_command(args, inline_payload, extra_args),
         "eval" => request_eval_command(args, inline_payload, extra_args),
+        "at" => request_at_command(args, inline_payload, extra_args),
         "info" => request_session_info(args),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
@@ -88,6 +89,30 @@ fn request_eval_command(
         execute_control_command(args, command, inline_payload, &[])?;
     }
     Ok(())
+}
+
+fn request_at_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let payload = control_command_payload(inline_payload, extra_args);
+    let Some((_, command_text)) = split_at_payload(&payload) else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_command_required_hint(),
+        ));
+    };
+    let (command, inline_payload) = split_control_command(command_text);
+    execute_control_command(args, command, inline_payload, &[])
+}
+
+fn split_at_payload(payload: &str) -> Option<(&str, &str)> {
+    let payload = payload.trim();
+    let target_end = payload.find(char::is_whitespace)?;
+    let target = &payload[..target_end];
+    let command_text = payload[target_end..].trim_start();
+    (!target.is_empty() && !command_text.is_empty()).then_some((target, command_text))
 }
 
 fn request_hardcopy_command(
@@ -255,7 +280,15 @@ fn request_session_response(
 
 #[cfg(test)]
 mod tests {
-    use super::eval_command_payloads;
+    use super::{eval_command_payloads, split_at_payload};
+
+    #[test]
+    fn splits_at_payload() {
+        assert_eq!(split_at_payload("0 info"), Some(("0", "info")));
+        assert_eq!(split_at_payload("# stuff echo hi"), Some(("#", "stuff echo hi")));
+        assert_eq!(split_at_payload("0"), None);
+        assert_eq!(split_at_payload("  "), None);
+    }
 
     #[test]
     fn builds_eval_command_payloads() {
