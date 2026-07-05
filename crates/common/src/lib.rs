@@ -80,7 +80,8 @@ pub fn wsl_runtime_hint(tool: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{wsl_precheck_not_found_hint, wsl_runtime_hint};
+    use super::{command_status_with_timeout, wsl_precheck_not_found_hint, wsl_runtime_hint};
+    use std::time::Duration;
 
     #[test]
     fn wsl_precheck_not_found_hint_mentions_tool_and_install_cmd() {
@@ -99,5 +100,32 @@ mod tests {
         assert!(hint.contains("wsl -l -v"));
         assert!(hint.contains("wsl --status"));
         assert!(hint.contains("wsl -e screen -V"));
+    }
+
+    #[test]
+    fn command_status_with_timeout_returns_status_for_successful_command() {
+        let status = if cfg!(windows) {
+            command_status_with_timeout("cmd", &["/C", "exit 0"], Duration::from_secs(2))
+        } else {
+            command_status_with_timeout("sh", &["-c", "exit 0"], Duration::from_secs(2))
+        }
+        .expect("command should spawn");
+
+        assert!(
+            status
+                .expect("command should finish before timeout")
+                .success()
+        );
+    }
+
+    #[test]
+    fn command_status_with_timeout_returns_error_for_missing_command() {
+        let result = command_status_with_timeout(
+            "terman-definitely-missing-command",
+            &[],
+            Duration::from_secs(2),
+        );
+
+        assert!(result.is_err());
     }
 }
