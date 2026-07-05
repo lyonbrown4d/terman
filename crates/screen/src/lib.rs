@@ -159,11 +159,7 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .envs(terman_common::passthrough_env())
-        .env(
-            "TERM",
-            env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")),
-        )
+        .envs(terman_common::terminal_env())
         .status()?;
 
     if status.success() {

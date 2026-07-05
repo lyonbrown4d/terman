@@ -72,6 +72,14 @@ pub fn passthrough_env() -> Vec<(String, String)> {
     .collect()
 }
 
+pub fn terminal_env() -> Vec<(String, String)> {
+    let mut vars = passthrough_env();
+    if !vars.iter().any(|(key, _)| key == "TERM") {
+        vars.push((String::from("TERM"), String::from("xterm-256color")));
+    }
+    vars
+}
+
 pub fn which_wsl_binary() -> Option<String> {
     which_binary("wsl").or_else(|| which_binary("wsl.exe"))
 }
