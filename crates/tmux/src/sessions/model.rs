@@ -7,6 +7,14 @@ pub(crate) struct BuiltinTmuxSession {
     pub(crate) windows: u32,
     #[serde(default)]
     pub(crate) attached_clients: u32,
+    #[serde(default = "default_cwd")]
+    pub(crate) cwd: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) command: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) pid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) ipc_endpoint: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) window_names: Vec<String>,
 }
@@ -55,6 +63,10 @@ fn default_window_count() -> u32 {
     1
 }
 
+fn default_cwd() -> String {
+    String::from("<unknown>")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{BuiltinTmuxSession, parse_builtin_tmux_session_record};
@@ -69,6 +81,10 @@ mod tests {
                 name: String::from("dev"),
                 windows: 1,
                 attached_clients: 0,
+                cwd: String::from("<unknown>"),
+                command: None,
+                pid: None,
+                ipc_endpoint: None,
                 window_names: Vec::new(),
             }
         );
@@ -80,6 +96,10 @@ mod tests {
             name: String::from("dev"),
             windows: 1,
             attached_clients: 0,
+            cwd: String::from("<unknown>"),
+            command: None,
+            pid: None,
+            ipc_endpoint: None,
             window_names: Vec::new(),
         };
 

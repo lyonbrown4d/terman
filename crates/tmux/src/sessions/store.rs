@@ -18,8 +18,18 @@ pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
         name: name.to_string(),
         windows: 1,
         attached_clients: 0,
+        cwd: current_tmux_cwd(),
+        command: None,
+        pid: None,
+        ipc_endpoint: None,
         window_names: vec![String::from("0")],
     })
+}
+
+fn current_tmux_cwd() -> String {
+    env::current_dir()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|_| String::from("<unknown>"))
 }
 
 pub(crate) fn load_builtin_tmux_sessions() -> io::Result<Vec<BuiltinTmuxSession>> {
@@ -262,3 +272,4 @@ mod tests {
         assert_eq!(sanitize_session_file_name(""), "session");
     }
 }
+
