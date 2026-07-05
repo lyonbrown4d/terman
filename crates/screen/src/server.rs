@@ -34,12 +34,15 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
     )?;
 
     let pty_system = native_pty_system();
+    let cols = args.cols.unwrap_or(120);
+    let rows = args.rows.unwrap_or(32);
     let pty_size = PtySize {
-        cols: args.cols.unwrap_or(120),
-        rows: args.rows.unwrap_or(32),
+        cols,
+        rows,
         pixel_width: 0,
         pixel_height: 0,
     };
+    session_bus.publish_resize(cols, rows);
 
     let pair = pty_system.openpty(pty_size)?;
     let command = build_command(&args)?;
@@ -119,3 +122,4 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         )))
     }
 }
+

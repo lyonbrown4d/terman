@@ -46,9 +46,26 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
             .as_ref()
             .map(|value| value.replay_bytes.to_string())
             .unwrap_or_else(|| String::from("?"));
+        let cols = status
+            .as_ref()
+            .and_then(|value| value.cols)
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| String::from("?"));
+        let rows = status
+            .as_ref()
+            .and_then(|value| value.rows)
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| String::from("?"));
         println!(
-            "  {}\tpid={}\tattached_clients={}\treplay_bytes={}\tcwd={}\tcommand={}",
-            session.name, session.pid, attach_clients, replay_bytes, session.cwd, session.command
+            "  {}\tpid={}\tattached_clients={}\treplay_bytes={}\tsize={}x{}\tcwd={}\tcommand={}",
+            session.name,
+            session.pid,
+            attach_clients,
+            replay_bytes,
+            cols,
+            rows,
+            session.cwd,
+            session.command
         );
     }
 
@@ -82,3 +99,4 @@ pub(crate) fn find_builtin_screen_session_for_attach(
         )),
     }
 }
+

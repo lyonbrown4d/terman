@@ -21,6 +21,8 @@ pub(crate) enum ScreenControlEvent {
 pub(crate) struct ScreenSessionStatus {
     pub(crate) replay_bytes: usize,
     pub(crate) attach_clients: usize,
+    pub(crate) cols: Option<u16>,
+    pub(crate) rows: Option<u16>,
 }
 
 #[derive(Clone, Default)]
@@ -33,6 +35,8 @@ struct ScreenSessionState {
     replay: Vec<u8>,
     subscribers: Vec<mpsc::Sender<ScreenSessionEvent>>,
     attach_clients: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
 }
 
 pub(crate) struct ScreenSessionSubscription {
@@ -105,10 +109,14 @@ impl ScreenSessionBus {
             .map(|state| ScreenSessionStatus {
                 replay_bytes: state.replay.len(),
                 attach_clients: state.attach_clients,
+                cols: state.cols,
+                rows: state.rows,
             })
             .unwrap_or(ScreenSessionStatus {
                 replay_bytes: 0,
                 attach_clients: 0,
+                cols: None,
+                rows: None,
             })
     }
 
@@ -133,7 +141,10 @@ impl ScreenSessionBus {
     }
 
     pub(crate) fn publish_resize(&self, cols: u16, rows: u16) {
-        self.publish(ScreenSessionEvent::Resize { cols, rows }, |_| {});
+        self.publish(ScreenSessionEvent::Resize { cols, rows }, |state| {
+            state.cols = Some(cols);
+            state.rows = Some(rows);
+        });
     }
 
     pub(crate) fn publish_detach(&self) {
@@ -199,5 +210,6 @@ mod tests {
         );
     }
 }
+
 
 

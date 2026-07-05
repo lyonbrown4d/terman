@@ -139,14 +139,23 @@ pub fn builtin_screen_control_resize_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlResizeRequired, &[])
 }
 
-pub fn builtin_screen_control_info_hint(replay_bytes: usize, attach_clients: usize) -> String {
+pub fn builtin_screen_control_info_hint(
+    replay_bytes: usize,
+    attach_clients: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
+) -> String {
     let replay_bytes = replay_bytes.to_string();
     let attach_clients = attach_clients.to_string();
+    let cols = cols.map(|value| value.to_string()).unwrap_or_else(|| String::from("?"));
+    let rows = rows.map(|value| value.to_string()).unwrap_or_else(|| String::from("?"));
     localized_message(
         MessageKey::BuiltinScreenControlInfo,
         &[
             ("replay_bytes", &replay_bytes),
             ("attach_clients", &attach_clients),
+            ("cols", &cols),
+            ("rows", &rows),
         ],
     )
 }
@@ -276,5 +285,6 @@ mod tests {
         assert!(message.contains("native tmux executable"));
     }
 }
+
 
 

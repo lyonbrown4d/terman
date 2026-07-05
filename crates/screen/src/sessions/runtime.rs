@@ -8,6 +8,8 @@ use super::store::BuiltinScreenSession;
 pub(crate) struct BuiltinScreenSessionRuntimeStatus {
     pub(crate) replay_bytes: usize,
     pub(crate) attach_clients: usize,
+    pub(crate) cols: Option<u16>,
+    pub(crate) rows: Option<u16>,
 }
 
 pub(crate) fn load_builtin_screen_runtime_status(
@@ -28,9 +30,13 @@ pub(crate) fn load_builtin_screen_runtime_status(
         ScreenIpcResponse::Info {
             replay_bytes,
             attach_clients,
+            cols,
+            rows,
         } => Ok(BuiltinScreenSessionRuntimeStatus {
             replay_bytes,
             attach_clients,
+            cols,
+            rows,
         }),
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
@@ -49,3 +55,4 @@ fn builtin_screen_session_endpoint(session: &BuiltinScreenSession) -> ScreenIpcE
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name))
 }
+

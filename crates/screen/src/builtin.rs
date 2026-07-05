@@ -200,3 +200,4 @@ fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16,
 fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
+

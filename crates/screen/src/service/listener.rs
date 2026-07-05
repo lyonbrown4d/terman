@@ -91,6 +91,8 @@ fn handle_client(
                 &ScreenIpcResponse::Info {
                     replay_bytes: status.replay_bytes,
                     attach_clients: status.attach_clients,
+                    cols: status.cols,
+                    rows: status.rows,
                 },
             )
         }
@@ -152,5 +154,6 @@ fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) 
     stream.write_all(b"\n")?;
     stream.flush()
 }
+
 
 

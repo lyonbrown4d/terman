@@ -79,10 +79,17 @@ fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
         ScreenIpcResponse::Info {
             replay_bytes,
             attach_clients,
+            cols,
+            rows,
         } => {
             println!(
                 "{}",
-                terman_common::builtin_screen_control_info_hint(replay_bytes, attach_clients)
+                terman_common::builtin_screen_control_info_hint(
+                    replay_bytes,
+                    attach_clients,
+                    cols,
+                    rows,
+                )
             );
             Ok(())
         }
@@ -220,3 +227,4 @@ fn request_session_response(
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
     request_endpoint_response(&endpoint, request)
 }
+

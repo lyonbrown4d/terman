@@ -91,7 +91,7 @@ pub(crate) enum ScreenIpcResponse {
     Attached { replay: Vec<u8> },
     Detached,
     Hardcopy { bytes: Vec<u8> },
-    Info { replay_bytes: usize, attach_clients: usize },
+    Info { replay_bytes: usize, attach_clients: usize, cols: Option<u16>, rows: Option<u16> },
     Output { bytes: Vec<u8> },
     Resize { cols: u16, rows: u16 },
     Exit { code: i32 },
@@ -175,5 +175,6 @@ mod tests {
         );
     }
 }
+
 
 
