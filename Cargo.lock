@@ -850,6 +850,7 @@ dependencies = [
  "clap",
  "directories",
  "interprocess",
+ "portable-pty",
  "serde",
  "serde_json",
  "terman-common",

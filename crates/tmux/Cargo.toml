@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 clap = { workspace = true }
 interprocess = { workspace = true }
+portable-pty = { workspace = true }
 terman-common = { workspace = true }
 tokio = { workspace = true }
 directories = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+
 
