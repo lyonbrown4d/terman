@@ -93,6 +93,7 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     let request = ScreenIpcRequest::Attach {
         mode,
         target: Some(session.name),
+        detach_existing: args.detach_existing,
     };
 
     serde_json::to_writer(&mut stream, &request)
@@ -304,6 +305,7 @@ fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
                 stdout.write_all(&replay)?;
                 stdout.flush()?;
             }
+            ScreenIpcResponse::Detached => return Ok(()),
             ScreenIpcResponse::Output { bytes } => {
                 stdout.write_all(&bytes)?;
                 stdout.flush()?;
@@ -329,7 +331,14 @@ fn handle_client(
     }
 
     match serde_json::from_str::<ScreenIpcRequest>(request.trim_end()) {
-        Ok(ScreenIpcRequest::Attach { .. }) => stream_attach(stream, bus),
+        Ok(ScreenIpcRequest::Attach {
+            detach_existing, ..
+        }) => {
+            if detach_existing {
+                bus.publish_detach();
+            }
+            stream_attach(stream, bus)
+        },
         Ok(ScreenIpcRequest::Detach) => write_response(stream, &ScreenIpcResponse::Accepted),
         Ok(ScreenIpcRequest::Quit) => {
             control_tx
@@ -366,9 +375,13 @@ fn stream_attach(stream: &mut LocalSocketStream, bus: &ScreenSessionBus) -> io::
         let response = match event {
             ScreenSessionEvent::Output(bytes) => ScreenIpcResponse::Output { bytes },
             ScreenSessionEvent::Resize { cols, rows } => ScreenIpcResponse::Resize { cols, rows },
+            ScreenSessionEvent::Detach => ScreenIpcResponse::Detached,
             ScreenSessionEvent::Exit(code) => ScreenIpcResponse::Exit { code },
         };
-        let should_close = matches!(response, ScreenIpcResponse::Exit { .. });
+        let should_close = matches!(
+            response,
+            ScreenIpcResponse::Detached | ScreenIpcResponse::Exit { .. }
+        );
         write_response(stream, &response)?;
         if should_close {
             break;

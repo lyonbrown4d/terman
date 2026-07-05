@@ -6,6 +6,7 @@ const MAX_REPLAY_BYTES: usize = 64 * 1024;
 pub(crate) enum ScreenSessionEvent {
     Output(Vec<u8>),
     Resize { cols: u16, rows: u16 },
+    Detach,
     Exit(i32),
 }
 
@@ -68,6 +69,10 @@ impl ScreenSessionBus {
 
     pub(crate) fn publish_resize(&self, cols: u16, rows: u16) {
         self.publish(ScreenSessionEvent::Resize { cols, rows }, |_| {});
+    }
+
+    pub(crate) fn publish_detach(&self) {
+        self.publish(ScreenSessionEvent::Detach, |_| {});
     }
 
     pub(crate) fn publish_exit(&self, code: i32) {

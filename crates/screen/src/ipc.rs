@@ -66,6 +66,7 @@ pub(crate) enum ScreenIpcRequest {
     Attach {
         mode: ScreenAttachMode,
         target: Option<String>,
+        detach_existing: bool,
     },
     Detach,
     Quit,
@@ -82,6 +83,7 @@ pub(crate) enum ScreenIpcRequest {
 pub(crate) enum ScreenIpcResponse {
     Accepted,
     Attached { replay: Vec<u8> },
+    Detached,
     Output { bytes: Vec<u8> },
     Resize { cols: u16, rows: u16 },
     Exit { code: i32 },
@@ -132,6 +134,7 @@ mod tests {
         let request = ScreenIpcRequest::Attach {
             mode: ScreenAttachMode::Resume,
             target: Some(String::from("dev")),
+            detach_existing: false,
         };
 
         assert_eq!(
@@ -139,6 +142,7 @@ mod tests {
             ScreenIpcRequest::Attach {
                 mode: ScreenAttachMode::Resume,
                 target: Some(String::from("dev")),
+                detach_existing: false,
             }
         );
     }
