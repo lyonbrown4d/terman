@@ -49,6 +49,10 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    if args.detached {
+        return run_detached_named_screen_session(args);
+    }
+
     if is_builtin_screen_attach_requested(&args) {
         request_screen_attach(&args)?;
         return Ok(());
