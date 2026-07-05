@@ -39,6 +39,36 @@ pub(crate) fn load_builtin_tmux_sessions() -> io::Result<Vec<BuiltinTmuxSession>
     Ok(sessions)
 }
 
+pub(crate) fn remove_builtin_tmux_session(name: &str) -> io::Result<bool> {
+    let dir = builtin_tmux_sessions_dir();
+    if !dir.exists() {
+        return Ok(false);
+    }
+
+    let mut removed = false;
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let path = entry.path();
+        let Ok(record) = fs::read_to_string(&path) else {
+            continue;
+        };
+        if parse_builtin_tmux_session_record(&record)
+            .map(|session| session.name == name)
+            .unwrap_or(false)
+        {
+            match fs::remove_file(path) {
+                Ok(()) => removed = true,
+                Err(err) if err.kind() == io::ErrorKind::NotFound => {}
+                Err(err) => return Err(err),
+            }
+        }
+    }
+    Ok(removed)
+}
+
 pub(crate) fn parse_builtin_tmux_session_record(record: &str) -> Option<BuiltinTmuxSession> {
     serde_json::from_str(record).ok()
 }

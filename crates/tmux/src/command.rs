@@ -3,6 +3,7 @@ pub(crate) enum TmuxCommand {
     NewSession,
     AttachSession,
     ListSessions,
+    KillSession,
     Other,
 }
 
@@ -12,6 +13,7 @@ impl TmuxCommand {
             Some("new" | "new-session") => Self::NewSession,
             Some("attach" | "attach-session") => Self::AttachSession,
             Some("list-sessions" | "ls") => Self::ListSessions,
+            Some("kill-session") => Self::KillSession,
             _ => Self::Other,
         }
     }
@@ -45,6 +47,10 @@ mod tests {
             TmuxCommand::AttachSession
         );
         assert_eq!(TmuxCommand::parse(&["ls".into()]), TmuxCommand::ListSessions);
+        assert_eq!(
+            TmuxCommand::parse(&["kill-session".into()]),
+            TmuxCommand::KillSession
+        );
     }
 
     #[test]

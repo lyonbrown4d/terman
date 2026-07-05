@@ -44,6 +44,17 @@ pub fn builtin_tmux_session_list_entry_hint(
         ],
     )
 }
+pub fn builtin_tmux_session_killed_hint(name: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxSessionKilled, &[("name", name)])
+}
+
+pub fn builtin_tmux_session_not_found_hint(name: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxSessionNotFound, &[("name", name)])
+}
+
+pub fn builtin_tmux_target_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxTargetRequired, &[])
+}
 pub fn builtin_screen_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinScreenNoSessions, &[])
 }

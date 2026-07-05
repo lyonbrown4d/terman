@@ -21,3 +21,6 @@ builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hard
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).
 builtin-tmux-no-sessions = no tmux sessions
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
+builtin-tmux-session-killed = killed tmux session {$name}
+builtin-tmux-session-not-found = tmux session {$name} not found
+builtin-tmux-target-required = specify a target session with -t <name>
