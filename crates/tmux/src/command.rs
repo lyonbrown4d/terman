@@ -7,6 +7,7 @@ pub(crate) enum TmuxCommand {
     HasSession,
     RenameSession,
     NewWindow,
+    ListWindows,
     Other,
 }
 
@@ -20,6 +21,7 @@ impl TmuxCommand {
             Some("has-session") => Self::HasSession,
             Some("rename-session") => Self::RenameSession,
             Some("new-window" | "neww") => Self::NewWindow,
+            Some("list-windows" | "lsw") => Self::ListWindows,
             _ => Self::Other,
         }
     }
@@ -64,6 +66,10 @@ mod tests {
         assert_eq!(
             TmuxCommand::parse(&["neww".into()]),
             TmuxCommand::NewWindow
+        );
+        assert_eq!(
+            TmuxCommand::parse(&["lsw".into()]),
+            TmuxCommand::ListWindows
         );
     }
 

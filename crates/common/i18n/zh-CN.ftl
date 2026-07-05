@@ -21,11 +21,12 @@ builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcop
 builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
 builtin-tmux-no-sessions = 当前没有 tmux 会话
 builtin-tmux-session-list-entry = {$name}：{$windows} 个窗口（已连接 {$attached_clients} 个客户端）
+builtin-tmux-window-list-entry = {$session}:{$index}: 窗口 {$index}
 builtin-tmux-session-killed = 已结束 tmux 会话 {$name}
 builtin-tmux-session-not-found = 未找到 tmux 会话 {$name}
 builtin-tmux-target-required = 请使用 -t <名称> 指定目标会话
 builtin-tmux-session-created = 已创建 tmux 会话 {$name}
 builtin-tmux-session-exists = tmux 会话 {$name} 已存在
-builtin-tmux-session-name-required = 请使用 -s <名称> 指定会话名称builtin-tmux-command-unsupported = 内置 tmux 暂不支持命令 {$command}。当前不会调用系统 tmux；请等待后续跨平台实现。
-
+builtin-tmux-session-name-required = 请使用 -s <名称> 指定会话名称
+builtin-tmux-command-unsupported = 内置 tmux 暂不支持命令 {$command}。当前不会调用系统 tmux；请等待后续跨平台实现。
 builtin-tmux-window-created = 已在 tmux 会话 {$session} 中创建窗口，当前共 {$windows} 个窗口

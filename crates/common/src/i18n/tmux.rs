@@ -21,6 +21,14 @@ pub fn builtin_tmux_session_list_entry_hint(
     )
 }
 
+pub fn builtin_tmux_window_list_entry_hint(session: &str, index: u32) -> String {
+    let index = index.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxWindowListEntry,
+        &[("session", session), ("index", &index)],
+    )
+}
+
 pub fn builtin_tmux_session_created_hint(name: &str) -> String {
     localized_message(MessageKey::BuiltinTmuxSessionCreated, &[("name", name)])
 }

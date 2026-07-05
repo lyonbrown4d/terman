@@ -3,6 +3,7 @@ pub enum MessageKey {
     NativeToolNotFound,
     BuiltinTmuxNoSessions,
     BuiltinTmuxSessionListEntry,
+    BuiltinTmuxWindowListEntry,
     BuiltinTmuxSessionCreated,
     BuiltinTmuxWindowCreated,
     BuiltinTmuxSessionExists,
@@ -39,6 +40,7 @@ impl MessageKey {
             Self::NativeToolNotFound => "native-tool-not-found",
             Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
             Self::BuiltinTmuxSessionListEntry => "builtin-tmux-session-list-entry",
+            Self::BuiltinTmuxWindowListEntry => "builtin-tmux-window-list-entry",
             Self::BuiltinTmuxSessionCreated => "builtin-tmux-session-created",
             Self::BuiltinTmuxWindowCreated => "builtin-tmux-window-created",
             Self::BuiltinTmuxSessionExists => "builtin-tmux-session-exists",
@@ -78,5 +80,3 @@ impl MessageKey {
         }
     }
 }
-
-

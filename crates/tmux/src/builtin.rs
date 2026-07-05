@@ -36,6 +36,10 @@ pub(crate) fn try_run_builtin_tmux_command(
             create_builtin_tmux_window(args)?;
             Ok(true)
         }
+        TmuxCommand::ListWindows => {
+            list_builtin_tmux_windows(args)?;
+            Ok(true)
+        }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
             create_builtin_tmux_session(args)?;
             Ok(true)
@@ -59,6 +63,27 @@ fn list_builtin_tmux_sessions() -> Result<(), Box<dyn Error>> {
                 session.windows,
                 session.attached_clients,
             )
+        );
+    }
+    Ok(())
+}
+
+fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_arg(args)?;
+    let Some(session) = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target)
+    else {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&target),
+        )));
+    };
+
+    for index in 0..session.windows {
+        println!(
+            "{}",
+            terman_common::builtin_tmux_window_list_entry_hint(&target, index)
         );
     }
     Ok(())
