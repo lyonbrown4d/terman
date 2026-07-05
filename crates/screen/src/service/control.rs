@@ -24,18 +24,28 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
     };
 
     let (command, inline_payload) = split_control_command(command_text);
+    execute_control_command(args, command, inline_payload, &args.execute_args)
+}
+
+fn execute_control_command(
+    args: &ScreenArgs,
+    command: &str,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
     match command.to_ascii_lowercase().as_str() {
         "quit" | "kill" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
-        "echo" | "wall" => request_echo_command(args, inline_payload),
+        "echo" | "wall" => request_echo_command(args, inline_payload, extra_args),
+        "eval" => request_eval_command(args, inline_payload, extra_args),
         "info" => request_session_info(args),
-        "hardcopy" => request_hardcopy_command(args, inline_payload),
-        "pastefile" => request_pastefile_command(args, inline_payload),
-        "resize" => request_resize_command(args, inline_payload),
-        "stuff" => request_stuff_command(args, inline_payload),
+        "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
+        "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
+        "resize" => request_resize_command(args, inline_payload, extra_args),
+        "stuff" => request_stuff_command(args, inline_payload, extra_args),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             terman_common::builtin_screen_control_command_unsupported_hint(command),
@@ -43,8 +53,12 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
     }
 }
 
-fn request_echo_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
-    let message = control_command_payload(inline_payload, &args.execute_args);
+fn request_echo_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let message = control_command_payload(inline_payload, extra_args);
     if message.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -53,8 +67,33 @@ fn request_echo_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<(
     }
     send_session_control_request(args, ScreenIpcRequest::Echo { message })
 }
-fn request_hardcopy_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
-    let path = control_command_payload(inline_payload, &args.execute_args);
+
+fn request_eval_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let commands = eval_command_payloads(inline_payload, extra_args);
+    if commands.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_command_required_hint(),
+        ));
+    }
+
+    for command_text in commands {
+        let (command, inline_payload) = split_control_command(&command_text);
+        execute_control_command(args, command, inline_payload, &[])?;
+    }
+    Ok(())
+}
+
+fn request_hardcopy_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let path = control_command_payload(inline_payload, extra_args);
     if path.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -64,8 +103,12 @@ fn request_hardcopy_command(args: &ScreenArgs, inline_payload: &str) -> io::Resu
     request_session_hardcopy(args, &path)
 }
 
-fn request_pastefile_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
-    let path = control_command_payload(inline_payload, &args.execute_args);
+fn request_pastefile_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let path = control_command_payload(inline_payload, extra_args);
     if path.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -75,14 +118,22 @@ fn request_pastefile_command(args: &ScreenArgs, inline_payload: &str) -> io::Res
     request_session_pastefile(args, &path)
 }
 
-fn request_resize_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
-    let payload = control_command_payload(inline_payload, &args.execute_args);
+fn request_resize_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let payload = control_command_payload(inline_payload, extra_args);
     let (cols, rows) = parse_resize_payload(&payload)?;
     send_session_control_request(args, ScreenIpcRequest::Resize { cols, rows })
 }
 
-fn request_stuff_command(args: &ScreenArgs, inline_payload: &str) -> io::Result<()> {
-    let payload = control_command_payload(inline_payload, &args.execute_args);
+fn request_stuff_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let payload = control_command_payload(inline_payload, extra_args);
     if payload.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -161,6 +212,21 @@ fn split_control_command(command: &str) -> (&str, &str) {
     (verb, payload)
 }
 
+fn eval_command_payloads(inline_payload: &str, extra_args: &[String]) -> Vec<String> {
+    let mut commands = Vec::new();
+    if !inline_payload.trim().is_empty() {
+        commands.push(inline_payload.trim().to_string());
+    }
+    commands.extend(
+        extra_args
+            .iter()
+            .map(|arg| arg.trim())
+            .filter(|arg| !arg.is_empty())
+            .map(ToString::to_string),
+    );
+    commands
+}
+
 fn send_session_control_request(args: &ScreenArgs, request: ScreenIpcRequest) -> io::Result<()> {
     match request_session_response(args, request)? {
         ScreenIpcResponse::Accepted => Ok(()),
@@ -185,4 +251,18 @@ fn request_session_response(
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
     request_endpoint_response(&endpoint, request)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::eval_command_payloads;
+
+    #[test]
+    fn builds_eval_command_payloads() {
+        assert_eq!(
+            eval_command_payloads("stuff echo hi", &["info".into()]),
+            vec![String::from("stuff echo hi"), String::from("info")]
+        );
+        assert!(eval_command_payloads("  ", &[]).is_empty());
+    }
 }

@@ -10,7 +10,7 @@ builtin-screen-session-not-found = Built-in screen session `{$name}` was not fou
 builtin-screen-named-session-required = Named screen session launch requires a session name.
 builtin-screen-server-timeout = Timed out waiting for the built-in screen session server.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, detach, resize, info, hardcopy, clear, reset.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, detach, resize, info, hardcopy, clear, reset, eval.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
@@ -27,3 +27,4 @@ builtin-tmux-target-required = specify a target session with -t <name>
 builtin-tmux-session-created = created tmux session {$name}
 builtin-tmux-session-exists = tmux session {$name} already exists
 builtin-tmux-session-name-required = specify a session name with -s <name>builtin-tmux-command-unsupported = Built-in tmux command {$command} is not supported yet. This tool will not call the system tmux binary.
+

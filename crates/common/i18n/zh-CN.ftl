@@ -10,7 +10,7 @@ builtin-screen-session-not-found = 未找到内置 screen 会话 `{$name}`。
 builtin-screen-named-session-required = 启动命名 screen 会话需要指定会话名。
 builtin-screen-server-timeout = 等待内置 screen 会话服务启动超时。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、detach、resize、info、hardcopy、clear、reset。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、detach、resize、info、hardcopy、clear、reset、eval。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
@@ -27,3 +27,4 @@ builtin-tmux-target-required = 请使用 -t <名称> 指定目标会话
 builtin-tmux-session-created = 已创建 tmux 会话 {$name}
 builtin-tmux-session-exists = tmux 会话 {$name} 已存在
 builtin-tmux-session-name-required = 请使用 -s <名称> 指定会话名称builtin-tmux-command-unsupported = 内置 tmux 暂不支持命令 {$command}。当前不会调用系统 tmux；请等待后续跨平台实现。
+
