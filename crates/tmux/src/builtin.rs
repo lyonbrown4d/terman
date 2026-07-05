@@ -3,8 +3,8 @@ use std::{error::Error, io};
 use crate::{
     command::TmuxCommand,
     sessions::{
-        builtin_tmux_session_exists, load_builtin_tmux_sessions, register_builtin_tmux_session,
-        remove_builtin_tmux_session,
+        RenameBuiltinTmuxSession, builtin_tmux_session_exists, load_builtin_tmux_sessions,
+        register_builtin_tmux_session, remove_builtin_tmux_session, rename_builtin_tmux_session,
     },
 };
 
@@ -24,6 +24,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::HasSession => {
             has_builtin_tmux_session(args)?;
+            Ok(true)
+        }
+        TmuxCommand::RenameSession => {
+            rename_builtin_tmux_session_command(args)?;
             Ok(true)
         }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
@@ -98,6 +102,28 @@ fn has_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
 }
 
+fn rename_builtin_tmux_session_command(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_arg(args)?;
+    let Some(new_name) = rename_session_name_arg(args) else {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_tmux_session_name_required_hint(),
+        )));
+    };
+
+    match rename_builtin_tmux_session(&target, &new_name)? {
+        RenameBuiltinTmuxSession::Renamed => Ok(()),
+        RenameBuiltinTmuxSession::SourceMissing => Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&target),
+        ))),
+        RenameBuiltinTmuxSession::DestinationExists => Err(Box::new(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            terman_common::builtin_tmux_session_exists_hint(&new_name),
+        ))),
+    }
+}
+
 fn required_target_session_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
     target_session_arg(args).ok_or_else(|| {
         Box::new(io::Error::new(
@@ -119,6 +145,33 @@ fn target_session_arg(args: &[String]) -> Option<String> {
     named_arg(args, "-t", "--target-session")
 }
 
+fn rename_session_name_arg(args: &[String]) -> Option<String> {
+    let mut seen_command = false;
+    let mut skip_next = false;
+
+    for arg in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if !seen_command {
+            if arg == "rename-session" {
+                seen_command = true;
+            }
+            continue;
+        }
+        if arg == "-t" || arg == "--target-session" {
+            skip_next = true;
+            continue;
+        }
+        if arg.starts_with("-t") || arg.starts_with("--target-session=") || arg.starts_with('-') {
+            continue;
+        }
+        return Some(arg.clone());
+    }
+    None
+}
+
 fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
@@ -137,7 +190,9 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{new_session_is_detached, session_name_arg, target_session_arg};
+    use super::{
+        new_session_is_detached, rename_session_name_arg, session_name_arg, target_session_arg,
+    };
 
     #[test]
     fn parses_session_name_arg() {
@@ -168,6 +223,27 @@ mod tests {
         assert_eq!(
             target_session_arg(&["kill-session".into(), "--target-session=dev".into()]),
             Some(String::from("dev"))
+        );
+    }
+
+    #[test]
+    fn parses_rename_session_name_arg() {
+        assert_eq!(
+            rename_session_name_arg(&[
+                "rename-session".into(),
+                "-t".into(),
+                "old".into(),
+                "new".into(),
+            ]),
+            Some(String::from("new"))
+        );
+        assert_eq!(
+            rename_session_name_arg(&[
+                "rename-session".into(),
+                "--target-session=old".into(),
+                "new".into(),
+            ]),
+            Some(String::from("new"))
         );
     }
 
