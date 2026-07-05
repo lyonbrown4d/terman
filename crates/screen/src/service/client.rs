@@ -63,7 +63,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
 
     let (command, inline_payload) = split_control_command(command_text);
     match command.to_ascii_lowercase().as_str() {
-        "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
+        "quit" | "kill" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "info" => request_session_info(args),
@@ -277,4 +277,5 @@ fn request_endpoint_response(
     serde_json::from_str(response.trim_end())
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
 }
+
 
