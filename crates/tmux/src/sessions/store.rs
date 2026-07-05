@@ -7,36 +7,11 @@ use std::{
 };
 
 use directories::ProjectDirs;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub(crate) struct BuiltinTmuxSession {
-    pub(crate) name: String,
-    #[serde(default = "default_window_count")]
-    pub(crate) windows: u32,
-    #[serde(default)]
-    pub(crate) attached_clients: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum RenameBuiltinTmuxSession {
-    Renamed,
-    SourceMissing,
-    DestinationExists,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum AddBuiltinTmuxWindow {
-    Added(u32),
-    SessionMissing,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum KillBuiltinTmuxWindow {
-    Killed(u32),
-    SessionKilled,
-    SessionMissing,
-}
+use super::model::{
+    AddBuiltinTmuxWindow, BuiltinTmuxSession, KillBuiltinTmuxWindow,
+    RenameBuiltinTmuxSession, parse_builtin_tmux_session_record,
+};
 
 pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
     write_builtin_tmux_session_record(&BuiltinTmuxSession {
@@ -149,10 +124,6 @@ pub(crate) fn remove_builtin_tmux_session(name: &str) -> io::Result<bool> {
     Ok(removed)
 }
 
-pub(crate) fn parse_builtin_tmux_session_record(record: &str) -> Option<BuiltinTmuxSession> {
-    serde_json::from_str(record).ok()
-}
-
 fn find_builtin_tmux_session(name: &str) -> io::Result<Option<(PathBuf, BuiltinTmuxSession)>> {
     let dir = builtin_tmux_sessions_dir();
     if !dir.exists() {
@@ -246,29 +217,9 @@ fn sanitize_session_file_name(name: &str) -> String {
     }
 }
 
-fn default_window_count() -> u32 {
-    1
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        BuiltinTmuxSession, parse_builtin_tmux_session_record, sanitize_session_file_name,
-    };
-
-    #[test]
-    fn parses_tmux_session_record_with_defaults() {
-        let session = parse_builtin_tmux_session_record(r#"{"name":"dev"}"#).unwrap();
-
-        assert_eq!(
-            session,
-            BuiltinTmuxSession {
-                name: String::from("dev"),
-                windows: 1,
-                attached_clients: 0,
-            }
-        );
-    }
+    use super::sanitize_session_file_name;
 
     #[test]
     fn sanitizes_session_file_name() {
