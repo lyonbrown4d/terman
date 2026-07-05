@@ -14,6 +14,7 @@ use crate::{
     pty::{TmuxPtyCommandSpec, build_tmux_pty_command},
     service::TmuxSessionService,
     session_core::{TmuxControlEvent, TmuxSessionBus},
+    sessions::remove_builtin_tmux_session,
 };
 
 pub(crate) struct TmuxServerConfig {
@@ -48,6 +49,7 @@ impl TmuxServerConfig {
 }
 
 pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Error>> {
+    let _record_guard = SessionRecordGuard::new(config.session_name.clone());
     let session_bus = TmuxSessionBus::new(config.windows);
     let (control_tx, control_rx) = mpsc::channel::<TmuxControlEvent>();
     let _session_service = TmuxSessionService::start(
@@ -169,4 +171,19 @@ fn current_tmux_cwd() -> String {
     env::current_dir()
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|_| String::from("<unknown>"))
+}
+struct SessionRecordGuard {
+    session_name: String,
+}
+
+impl SessionRecordGuard {
+    fn new(session_name: String) -> Self {
+        Self { session_name }
+    }
+}
+
+impl Drop for SessionRecordGuard {
+    fn drop(&mut self) {
+        let _ = remove_builtin_tmux_session(&self.session_name);
+    }
 }
