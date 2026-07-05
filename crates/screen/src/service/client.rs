@@ -1,6 +1,7 @@
-use std::io::{self, BufRead, BufReader, Write};
-
-use interprocess::local_socket::prelude::*;
+use std::{
+    fs,
+    io::{self, BufRead, BufReader, Write},
+};
 
 use super::attach::attach_interactive;
 use crate::{
@@ -65,6 +66,16 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
         "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "info" => request_session_info(args),
+        "hardcopy" => {
+            let path = control_command_payload(inline_payload, &args.execute_args);
+            if path.is_empty() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    terman_common::builtin_screen_control_hardcopy_path_required_hint(),
+                ));
+            }
+            request_session_hardcopy(args, &path)
+        }
         "resize" => {
             let payload = control_command_payload(inline_payload, &args.execute_args);
             let (cols, rows) = parse_resize_payload(&payload)?;
@@ -93,25 +104,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
 }
 
 fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
-    let session = find_builtin_screen_session_for_attach(args.session_name.as_deref())?;
-    let endpoint = session
-        .ipc_endpoint
-        .as_deref()
-        .map(ScreenIpcEndpoint::from_raw_name)
-        .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
-    let mut stream = endpoint.connect_options()?.connect_sync()?;
-
-    serde_json::to_writer(&mut stream, &ScreenIpcRequest::Info)
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
-    stream.write_all(b"\n")?;
-    stream.flush()?;
-
-    let mut response = String::new();
-    BufReader::new(stream).read_line(&mut response)?;
-    let response: ScreenIpcResponse = serde_json::from_str(response.trim_end())
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
-
-    match response {
+    match request_session_response(args, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
             replay_bytes,
             attach_clients,
@@ -128,6 +121,26 @@ fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "unexpected screen info response",
+        )),
+    }
+}
+
+fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
+    match request_session_response(args, ScreenIpcRequest::Hardcopy)? {
+        ScreenIpcResponse::Hardcopy { bytes } => {
+            fs::write(path, &bytes)?;
+            println!(
+                "{}",
+                terman_common::builtin_screen_control_hardcopy_complete_hint(path, bytes.len())
+            );
+            Ok(())
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected screen hardcopy response",
         )),
     }
 }
@@ -207,32 +220,7 @@ fn push_utf8(bytes: &mut Vec<u8>, ch: char) {
 }
 
 fn send_session_control_request(args: &ScreenArgs, request: ScreenIpcRequest) -> io::Result<()> {
-    let session = find_builtin_screen_session_for_attach(args.session_name.as_deref())?;
-    let endpoint = session
-        .ipc_endpoint
-        .as_deref()
-        .map(ScreenIpcEndpoint::from_raw_name)
-        .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
-
-    send_control_request(&endpoint, request)
-}
-
-pub(super) fn send_control_request(
-    endpoint: &ScreenIpcEndpoint,
-    request: ScreenIpcRequest,
-) -> io::Result<()> {
-    let mut stream = endpoint.connect_options()?.connect_sync()?;
-    serde_json::to_writer(&mut stream, &request)
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
-    stream.write_all(b"\n")?;
-    stream.flush()?;
-
-    let mut response = String::new();
-    BufReader::new(stream).read_line(&mut response)?;
-    let response: ScreenIpcResponse = serde_json::from_str(response.trim_end())
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
-
-    match response {
+    match request_session_response(args, request)? {
         ScreenIpcResponse::Accepted => Ok(()),
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
@@ -242,4 +230,49 @@ pub(super) fn send_control_request(
             "unexpected screen control response",
         )),
     }
+}
+
+fn request_session_response(
+    args: &ScreenArgs,
+    request: ScreenIpcRequest,
+) -> io::Result<ScreenIpcResponse> {
+    let session = find_builtin_screen_session_for_attach(args.session_name.as_deref())?;
+    let endpoint = session
+        .ipc_endpoint
+        .as_deref()
+        .map(ScreenIpcEndpoint::from_raw_name)
+        .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
+    request_endpoint_response(&endpoint, request)
+}
+
+pub(super) fn send_control_request(
+    endpoint: &ScreenIpcEndpoint,
+    request: ScreenIpcRequest,
+) -> io::Result<()> {
+    match request_endpoint_response(endpoint, request)? {
+        ScreenIpcResponse::Accepted => Ok(()),
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected screen control response",
+        )),
+    }
+}
+
+fn request_endpoint_response(
+    endpoint: &ScreenIpcEndpoint,
+    request: ScreenIpcRequest,
+) -> io::Result<ScreenIpcResponse> {
+    let mut stream = endpoint.connect_options()?.connect_sync()?;
+    serde_json::to_writer(&mut stream, &request)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    stream.write_all(b"\n")?;
+    stream.flush()?;
+
+    let mut response = String::new();
+    BufReader::new(stream).read_line(&mut response)?;
+    serde_json::from_str(response.trim_end())
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
 }

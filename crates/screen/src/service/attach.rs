@@ -109,6 +109,7 @@ fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
                 stdout.flush()?;
             }
             ScreenIpcResponse::Detached => return Ok(()),
+            ScreenIpcResponse::Hardcopy { .. } => {}
             ScreenIpcResponse::Info { .. } => {}
             ScreenIpcResponse::Output { bytes } => {
                 stdout.write_all(&bytes)?;

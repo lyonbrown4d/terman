@@ -9,9 +9,10 @@ builtin-screen-session-not-found = 未找到内置 screen 会话 `{$name}`。
 builtin-screen-named-session-required = 启动命名 screen 会话需要指定会话名。
 builtin-screen-server-timeout = 等待内置 screen 会话服务启动超时。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、stuff、detach、resize、info。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、stuff、detach、resize、info、hardcopy。
 builtin-screen-control-stuff-required = 请为 `screen -X stuff` 指定要输入的文本。
-builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-info = screen 信息：replay_bytes={$replay_bytes} attach_clients={$attach_clients}
-builtin-screen-session-name-empty = screen 会话名称不能为空
+builtin-screen-control-hardcopy-path-required = 请按 `screen -X hardcopy <路径>` 指定输出路径。
+builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
+builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。

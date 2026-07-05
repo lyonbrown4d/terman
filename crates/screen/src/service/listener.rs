@@ -69,6 +69,12 @@ fn handle_client(
             bus.publish_detach();
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::Hardcopy) => write_response(
+            stream,
+            &ScreenIpcResponse::Hardcopy {
+                bytes: bus.replay_snapshot(),
+            },
+        ),
         Ok(ScreenIpcRequest::Info) => {
             let status = bus.status_snapshot();
             write_response(

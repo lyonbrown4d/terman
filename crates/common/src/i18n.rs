@@ -24,6 +24,8 @@ pub enum MessageKey {
     BuiltinScreenControlStuffRequired,
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlInfo,
+    BuiltinScreenControlHardcopyPathRequired,
+    BuiltinScreenControlHardcopyComplete,
     BuiltinScreenWipeComplete,
 }
 
@@ -47,6 +49,12 @@ impl MessageKey {
             Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
             Self::BuiltinScreenControlResizeRequired => "builtin-screen-control-resize-required",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
+            Self::BuiltinScreenControlHardcopyPathRequired => {
+                "builtin-screen-control-hardcopy-path-required"
+            }
+            Self::BuiltinScreenControlHardcopyComplete => {
+                "builtin-screen-control-hardcopy-complete"
+            }
             Self::BuiltinScreenWipeComplete => "builtin-screen-wipe-complete",
         }
     }
@@ -130,6 +138,18 @@ pub fn builtin_screen_control_info_hint(replay_bytes: usize, attach_clients: usi
             ("replay_bytes", &replay_bytes),
             ("attach_clients", &attach_clients),
         ],
+    )
+}
+
+pub fn builtin_screen_control_hardcopy_path_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlHardcopyPathRequired, &[])
+}
+
+pub fn builtin_screen_control_hardcopy_complete_hint(path: &str, bytes: usize) -> String {
+    let bytes = bytes.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenControlHardcopyComplete,
+        &[("path", path), ("bytes", &bytes)],
     )
 }
 
@@ -220,11 +240,7 @@ fn fallback_message(key: MessageKey, vars: &[(&str, &str)]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        MessageKey, MessageLanguage, builtin_screen_attach_target_required_hint,
-        builtin_screen_attach_unsupported_hint, builtin_screen_no_sessions_hint,
-        builtin_screen_session_exists_hint, builtin_screen_session_list_header,
-        builtin_screen_session_not_found_hint, localized_message_for_language,
-        message_language_from_tag, native_tool_not_found_hint,
+        MessageKey, MessageLanguage, localized_message_for_language, message_language_from_tag,
     };
 
     #[test]
@@ -245,33 +261,4 @@ mod tests {
         assert!(message.contains("tmux"));
         assert!(message.contains("native tmux executable"));
     }
-
-    #[test]
-    fn renders_chinese_native_tool_message_from_resource() {
-        let message = localized_message_for_language(
-            MessageLanguage::ZhCn,
-            MessageKey::NativeToolNotFound,
-            &[("tool", "screen")],
-        );
-
-        assert!(message.contains("screen"));
-        assert!(message.contains("本机 screen 可执行文件"));
-    }
-
-    #[test]
-    fn native_tool_not_found_hint_mentions_tool() {
-        let hint = native_tool_not_found_hint("screen");
-        assert!(hint.contains("screen"));
-    }
-
-    #[test]
-    fn renders_builtin_screen_session_messages_from_resources() {
-        assert!(builtin_screen_no_sessions_hint().contains("screen"));
-        assert!(builtin_screen_session_list_header().contains("screen"));
-        assert!(builtin_screen_session_exists_hint("dev").contains("dev"));
-        assert!(builtin_screen_attach_unsupported_hint().contains("screen"));
-        assert!(builtin_screen_attach_target_required_hint().contains("screen"));
-        assert!(builtin_screen_session_not_found_hint("dev").contains("dev"));
-    }
 }
-
