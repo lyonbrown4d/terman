@@ -6,6 +6,7 @@ use crate::{
         target_session_name_arg, target_window_index_arg,
     },
     command::TmuxCommand,
+    launcher::spawn_detached_tmux_server,
     sessions::{
         AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
         RenameBuiltinTmuxWindow, add_builtin_tmux_window, builtin_tmux_session_exists,
@@ -110,7 +111,15 @@ fn create_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
         )));
     };
 
-    if register_builtin_tmux_session(&name)? {
+    if builtin_tmux_session_exists(&name)? {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            terman_common::builtin_tmux_session_exists_hint(&name),
+        )));
+    }
+
+    let server_pid = spawn_detached_tmux_server(&name)?;
+    if register_builtin_tmux_session(&name, Some(server_pid.to_string()), None)? {
         println!("{}", terman_common::builtin_tmux_session_created_hint(&name));
         Ok(())
     } else {
@@ -252,3 +261,4 @@ mod tests {
         assert!(!new_session_is_detached(&["new".into()], false));
     }
 }
+

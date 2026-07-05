@@ -5,6 +5,7 @@ mod builtin;
 mod cli;
 mod command;
 mod ipc;
+mod launcher;
 mod pty;
 mod service;
 mod server;
@@ -56,6 +57,7 @@ mod tests {
         assert_eq!(unsupported_command_name(&["--detached".into()]), "unknown");
     }
 }
+
 
 
 

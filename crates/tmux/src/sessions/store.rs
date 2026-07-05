@@ -12,7 +12,11 @@ use super::record::{
     session_record_paths, write_new_session_record,
 };
 
-pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
+pub(crate) fn register_builtin_tmux_session(
+    name: &str,
+    pid: Option<String>,
+    command: Option<String>,
+) -> io::Result<bool> {
     let ipc_endpoint = TmuxIpcEndpoint::for_session(name);
     let _ = ipc_endpoint.socket_name()?;
 
@@ -21,8 +25,8 @@ pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
         windows: 1,
         attached_clients: 0,
         cwd: current_tmux_cwd(),
-        command: None,
-        pid: None,
+        command,
+        pid,
         ipc_endpoint: Some(ipc_endpoint.raw_name().to_string()),
         window_names: vec![String::from("0")],
     })
@@ -148,5 +152,6 @@ fn ensure_window_names(session: &mut BuiltinTmuxSession) {
     }
     session.window_names.truncate(window_count);
 }
+
 
 
