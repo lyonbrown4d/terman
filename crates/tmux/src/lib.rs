@@ -6,6 +6,7 @@ mod attach_keys;
 mod builtin;
 mod capture;
 mod cli;
+mod clients;
 mod command;
 mod detach_client;
 mod ipc;

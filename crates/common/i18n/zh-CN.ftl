@@ -28,6 +28,7 @@ builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcop
 builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
 builtin-tmux-no-sessions = 当前没有 tmux 会话
 builtin-tmux-session-list-entry = {$name}：{$windows} 个窗口（已连接 {$attached_clients} 个客户端）
+builtin-tmux-client-list-entry = {$session}：已连接 {$attached_clients} 个客户端
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
 builtin-tmux-session-killed = 已结束 tmux 会话 {$name}
 builtin-tmux-session-not-found = 未找到 tmux 会话 {$name}

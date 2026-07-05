@@ -21,6 +21,17 @@ pub fn builtin_tmux_session_list_entry_hint(
     )
 }
 
+pub fn builtin_tmux_client_list_entry_hint(session: &str, attached_clients: u32) -> String {
+    let attached_clients = attached_clients.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxClientListEntry,
+        &[
+            ("session", session),
+            ("attached_clients", &attached_clients),
+        ],
+    )
+}
+
 pub fn builtin_tmux_window_list_entry_hint(session: &str, index: u32, name: &str) -> String {
     let index = index.to_string();
     localized_message(

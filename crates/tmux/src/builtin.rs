@@ -3,6 +3,7 @@ use std::{error::Error, io};
 use crate::{
     attach::attach_builtin_tmux_session,
     capture::capture_builtin_tmux_pane,
+    clients::list_builtin_tmux_clients,
     args::{
         rename_session_name_arg, rename_window_name_arg, target_session_arg,
         target_session_name_arg, target_window_index_arg,
@@ -35,6 +36,10 @@ pub(crate) fn try_run_builtin_tmux_command(
     match command {
         TmuxCommand::ListSessions => {
             list_builtin_tmux_sessions()?;
+            Ok(true)
+        }
+        TmuxCommand::ListClients => {
+            list_builtin_tmux_clients(args)?;
             Ok(true)
         }
         TmuxCommand::KillSession => {
