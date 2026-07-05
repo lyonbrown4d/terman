@@ -11,11 +11,10 @@ use crate::{
     new_session::create_builtin_tmux_session,
     sessions::{
         AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
-        RenameBuiltinTmuxWindow, add_builtin_tmux_window, builtin_tmux_session_exists,
-        kill_builtin_tmux_window, load_builtin_tmux_sessions, rename_builtin_tmux_session,
-        rename_builtin_tmux_window,
+        RenameBuiltinTmuxWindow, add_builtin_tmux_window, kill_builtin_tmux_window,
+        load_builtin_tmux_sessions, rename_builtin_tmux_session, rename_builtin_tmux_window,
     },
-    status::list_builtin_tmux_sessions,
+    status::{list_builtin_tmux_sessions, require_live_builtin_tmux_session},
 };
 
 pub(crate) fn try_run_builtin_tmux_command(
@@ -145,11 +144,7 @@ fn rename_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Err
 
 fn has_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_arg(args)?;
-    if builtin_tmux_session_exists(&target)? {
-        Ok(())
-    } else {
-        Err(session_not_found_error(&target))
-    }
+    require_live_builtin_tmux_session(&target)
 }
 
 fn rename_builtin_tmux_session_command(args: &[String]) -> Result<(), Box<dyn Error>> {

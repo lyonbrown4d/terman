@@ -38,6 +38,23 @@ pub(crate) fn list_builtin_tmux_sessions() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+pub(crate) fn require_live_builtin_tmux_session(target: &str) -> Result<(), Box<dyn Error>> {
+    let Some(session) = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target)
+    else {
+        return Err(session_not_found_error(target));
+    };
+
+    match query_session_info_with_retry(&session) {
+        Ok(_) => Ok(()),
+        Err(_) => {
+            let _ = remove_builtin_tmux_session(target)?;
+            Err(session_not_found_error(target))
+        }
+    }
+}
+
 fn query_session_info_with_retry(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSession> {
     let mut last_error = None;
     for _ in 0..5 {
@@ -84,6 +101,13 @@ fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
         .as_deref()
         .map(TmuxIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
+}
+
+fn session_not_found_error(target: &str) -> Box<dyn Error> {
+    Box::new(io::Error::new(
+        io::ErrorKind::NotFound,
+        terman_common::builtin_tmux_session_not_found_hint(target),
+    ))
 }
 
 struct LiveTmuxSession {
