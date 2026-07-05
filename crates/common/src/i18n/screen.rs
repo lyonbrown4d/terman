@@ -49,12 +49,23 @@ pub fn builtin_screen_session_name_empty_hint() -> String {
     localized_message(MessageKey::BuiltinScreenSessionNameEmpty, &[])
 }
 
+pub fn builtin_screen_unexpected_response_hint(response: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinScreenUnexpectedResponse,
+        &[("response", response)],
+    )
+}
+
 pub fn builtin_screen_attach_unsupported_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachUnsupported, &[])
 }
 
 pub fn builtin_screen_attach_help_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachHelp, &[])
+}
+
+pub fn builtin_screen_attach_hardcopy_path_unavailable_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenAttachHardcopyPathUnavailable, &[])
 }
 
 pub fn builtin_screen_attach_target_required_hint() -> String {

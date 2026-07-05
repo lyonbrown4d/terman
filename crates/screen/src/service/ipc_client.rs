@@ -11,9 +11,11 @@ pub(super) fn send_control_request(
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
+        response => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "unexpected screen control response",
+            terman_common::builtin_screen_control_unexpected_response_hint(&format!(
+                "{response:?}"
+            )),
         )),
     }
 }

@@ -35,10 +35,7 @@ pub(super) fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "unexpected screen attach hardcopy response",
-        )),
+        response => Err(unexpected_response_error(&response)),
     }
 }
 
@@ -69,10 +66,7 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "unexpected screen attach info response",
-        )),
+        response => Err(unexpected_response_error(&response)),
     }
 }
 
@@ -92,8 +86,15 @@ fn write_numbered_hardcopy(bytes: &[u8]) -> io::Result<String> {
 
     Err(io::Error::new(
         io::ErrorKind::AlreadyExists,
-        "no available screen attach hardcopy path",
+        terman_common::builtin_screen_attach_hardcopy_path_unavailable_hint(),
     ))
+}
+
+fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        terman_common::builtin_screen_unexpected_response_hint(&format!("{response:?}")),
+    )
 }
 
 fn attach_hardcopy_prefix() -> String {

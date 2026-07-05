@@ -25,8 +25,10 @@ pub enum MessageKey {
     BuiltinScreenSessionListEntry,
     BuiltinScreenSessionExists,
     BuiltinScreenSessionNameEmpty,
+    BuiltinScreenUnexpectedResponse,
     BuiltinScreenAttachUnsupported,
     BuiltinScreenAttachHelp,
+    BuiltinScreenAttachHardcopyPathUnavailable,
     BuiltinScreenAttachTargetRequired,
     BuiltinScreenSessionNotFound,
     BuiltinScreenNamedSessionRequired,
@@ -77,8 +79,12 @@ impl MessageKey {
             Self::BuiltinScreenSessionListEntry => "builtin-screen-session-list-entry",
             Self::BuiltinScreenSessionExists => "builtin-screen-session-exists",
             Self::BuiltinScreenSessionNameEmpty => "builtin-screen-session-name-empty",
+            Self::BuiltinScreenUnexpectedResponse => "builtin-screen-unexpected-response",
             Self::BuiltinScreenAttachUnsupported => "builtin-screen-attach-unsupported",
             Self::BuiltinScreenAttachHelp => "builtin-screen-attach-help",
+            Self::BuiltinScreenAttachHardcopyPathUnavailable => {
+                "builtin-screen-attach-hardcopy-path-unavailable"
+            }
             Self::BuiltinScreenAttachTargetRequired => "builtin-screen-attach-target-required",
             Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
             Self::BuiltinScreenNamedSessionRequired => "builtin-screen-named-session-required",

@@ -42,9 +42,9 @@ pub(crate) fn load_builtin_screen_runtime_status(
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        _ => Err(io::Error::new(
+        response => Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "unexpected screen list status response",
+            terman_common::builtin_screen_unexpected_response_hint(&format!("{response:?}")),
         )),
     }
 }
@@ -56,4 +56,3 @@ fn builtin_screen_session_endpoint(session: &BuiltinScreenSession) -> ScreenIpcE
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name))
 }
-
