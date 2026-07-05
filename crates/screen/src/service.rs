@@ -100,6 +100,39 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     attach_interactive(endpoint, stream)
 }
 
+
+pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()> {
+    let Some(command) = args
+        .execute
+        .as_deref()
+        .map(str::trim)
+        .filter(|command| !command.is_empty())
+    else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_command_required_hint(),
+        ));
+    };
+
+    match command.to_ascii_lowercase().as_str() {
+        "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_command_unsupported_hint(command),
+        )),
+    }
+}
+
+fn send_session_control_request(args: &ScreenArgs, request: ScreenIpcRequest) -> io::Result<()> {
+    let session = find_builtin_screen_session_for_attach(args.session_name.as_deref())?;
+    let endpoint = session
+        .ipc_endpoint
+        .as_deref()
+        .map(ScreenIpcEndpoint::from_raw_name)
+        .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
+
+    send_control_request(&endpoint, request)
+}
 fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) -> io::Result<()> {
     let _raw = AttachRawMode::enter()?;
     sync_attach_terminal_size(&endpoint)?;

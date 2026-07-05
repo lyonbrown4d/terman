@@ -61,26 +61,22 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         }
     });
 
-    let (exit_tx, exit_rx) = mpsc::channel::<i32>();
-    let exit_bus = session_bus.clone();
-    let child_wait_handle = thread::spawn(move || {
-        let status = child
-            .wait()
-            .map(|status| status.exit_code() as i32)
-            .unwrap_or(-1);
-        exit_bus.publish_exit(status);
-        let _ = exit_tx.send(status);
-    });
-
     let mut exit_code = None;
+    let mut terminate_requested = false;
     loop {
-        match exit_rx.try_recv() {
-            Ok(code) => {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let code = status.exit_code() as i32;
+                session_bus.publish_exit(code);
                 exit_code = Some(code);
                 break;
             }
-            Err(mpsc::TryRecvError::Empty) => {}
-            Err(mpsc::TryRecvError::Disconnected) => break,
+            Ok(None) => {}
+            Err(_) => {
+                session_bus.publish_exit(-1);
+                exit_code = Some(-1);
+                break;
+            }
         }
 
         while let Ok(control) = control_rx.try_recv() {

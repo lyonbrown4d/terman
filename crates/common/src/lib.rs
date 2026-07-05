@@ -28,6 +28,8 @@ pub enum MessageKey {
     BuiltinScreenSessionNotFound,
     BuiltinScreenNamedSessionRequired,
     BuiltinScreenServerTimeout,
+    BuiltinScreenControlCommandRequired,
+    BuiltinScreenControlCommandUnsupported,
 }
 
 impl MessageKey {
@@ -42,6 +44,8 @@ impl MessageKey {
             Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
             Self::BuiltinScreenNamedSessionRequired => "builtin-screen-named-session-required",
             Self::BuiltinScreenServerTimeout => "builtin-screen-server-timeout",
+            Self::BuiltinScreenControlCommandRequired => "builtin-screen-control-command-required",
+            Self::BuiltinScreenControlCommandUnsupported => "builtin-screen-control-command-unsupported",
         }
     }
 }
@@ -90,6 +94,17 @@ pub fn builtin_screen_named_session_required_hint() -> String {
 
 pub fn builtin_screen_server_timeout_hint() -> String {
     localized_message(MessageKey::BuiltinScreenServerTimeout, &[])
+}
+
+pub fn builtin_screen_control_command_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlCommandRequired, &[])
+}
+
+pub fn builtin_screen_control_command_unsupported_hint(command: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinScreenControlCommandUnsupported,
+        &[("command", command)],
+    )
 }
 
 fn localized_message_for_language(
