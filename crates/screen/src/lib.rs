@@ -28,6 +28,9 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     if let Some(session_name) = &args.session_name {
         validate_screen_session_name(session_name)?;
     }
+    if let Some(session_name) = &args.resume_or_create {
+        validate_screen_session_name(session_name)?;
+    }
     if let Some(Some(session_name)) = &args.resume {
         validate_screen_session_name(session_name)?;
     }
@@ -37,6 +40,10 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 
     if args.internal_server {
         return run_screen_server(args);
+    }
+
+    if args.resume_or_create.is_some() {
+        return run_resume_or_create_screen_session(args);
     }
 
     if args.execute.is_some() {

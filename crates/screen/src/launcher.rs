@@ -28,7 +28,9 @@ pub(crate) fn run_detached_named_screen_session(args: ScreenArgs) -> Result<(), 
     wait_until_ready(&session_name)
 }
 
-pub(crate) fn run_resume_or_create_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+pub(crate) fn run_resume_or_create_screen_session(
+    mut args: ScreenArgs,
+) -> Result<(), Box<dyn Error>> {
     let session_name = args.resume_or_create.clone().ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -42,10 +44,11 @@ pub(crate) fn run_resume_or_create_screen_session(args: ScreenArgs) -> Result<()
     };
     match request_screen_attach(&attach_args) {
         Ok(()) => Ok(()),
-        Err(err) if err.kind() == io::ErrorKind::NotFound => run_named_screen_session(ScreenArgs {
-            session_name: Some(session_name),
-            ..ScreenArgs::default()
-        }),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => {
+            args.resume_or_create = None;
+            args.session_name = Some(session_name);
+            run_named_screen_session(args)
+        }
         Err(err) => Err(Box::new(err)),
     }
 }
