@@ -7,6 +7,17 @@ pub(crate) struct BuiltinTmuxSession {
     pub(crate) windows: u32,
     #[serde(default)]
     pub(crate) attached_clients: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) window_names: Vec<String>,
+}
+
+impl BuiltinTmuxSession {
+    pub(crate) fn window_name(&self, index: u32) -> String {
+        self.window_names
+            .get(index as usize)
+            .cloned()
+            .unwrap_or_else(|| index.to_string())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -27,6 +38,13 @@ pub(crate) enum KillBuiltinTmuxWindow {
     Killed(u32),
     SessionKilled,
     SessionMissing,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RenameBuiltinTmuxWindow {
+    Renamed,
+    SessionMissing,
+    WindowMissing,
 }
 
 pub(crate) fn parse_builtin_tmux_session_record(record: &str) -> Option<BuiltinTmuxSession> {
@@ -51,7 +69,20 @@ mod tests {
                 name: String::from("dev"),
                 windows: 1,
                 attached_clients: 0,
+                window_names: Vec::new(),
             }
         );
+    }
+
+    #[test]
+    fn returns_default_window_name() {
+        let session = BuiltinTmuxSession {
+            name: String::from("dev"),
+            windows: 1,
+            attached_clients: 0,
+            window_names: Vec::new(),
+        };
+
+        assert_eq!(session.window_name(0), "0");
     }
 }

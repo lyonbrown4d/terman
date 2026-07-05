@@ -1,13 +1,16 @@
 use std::{error::Error, io};
 
 use crate::{
-    args::{rename_session_name_arg, session_name_arg, target_session_arg},
+    args::{
+        rename_session_name_arg, rename_window_name_arg, session_name_arg, target_session_arg,
+        target_session_name_arg, target_window_index_arg,
+    },
     command::TmuxCommand,
     sessions::{
         AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
-        add_builtin_tmux_window, builtin_tmux_session_exists, kill_builtin_tmux_window,
-        load_builtin_tmux_sessions, register_builtin_tmux_session, remove_builtin_tmux_session,
-        rename_builtin_tmux_session,
+        RenameBuiltinTmuxWindow, add_builtin_tmux_window, builtin_tmux_session_exists,
+        kill_builtin_tmux_window, load_builtin_tmux_sessions, register_builtin_tmux_session,
+        remove_builtin_tmux_session, rename_builtin_tmux_session, rename_builtin_tmux_window,
     },
 };
 
@@ -45,6 +48,10 @@ pub(crate) fn try_run_builtin_tmux_command(
             kill_builtin_tmux_window_command(args)?;
             Ok(true)
         }
+        TmuxCommand::RenameWindow => {
+            rename_builtin_tmux_window_command(args)?;
+            Ok(true)
+        }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
             create_builtin_tmux_session(args)?;
             Ok(true)
@@ -74,21 +81,22 @@ fn list_builtin_tmux_sessions() -> Result<(), Box<dyn Error>> {
 }
 
 fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_arg(args)?;
+    let target = required_target_session_name_arg(args)?;
     let Some(session) = load_builtin_tmux_sessions()?
         .into_iter()
         .find(|session| session.name == target)
     else {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_session_not_found_hint(&target),
-        )));
+        return Err(session_not_found_error(&target));
     };
 
     for index in 0..session.windows {
         println!(
             "{}",
-            terman_common::builtin_tmux_window_list_entry_hint(&target, index)
+            terman_common::builtin_tmux_window_list_entry_hint(
+                &target,
+                index,
+                &session.window_name(index),
+            )
         );
     }
     Ok(())
@@ -114,7 +122,7 @@ fn create_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
 }
 
 fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_arg(args)?;
+    let target = required_target_session_name_arg(args)?;
     match add_builtin_tmux_window(&target)? {
         AddBuiltinTmuxWindow::Added(windows) => {
             println!(
@@ -123,15 +131,12 @@ fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
             );
             Ok(())
         }
-        AddBuiltinTmuxWindow::SessionMissing => Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_session_not_found_hint(&target),
-        ))),
+        AddBuiltinTmuxWindow::SessionMissing => Err(session_not_found_error(&target)),
     }
 }
 
 fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_arg(args)?;
+    let target = required_target_session_name_arg(args)?;
     match kill_builtin_tmux_window(&target)? {
         KillBuiltinTmuxWindow::Killed(windows) => {
             println!(
@@ -144,10 +149,24 @@ fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error
             println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
             Ok(())
         }
-        KillBuiltinTmuxWindow::SessionMissing => Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_session_not_found_hint(&target),
-        ))),
+        KillBuiltinTmuxWindow::SessionMissing => Err(session_not_found_error(&target)),
+    }
+}
+
+fn rename_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let window_index = target_window_index_arg(args).unwrap_or(0);
+    let Some(new_name) = rename_window_name_arg(args) else {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_tmux_window_name_required_hint(),
+        )));
+    };
+
+    match rename_builtin_tmux_window(&target, window_index, &new_name)? {
+        RenameBuiltinTmuxWindow::Renamed => Ok(()),
+        RenameBuiltinTmuxWindow::SessionMissing => Err(session_not_found_error(&target)),
+        RenameBuiltinTmuxWindow::WindowMissing => Err(window_not_found_error(&target, window_index)),
     }
 }
 
@@ -157,10 +176,7 @@ fn kill_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
         println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
         Ok(())
     } else {
-        Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_session_not_found_hint(&target),
-        )))
+        Err(session_not_found_error(&target))
     }
 }
 
@@ -169,10 +185,7 @@ fn has_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     if builtin_tmux_session_exists(&target)? {
         Ok(())
     } else {
-        Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_session_not_found_hint(&target),
-        )))
+        Err(session_not_found_error(&target))
     }
 }
 
@@ -187,10 +200,7 @@ fn rename_builtin_tmux_session_command(args: &[String]) -> Result<(), Box<dyn Er
 
     match rename_builtin_tmux_session(&target, &new_name)? {
         RenameBuiltinTmuxSession::Renamed => Ok(()),
-        RenameBuiltinTmuxSession::SourceMissing => Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_session_not_found_hint(&target),
-        ))),
+        RenameBuiltinTmuxSession::SourceMissing => Err(session_not_found_error(&target)),
         RenameBuiltinTmuxSession::DestinationExists => Err(Box::new(io::Error::new(
             io::ErrorKind::AlreadyExists,
             terman_common::builtin_tmux_session_exists_hint(&new_name),
@@ -199,12 +209,32 @@ fn rename_builtin_tmux_session_command(args: &[String]) -> Result<(), Box<dyn Er
 }
 
 fn required_target_session_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
-    target_session_arg(args).ok_or_else(|| {
-        Box::new(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_tmux_target_required_hint(),
-        )) as Box<dyn Error>
-    })
+    target_session_arg(args).ok_or_else(target_required_error)
+}
+
+fn required_target_session_name_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
+    target_session_name_arg(args).ok_or_else(target_required_error)
+}
+
+fn target_required_error() -> Box<dyn Error> {
+    Box::new(io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_tmux_target_required_hint(),
+    ))
+}
+
+fn session_not_found_error(target: &str) -> Box<dyn Error> {
+    Box::new(io::Error::new(
+        io::ErrorKind::NotFound,
+        terman_common::builtin_tmux_session_not_found_hint(target),
+    ))
+}
+
+fn window_not_found_error(target: &str, index: usize) -> Box<dyn Error> {
+    Box::new(io::Error::new(
+        io::ErrorKind::NotFound,
+        terman_common::builtin_tmux_window_not_found_hint(target, index),
+    ))
 }
 
 fn new_session_is_detached(args: &[String], detached: bool) -> bool {

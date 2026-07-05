@@ -21,11 +21,11 @@ pub fn builtin_tmux_session_list_entry_hint(
     )
 }
 
-pub fn builtin_tmux_window_list_entry_hint(session: &str, index: u32) -> String {
+pub fn builtin_tmux_window_list_entry_hint(session: &str, index: u32, name: &str) -> String {
     let index = index.to_string();
     localized_message(
         MessageKey::BuiltinTmuxWindowListEntry,
-        &[("session", session), ("index", &index)],
+        &[("session", session), ("index", &index), ("name", name)],
     )
 }
 
@@ -46,6 +46,18 @@ pub fn builtin_tmux_window_killed_hint(session: &str, windows: u32) -> String {
     localized_message(
         MessageKey::BuiltinTmuxWindowKilled,
         &[("session", session), ("windows", &windows)],
+    )
+}
+
+pub fn builtin_tmux_window_name_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxWindowNameRequired, &[])
+}
+
+pub fn builtin_tmux_window_not_found_hint(session: &str, index: usize) -> String {
+    let index = index.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxWindowNotFound,
+        &[("session", session), ("index", &index)],
     )
 }
 

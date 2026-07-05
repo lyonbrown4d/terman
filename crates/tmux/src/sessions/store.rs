@@ -10,7 +10,7 @@ use directories::ProjectDirs;
 
 use super::model::{
     AddBuiltinTmuxWindow, BuiltinTmuxSession, KillBuiltinTmuxWindow,
-    RenameBuiltinTmuxSession, parse_builtin_tmux_session_record,
+    RenameBuiltinTmuxSession, RenameBuiltinTmuxWindow, parse_builtin_tmux_session_record,
 };
 
 pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
@@ -18,6 +18,7 @@ pub(crate) fn register_builtin_tmux_session(name: &str) -> io::Result<bool> {
         name: name.to_string(),
         windows: 1,
         attached_clients: 0,
+        window_names: vec![String::from("0")],
     })
 }
 
@@ -55,7 +56,10 @@ pub(crate) fn add_builtin_tmux_window(name: &str) -> io::Result<AddBuiltinTmuxWi
     let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
         return Ok(AddBuiltinTmuxWindow::SessionMissing);
     };
+    ensure_window_names(&mut session);
+    let next_index = session.windows;
     session.windows = session.windows.saturating_add(1);
+    session.window_names.push(next_index.to_string());
     replace_builtin_tmux_session_record(&path, &session)?;
     Ok(AddBuiltinTmuxWindow::Added(session.windows))
 }
@@ -64,14 +68,34 @@ pub(crate) fn kill_builtin_tmux_window(name: &str) -> io::Result<KillBuiltinTmux
     let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
         return Ok(KillBuiltinTmuxWindow::SessionMissing);
     };
+    ensure_window_names(&mut session);
     if session.windows <= 1 {
         remove_builtin_tmux_session_record(&path)?;
         return Ok(KillBuiltinTmuxWindow::SessionKilled);
     }
 
     session.windows -= 1;
+    let _ = session.window_names.pop();
     replace_builtin_tmux_session_record(&path, &session)?;
     Ok(KillBuiltinTmuxWindow::Killed(session.windows))
+}
+
+pub(crate) fn rename_builtin_tmux_window(
+    name: &str,
+    index: usize,
+    new_name: &str,
+) -> io::Result<RenameBuiltinTmuxWindow> {
+    let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
+        return Ok(RenameBuiltinTmuxWindow::SessionMissing);
+    };
+    ensure_window_names(&mut session);
+    let Some(window_name) = session.window_names.get_mut(index) else {
+        return Ok(RenameBuiltinTmuxWindow::WindowMissing);
+    };
+
+    *window_name = new_name.to_string();
+    replace_builtin_tmux_session_record(&path, &session)?;
+    Ok(RenameBuiltinTmuxWindow::Renamed)
 }
 
 pub(crate) fn rename_builtin_tmux_session(
@@ -147,6 +171,17 @@ fn find_builtin_tmux_session(name: &str) -> io::Result<Option<(PathBuf, BuiltinT
         }
     }
     Ok(None)
+}
+
+fn ensure_window_names(session: &mut BuiltinTmuxSession) {
+    if session.windows == 0 {
+        session.windows = 1;
+    }
+    let window_count = session.windows as usize;
+    while session.window_names.len() < window_count {
+        session.window_names.push(session.window_names.len().to_string());
+    }
+    session.window_names.truncate(window_count);
 }
 
 fn write_builtin_tmux_session_record(session: &BuiltinTmuxSession) -> io::Result<bool> {

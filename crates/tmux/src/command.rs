@@ -9,6 +9,7 @@ pub(crate) enum TmuxCommand {
     NewWindow,
     ListWindows,
     KillWindow,
+    RenameWindow,
     Other,
 }
 
@@ -24,6 +25,7 @@ impl TmuxCommand {
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
             Some("kill-window" | "killw") => Self::KillWindow,
+            Some("rename-window" | "renamew") => Self::RenameWindow,
             _ => Self::Other,
         }
     }
@@ -44,47 +46,21 @@ mod tests {
     #[test]
     fn parses_tmux_command_aliases() {
         assert_eq!(TmuxCommand::parse(&["new".into()]), TmuxCommand::NewSession);
-        assert_eq!(
-            TmuxCommand::parse(&["new-session".into()]),
-            TmuxCommand::NewSession
-        );
-        assert_eq!(
-            TmuxCommand::parse(&["attach-session".into()]),
-            TmuxCommand::AttachSession
-        );
+        assert_eq!(TmuxCommand::parse(&["new-session".into()]), TmuxCommand::NewSession);
+        assert_eq!(TmuxCommand::parse(&["attach-session".into()]), TmuxCommand::AttachSession);
         assert_eq!(TmuxCommand::parse(&["ls".into()]), TmuxCommand::ListSessions);
-        assert_eq!(
-            TmuxCommand::parse(&["kill-session".into()]),
-            TmuxCommand::KillSession
-        );
-        assert_eq!(
-            TmuxCommand::parse(&["has-session".into()]),
-            TmuxCommand::HasSession
-        );
-        assert_eq!(
-            TmuxCommand::parse(&["rename-session".into()]),
-            TmuxCommand::RenameSession
-        );
-        assert_eq!(
-            TmuxCommand::parse(&["neww".into()]),
-            TmuxCommand::NewWindow
-        );
-        assert_eq!(
-            TmuxCommand::parse(&["lsw".into()]),
-            TmuxCommand::ListWindows
-        );
-        assert_eq!(
-            TmuxCommand::parse(&["killw".into()]),
-            TmuxCommand::KillWindow
-        );
+        assert_eq!(TmuxCommand::parse(&["kill-session".into()]), TmuxCommand::KillSession);
+        assert_eq!(TmuxCommand::parse(&["has-session".into()]), TmuxCommand::HasSession);
+        assert_eq!(TmuxCommand::parse(&["rename-session".into()]), TmuxCommand::RenameSession);
+        assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
+        assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
+        assert_eq!(TmuxCommand::parse(&["killw".into()]), TmuxCommand::KillWindow);
+        assert_eq!(TmuxCommand::parse(&["renamew".into()]), TmuxCommand::RenameWindow);
     }
 
     #[test]
     fn skips_detached_global_flag() {
-        assert_eq!(
-            TmuxCommand::parse(&["-d".into(), "new".into()]),
-            TmuxCommand::NewSession
-        );
+        assert_eq!(TmuxCommand::parse(&["-d".into(), "new".into()]), TmuxCommand::NewSession);
         assert_eq!(TmuxCommand::parse(&["--detached".into()]), TmuxCommand::Other);
     }
 }
