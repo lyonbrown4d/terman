@@ -230,6 +230,11 @@ fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) ->
                         running.store(false, Ordering::Release);
                         return Ok(());
                     }
+                    Some(ScreenInputAction::Kill) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
+                        running.store(false, Ordering::Release);
+                        return Ok(());
+                    }
                     None => {}
                 },
                 Ok(Event::Resize(cols, rows)) => {
