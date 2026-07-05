@@ -13,6 +13,14 @@ pub struct TmuxArgs {
     #[arg(long)]
     pub detached: bool,
 
+    /// Internal headless session server mode.
+    #[arg(long = "__tmux-server", hide = true)]
+    pub internal_server: bool,
+
+    /// Internal server session name.
+    #[arg(long = "__session-name", hide = true, requires = "internal_server")]
+    pub internal_session_name: Option<String>,
+
     /// Arguments parsed by the built-in tmux-compatible command dispatcher.
     #[arg(trailing_var_arg = true)]
     pub args: Vec<String>,
@@ -28,3 +36,4 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     crate::run(cli.args)
 }
+

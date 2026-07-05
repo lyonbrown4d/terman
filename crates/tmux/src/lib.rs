@@ -7,6 +7,7 @@ mod command;
 mod ipc;
 mod pty;
 mod service;
+mod server;
 mod session_core;
 mod sessions;
 mod shell;
@@ -14,8 +15,13 @@ mod shell;
 pub use cli::{TmuxArgs, run_with_binary_parse};
 use builtin::try_run_builtin_tmux_command;
 use command::TmuxCommand;
+use server::{TmuxServerConfig, run_tmux_server};
 
 pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
+    if args.internal_server {
+        return run_tmux_server(TmuxServerConfig::from_args(args)?);
+    }
+
     let passed_args = args.args;
     let tmux_command = TmuxCommand::parse(&passed_args);
     if try_run_builtin_tmux_command(&tmux_command, &passed_args, args.detached)? {
@@ -50,6 +56,7 @@ mod tests {
         assert_eq!(unsupported_command_name(&["--detached".into()]), "unknown");
     }
 }
+
 
 
 
