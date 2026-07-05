@@ -30,10 +30,16 @@ pub(crate) fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Err
         }
     };
 
+    apply_screen_environment(&mut builder, args);
+    Ok(builder)
+}
+
+fn apply_screen_environment(builder: &mut CommandBuilder, args: &ScreenArgs) {
+    builder.env("TERM", "screen-256color");
+    builder.env("WINDOW", "0");
+
     if let Some(session_name) = &args.session_name {
         builder.env("STY", session_name.as_str());
         builder.env("TERMAN_SCREEN_SESSION", session_name.as_str());
     }
-
-    Ok(builder)
 }
