@@ -7,6 +7,7 @@ mod service;
 mod session_core;
 mod sessions;
 mod shell;
+mod terminal_input;
 
 pub use cli::{ScreenArgs, run_with_binary_parse};
 use builtin::run_builtin_screen;
