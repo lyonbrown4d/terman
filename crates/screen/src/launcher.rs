@@ -16,6 +16,12 @@ use crate::{ScreenArgs, service::request_screen_attach};
 const SERVER_ATTACH_ATTEMPTS: usize = 80;
 const SERVER_ATTACH_RETRY_DELAY: Duration = Duration::from_millis(25);
 
+pub(crate) fn run_detached_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    require_session_name(&args)?;
+    spawn_screen_server(&args)?;
+    Ok(())
+}
+
 pub(crate) fn run_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let session_name = args.session_name.clone().ok_or_else(|| {
         io::Error::new(
@@ -31,6 +37,15 @@ pub(crate) fn run_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn E
         ..ScreenArgs::default()
     };
     attach_when_ready(&attach_args)
+}
+
+fn require_session_name(args: &ScreenArgs) -> io::Result<String> {
+    args.session_name.clone().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            builtin_screen_named_session_required_hint(),
+        )
+    })
 }
 
 fn spawn_screen_server(args: &ScreenArgs) -> io::Result<()> {
