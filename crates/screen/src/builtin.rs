@@ -19,7 +19,7 @@ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use crate::{
     ScreenArgs,
     service::ScreenSessionService,
-    session_core::ScreenSessionBus,
+    session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
     shell::{default_shell, shell_command_args},
 };
@@ -42,9 +42,11 @@ impl Drop for RawMode {
 pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _session_record = register_builtin_screen_session(&args)?;
     let session_bus = ScreenSessionBus::new();
+    let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
     let _session_service = ScreenSessionService::start(
         args.session_name.as_deref(),
         session_bus.clone(),
+        control_tx,
     )?;
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
@@ -110,6 +112,29 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             }
             Err(mpsc::TryRecvError::Empty) => {}
             Err(mpsc::TryRecvError::Disconnected) => break,
+        }
+
+        while let Ok(control) = control_rx.try_recv() {
+            match control {
+                ScreenControlEvent::Input(bytes) => {
+                    if writer.write_all(&bytes).is_err() {
+                        break;
+                    }
+                    if writer.flush().is_err() {
+                        break;
+                    }
+                }
+                ScreenControlEvent::Resize { cols, rows } => {
+                    let size = PtySize {
+                        cols,
+                        rows,
+                        pixel_width: 0,
+                        pixel_height: 0,
+                    };
+                    let _ = master.resize(size);
+                    session_bus.publish_resize(cols, rows);
+                }
+            }
         }
 
         match event::poll(Duration::from_millis(16)) {

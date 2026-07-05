@@ -9,6 +9,12 @@ pub(crate) enum ScreenSessionEvent {
     Exit(i32),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ScreenControlEvent {
+    Input(Vec<u8>),
+    Resize { cols: u16, rows: u16 },
+}
+
 #[derive(Clone, Default)]
 pub(crate) struct ScreenSessionBus {
     inner: Arc<Mutex<ScreenSessionState>>,
@@ -84,7 +90,7 @@ impl ScreenSessionBus {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScreenSessionBus, ScreenSessionEvent};
+    use super::{ScreenControlEvent, ScreenSessionBus, ScreenSessionEvent};
 
     #[test]
     fn replays_recent_output_to_attach_clients() {
@@ -112,5 +118,13 @@ mod tests {
         bus.publish_output(b"x");
 
         assert_eq!(rx.try_recv(), Ok(ScreenSessionEvent::Output(b"x".to_vec())));
+    }
+
+    #[test]
+    fn models_attach_control_events() {
+        assert_eq!(
+            ScreenControlEvent::Input(b"x".to_vec()),
+            ScreenControlEvent::Input(b"x".to_vec())
+        );
     }
 }
