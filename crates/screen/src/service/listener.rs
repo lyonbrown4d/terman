@@ -69,6 +69,10 @@ fn handle_client(
             bus.publish_detach();
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::Clear) => {
+            bus.clear_replay();
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Hardcopy) => write_response(
             stream,
             &ScreenIpcResponse::Hardcopy {
@@ -143,3 +147,4 @@ fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) 
     stream.write_all(b"\n")?;
     stream.flush()
 }
+

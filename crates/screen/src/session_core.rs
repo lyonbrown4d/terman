@@ -112,6 +112,12 @@ impl ScreenSessionBus {
             })
     }
 
+    pub(crate) fn clear_replay(&self) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.replay.clear();
+        }
+    }
+
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
         self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |state| {
             state.replay.extend_from_slice(bytes);
@@ -189,3 +195,4 @@ mod tests {
         );
     }
 }
+

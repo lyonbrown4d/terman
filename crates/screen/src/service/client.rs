@@ -65,6 +65,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
     match command.to_ascii_lowercase().as_str() {
         "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
+        "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "info" => request_session_info(args),
         "hardcopy" => {
             let path = control_command_payload(inline_payload, &args.execute_args);
@@ -276,3 +277,4 @@ fn request_endpoint_response(
     serde_json::from_str(response.trim_end())
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
 }
+

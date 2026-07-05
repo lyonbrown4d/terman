@@ -70,6 +70,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     Detach,
     DetachAll,
+    Clear,
     Hardcopy,
     Info,
     Ping,
@@ -173,3 +174,4 @@ mod tests {
         );
     }
 }
+
