@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "跨平台 screen 终端会话工具（自实现内置后端）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -25,15 +25,22 @@ pub struct ScreenArgs {
     pub session_name: Option<String>,
 
     /// List known screen sessions.
-    #[arg(long, alias = "ls", conflicts_with = "command")]
+    #[arg(long, alias = "ls", conflicts_with_all = ["command", "wipe"])]
     pub list: bool,
+
+    /// Remove stale screen session records.
+    #[arg(
+        long,
+        conflicts_with_all = ["command", "list", "resume", "multi_attach", "execute", "internal_server"]
+    )]
+    pub wipe: bool,
 
     /// Execute a control command against an existing screen session.
     #[arg(
         short = 'X',
         long = "execute",
         value_name = "COMMAND",
-        conflicts_with_all = ["command", "list", "resume", "multi_attach", "internal_server"]
+        conflicts_with_all = ["command", "list", "wipe", "resume", "multi_attach", "internal_server"]
     )]
     pub execute: Option<String>,
 
@@ -47,7 +54,7 @@ pub struct ScreenArgs {
         long = "resume",
         value_name = "NAME",
         num_args = 0..=1,
-        conflicts_with_all = ["command", "list", "session_name", "multi_attach", "execute"]
+        conflicts_with_all = ["command", "list", "wipe", "session_name", "multi_attach", "execute"]
     )]
     pub resume: Option<Option<String>>,
 
@@ -57,7 +64,7 @@ pub struct ScreenArgs {
         long = "multi-attach",
         value_name = "NAME",
         num_args = 0..=1,
-        conflicts_with_all = ["command", "list", "session_name", "resume", "execute"]
+        conflicts_with_all = ["command", "list", "wipe", "session_name", "resume", "execute"]
     )]
     pub multi_attach: Option<Option<String>>,
 
@@ -78,6 +85,7 @@ impl Default for ScreenArgs {
             rows: None,
             session_name: None,
             list: false,
+            wipe: false,
             execute: None,
             execute_args: Vec::new(),
             resume: None,
@@ -95,6 +103,16 @@ struct Cli {
 }
 
 pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
+    let cli = Cli::parse_from(normalize_screen_args(std::env::args_os()));
     crate::run(cli.args)
+}
+
+fn normalize_screen_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    args.into_iter()
+        .map(|arg| match arg.to_str() {
+            Some("-ls") | Some("-list") => OsString::from("--list"),
+            Some("-wipe") => OsString::from("--wipe"),
+            _ => arg,
+        })
+        .collect()
 }

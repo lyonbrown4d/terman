@@ -17,7 +17,9 @@ use builtin::run_builtin_screen;
 use launcher::run_named_screen_session;
 use service::{request_screen_attach, request_screen_control_command};
 use server::run_screen_server;
-use sessions::{list_builtin_screen_sessions, validate_screen_session_name, wipe_builtin_screen_sessions};
+use sessions::{
+    list_builtin_screen_sessions, validate_screen_session_name, wipe_builtin_screen_sessions,
+};
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     if let Some(session_name) = &args.session_name {
@@ -32,6 +34,16 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 
     if args.internal_server {
         return run_screen_server(args);
+    }
+
+    if args.execute.is_some() {
+        request_screen_control_command(&args)?;
+        return Ok(());
+    }
+
+    if args.wipe {
+        wipe_builtin_screen_sessions()?;
+        return Ok(());
     }
 
     if is_builtin_screen_attach_requested(&args) {
