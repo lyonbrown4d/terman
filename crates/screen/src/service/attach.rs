@@ -14,7 +14,7 @@ use crossterm::{
 };
 use interprocess::local_socket::prelude::*;
 
-use super::ipc_client::send_control_request;
+use super::ipc_client::{request_endpoint_response, send_control_request};
 use crate::{
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_input::{ScreenInputAction, ScreenInputDecoder},
@@ -64,6 +64,7 @@ pub(super) fn attach_interactive(
                         return Ok(());
                     }
                     Some(ScreenInputAction::Help) => print_attach_help()?,
+                Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,
                     Some(ScreenInputAction::Kill) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
                         running.store(false, Ordering::Release);
@@ -96,6 +97,37 @@ fn sync_attach_terminal_size(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
 }
 
+fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
+        ScreenIpcResponse::Info {
+            replay_bytes,
+            attach_clients,
+            cols,
+            rows,
+        } => {
+            let mut stdout = io::stdout();
+            stdout.write_all(b"\r\n")?;
+            stdout.write_all(
+                terman_common::builtin_screen_control_info_hint(
+                    replay_bytes,
+                    attach_clients,
+                    cols,
+                    rows,
+                )
+                .as_bytes(),
+            )?;
+            stdout.write_all(b"\r\n")?;
+            stdout.flush()
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected screen attach info response",
+        )),
+    }
+}
 fn print_attach_help() -> io::Result<()> {
     let mut stdout = io::stdout();
     stdout.write_all(b"\r\n")?;

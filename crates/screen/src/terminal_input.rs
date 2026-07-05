@@ -7,6 +7,7 @@ pub(crate) enum ScreenInputAction {
     Bytes(Vec<u8>),
     Detach,
     Help,
+    Info,
     Kill,
 }
 
@@ -45,6 +46,9 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('k') | KeyCode::Char('K') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Kill)
+            }
+            KeyCode::Char('i') | KeyCode::Char('I') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::Info)
             }
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             _ if is_screen_prefix_key(key) => {
