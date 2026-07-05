@@ -601,12 +601,8 @@ fn resolve_screen_launch() -> Result<ScreenLaunch, Box<dyn Error>> {
         screen_not_found_hint(),
     )))
 }
-fn screen_not_found_hint() -> &'static str {
-    if cfg!(windows) {
-        "未检测到本机 screen。可直接使用 terman 内置 screen，或安装本机 screen 可执行文件。"
-    } else {
-        "未检测到 screen。请先安装 screen（apt/yum/brew）。"
-    }
+fn screen_not_found_hint() -> String {
+    terman_common::native_tool_not_found_hint("screen")
 }
 fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
@@ -784,7 +780,7 @@ mod tests {
         ScreenArgs, build_system_screen_args, clean_session_record_value,
         is_builtin_screen_attach_requested, is_screen_attach_attempt, is_screen_detached_arg,
         is_screen_session_name_arg, parse_builtin_screen_session_record, sanitize_session_file_name,
-        screen_failure_message,
+        screen_failure_message, screen_not_found_hint,
     };
 
     #[test]
@@ -817,6 +813,12 @@ mod tests {
     fn screen_failure_message_formats_error() {
         let msg = screen_failure_message("system screen", 127, "未找到 screen");
         assert_eq!(msg, "system screen 失败（退出码 127）：未找到 screen");
+    }
+
+    #[test]
+    fn screen_not_found_hint_uses_common_i18n_message() {
+        let hint = screen_not_found_hint();
+        assert!(hint.contains("screen"));
     }
 
     #[test]
