@@ -8,6 +8,39 @@ pub fn builtin_screen_session_list_header() -> String {
     localized_message(MessageKey::BuiltinScreenSessionListHeader, &[])
 }
 
+pub fn builtin_screen_session_list_entry_hint(
+    name: &str,
+    pid: &str,
+    attach_clients: usize,
+    replay_bytes: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
+    cwd: &str,
+    command: &str,
+) -> String {
+    let attach_clients = attach_clients.to_string();
+    let replay_bytes = replay_bytes.to_string();
+    let cols = cols
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    let rows = rows
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    localized_message(
+        MessageKey::BuiltinScreenSessionListEntry,
+        &[
+            ("name", name),
+            ("pid", pid),
+            ("attach_clients", &attach_clients),
+            ("replay_bytes", &replay_bytes),
+            ("cols", &cols),
+            ("rows", &rows),
+            ("cwd", cwd),
+            ("command", command),
+        ],
+    )
+}
+
 pub fn builtin_screen_session_exists_hint(name: &str) -> String {
     localized_message(MessageKey::BuiltinScreenSessionExists, &[("name", name)])
 }
@@ -38,6 +71,10 @@ pub fn builtin_screen_named_session_required_hint() -> String {
 
 pub fn builtin_screen_server_timeout_hint() -> String {
     localized_message(MessageKey::BuiltinScreenServerTimeout, &[])
+}
+
+pub fn builtin_screen_service_timeout_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenServiceTimeout, &[])
 }
 
 pub fn builtin_screen_internal_server_session_required_hint() -> String {

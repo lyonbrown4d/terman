@@ -49,24 +49,18 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
 
     println!("{}", terman_common::builtin_screen_session_list_header());
     for (session, status) in sessions {
-        let cols = status
-            .cols
-            .map(|value| value.to_string())
-            .unwrap_or_else(|| String::from("?"));
-        let rows = status
-            .rows
-            .map(|value| value.to_string())
-            .unwrap_or_else(|| String::from("?"));
         println!(
-            "  {}\tpid={}\tattached_clients={}\treplay_bytes={}\tsize={}x{}\tcwd={}\tcommand={}",
-            session.name,
-            session.pid,
-            status.attach_clients,
-            status.replay_bytes,
-            cols,
-            rows,
-            session.cwd,
-            session.command
+            "{}",
+            terman_common::builtin_screen_session_list_entry_hint(
+                &session.name,
+                &session.pid,
+                status.attach_clients,
+                status.replay_bytes,
+                status.cols,
+                status.rows,
+                &session.cwd,
+                &session.command,
+            )
         );
     }
 
@@ -146,6 +140,9 @@ fn load_runtime_status_with_retry(
     }
 
     Err(last_error.unwrap_or_else(|| {
-        io::Error::new(io::ErrorKind::TimedOut, "screen session service did not respond")
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            terman_common::builtin_screen_service_timeout_hint(),
+        )
     }))
 }

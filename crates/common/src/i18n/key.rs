@@ -19,6 +19,7 @@ pub enum MessageKey {
     BuiltinTmuxInternalServerExited,
     BuiltinScreenNoSessions,
     BuiltinScreenSessionListHeader,
+    BuiltinScreenSessionListEntry,
     BuiltinScreenSessionExists,
     BuiltinScreenSessionNameEmpty,
     BuiltinScreenAttachUnsupported,
@@ -27,6 +28,7 @@ pub enum MessageKey {
     BuiltinScreenSessionNotFound,
     BuiltinScreenNamedSessionRequired,
     BuiltinScreenServerTimeout,
+    BuiltinScreenServiceTimeout,
     BuiltinScreenInternalServerSessionRequired,
     BuiltinScreenInternalServerExited,
     BuiltinScreenControlCommandRequired,
@@ -66,6 +68,7 @@ impl MessageKey {
             Self::BuiltinTmuxInternalServerExited => "builtin-tmux-internal-server-exited",
             Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
             Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
+            Self::BuiltinScreenSessionListEntry => "builtin-screen-session-list-entry",
             Self::BuiltinScreenSessionExists => "builtin-screen-session-exists",
             Self::BuiltinScreenSessionNameEmpty => "builtin-screen-session-name-empty",
             Self::BuiltinScreenAttachUnsupported => "builtin-screen-attach-unsupported",
@@ -74,6 +77,7 @@ impl MessageKey {
             Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
             Self::BuiltinScreenNamedSessionRequired => "builtin-screen-named-session-required",
             Self::BuiltinScreenServerTimeout => "builtin-screen-server-timeout",
+            Self::BuiltinScreenServiceTimeout => "builtin-screen-service-timeout",
             Self::BuiltinScreenInternalServerSessionRequired => {
                 "builtin-screen-internal-server-session-required"
             }
@@ -88,7 +92,7 @@ impl MessageKey {
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
             Self::BuiltinScreenControlUnexpectedResponse => {
                 "builtin-screen-control-unexpected-response"
-            },
+            }
             Self::BuiltinScreenControlHardcopyPathRequired => {
                 "builtin-screen-control-hardcopy-path-required"
             }
