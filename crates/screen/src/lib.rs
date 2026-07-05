@@ -1,7 +1,10 @@
 use std::{
-    env,
+    collections::hash_map::DefaultHasher,
+    env, fs,
     error::Error,
+    hash::{Hash, Hasher},
     io::{self, Read, Write},
+    path::PathBuf,
     process::{Command, ExitStatus, Stdio},
     sync::{
         Arc,
@@ -23,7 +26,7 @@ use terman_common;
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --system\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen --system\n  - terman-screen --system --list\n  - terman-screen --system -S dev\n  - terman-screen --system --detach\n  - terman-screen --system --wsl\n  - terman-screen --system --no-fallback"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -41,6 +44,10 @@ pub struct ScreenArgs {
     /// Name the screen session; maps to `screen -S <NAME>` in system mode.
     #[arg(short = 'S', long = "session", value_name = "NAME")]
     pub session_name: Option<String>,
+
+    /// List known screen sessions. In system mode this maps to `screen -ls`.
+    #[arg(long, alias = "ls", conflicts_with_all = ["command", "detach"])]
+    pub list: bool,
 
     /// Prefer using system `screen` if available.
     #[arg(long)]
@@ -74,6 +81,7 @@ impl Default for ScreenArgs {
             cols: None,
             rows: None,
             session_name: None,
+            list: false,
             system: false,
             detach: false,
             login_shell: false,
@@ -116,6 +124,15 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
             io::ErrorKind::InvalidInput,
             "--detach 仅可在 --system 模式下使用。",
         )));
+    }
+
+    if let Some(session_name) = &args.session_name {
+        validate_screen_session_name(session_name)?;
+    }
+
+    if args.list && !args.system {
+        list_builtin_screen_sessions()?;
+        return Ok(());
     }
 
     if args.system {
@@ -222,6 +239,10 @@ fn validate_screen_wsl_launch(launch: &ScreenLaunch) -> Result<(), Box<dyn Error
 fn build_system_screen_args(args: &ScreenArgs) -> Vec<String> {
     let mut system_args = Vec::new();
 
+    if args.list {
+        system_args.push(String::from("-ls"));
+    }
+
     if args.detach {
         system_args.push(String::from("-d"));
         system_args.push(String::from("-m"));
@@ -307,7 +328,168 @@ fn is_screen_detached_arg(args: &[String]) -> bool {
         .any(|arg| arg == "-d" || arg == "-D" || arg == "--detach")
 }
 
+struct BuiltinScreenSessionGuard {
+    path: PathBuf,
+}
+
+impl Drop for BuiltinScreenSessionGuard {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+struct BuiltinScreenSession {
+    name: String,
+    pid: String,
+    cwd: String,
+    command: String,
+}
+
+fn validate_screen_session_name(name: &str) -> io::Result<()> {
+    if name.trim().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "screen 会话名不能为空。",
+        ));
+    }
+    Ok(())
+}
+
+fn register_builtin_screen_session(
+    args: &ScreenArgs,
+) -> io::Result<Option<BuiltinScreenSessionGuard>> {
+    let Some(session_name) = &args.session_name else {
+        return Ok(None);
+    };
+
+    let path = builtin_screen_session_record_path(session_name);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let cwd = env::current_dir()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|_| String::from("<unknown>"));
+    let command = args.command.clone().unwrap_or_else(default_shell);
+    let record = format!(
+        "name={}\npid={}\ncwd={}\ncommand={}\n",
+        clean_session_record_value(session_name),
+        std::process::id(),
+        clean_session_record_value(&cwd),
+        clean_session_record_value(&command),
+    );
+
+    fs::write(&path, record)?;
+    Ok(Some(BuiltinScreenSessionGuard { path }))
+}
+
+fn list_builtin_screen_sessions() -> io::Result<()> {
+    let dir = builtin_screen_sessions_dir();
+    if !dir.exists() {
+        println!("未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。");
+        return Ok(());
+    }
+
+    let mut sessions = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let Ok(record) = fs::read_to_string(entry.path()) else {
+            continue;
+        };
+        if let Some(session) = parse_builtin_screen_session_record(&record) {
+            sessions.push(session);
+        }
+    }
+
+    sessions.sort_by(|left, right| left.name.cmp(&right.name));
+
+    if sessions.is_empty() {
+        println!("未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。");
+        return Ok(());
+    }
+
+    println!("内置 screen 会话:");
+    for session in sessions {
+        println!(
+            "  {}\tpid={}\tcwd={}\tcommand={}",
+            session.name, session.pid, session.cwd, session.command
+        );
+    }
+
+    Ok(())
+}
+
+fn parse_builtin_screen_session_record(record: &str) -> Option<BuiltinScreenSession> {
+    let mut name = None;
+    let mut pid = None;
+    let mut cwd = None;
+    let mut command = None;
+
+    for line in record.lines() {
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        match key {
+            "name" => name = Some(value.to_string()),
+            "pid" => pid = Some(value.to_string()),
+            "cwd" => cwd = Some(value.to_string()),
+            "command" => command = Some(value.to_string()),
+            _ => {}
+        }
+    }
+
+    Some(BuiltinScreenSession {
+        name: name?,
+        pid: pid.unwrap_or_else(|| String::from("unknown")),
+        cwd: cwd.unwrap_or_else(|| String::from("unknown")),
+        command: command.unwrap_or_else(|| String::from("unknown")),
+    })
+}
+
+fn builtin_screen_session_record_path(name: &str) -> PathBuf {
+    let mut hasher = DefaultHasher::new();
+    name.hash(&mut hasher);
+    builtin_screen_sessions_dir().join(format!(
+        "{}-{:016x}.session",
+        sanitize_session_file_name(name),
+        hasher.finish()
+    ))
+}
+
+fn builtin_screen_sessions_dir() -> PathBuf {
+    env::temp_dir().join("terman-screen").join("sessions")
+}
+
+fn sanitize_session_file_name(name: &str) -> String {
+    let sanitized: String = name
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    if sanitized.is_empty() {
+        String::from("session")
+    } else {
+        sanitized
+    }
+}
+
+fn clean_session_record_value(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| if ch == '\n' || ch == '\r' || ch == '\t' { ' ' } else { ch })
+        .collect()
+}
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    let _session_record = register_builtin_screen_session(&args)?;
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
 
@@ -653,8 +835,9 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ScreenArgs, build_system_screen_args, is_screen_attach_attempt, is_screen_detached_arg,
-        is_screen_session_name_arg, screen_failure_message,
+        ScreenArgs, build_system_screen_args, clean_session_record_value,
+        is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg,
+        parse_builtin_screen_session_record, sanitize_session_file_name, screen_failure_message,
     };
 
     #[test]
@@ -709,5 +892,37 @@ mod tests {
                 String::from("-ls"),
             ]
         );
+    }
+
+    #[test]
+    fn builds_system_args_for_list() {
+        let args = ScreenArgs {
+            system: true,
+            list: true,
+            ..ScreenArgs::default()
+        };
+
+        assert_eq!(build_system_screen_args(&args), vec![String::from("-ls")]);
+    }
+
+    #[test]
+    fn sanitizes_builtin_session_record_name() {
+        assert_eq!(sanitize_session_file_name("dev/session:1"), "dev_session_1");
+    }
+
+    #[test]
+    fn parses_builtin_session_record() {
+        let record = "name=dev\npid=42\ncwd=C:/repo\ncommand=pwsh\n";
+        let parsed = parse_builtin_screen_session_record(record).expect("record should parse");
+
+        assert_eq!(parsed.name, "dev");
+        assert_eq!(parsed.pid, "42");
+        assert_eq!(parsed.cwd, "C:/repo");
+        assert_eq!(parsed.command, "pwsh");
+    }
+
+    #[test]
+    fn cleans_multiline_session_record_values() {
+        assert_eq!(clean_session_record_value("a\nb\tc"), "a b c");
     }
 }
