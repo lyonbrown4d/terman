@@ -3,17 +3,17 @@ use std::{error::Error, io};
 use crate::{
     attach::attach_builtin_tmux_session,
     args::{
-        rename_session_name_arg, rename_window_name_arg, session_name_arg, target_session_arg,
+        rename_session_name_arg, rename_window_name_arg, target_session_arg,
         target_session_name_arg, target_window_index_arg,
     },
     command::TmuxCommand,
     lifecycle::{kill_builtin_tmux_server, kill_builtin_tmux_session_command},
-    launcher::spawn_detached_tmux_server,
+    new_session::create_builtin_tmux_session,
     sessions::{
         AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
         RenameBuiltinTmuxWindow, add_builtin_tmux_window, builtin_tmux_session_exists,
-        kill_builtin_tmux_window, load_builtin_tmux_sessions, register_builtin_tmux_session,
-rename_builtin_tmux_session, rename_builtin_tmux_window,
+        kill_builtin_tmux_window, load_builtin_tmux_sessions, rename_builtin_tmux_session,
+        rename_builtin_tmux_window,
     },
 };
 
@@ -63,8 +63,8 @@ pub(crate) fn try_run_builtin_tmux_command(
             attach_builtin_tmux_session(args)?;
             Ok(true)
         }
-        TmuxCommand::NewSession if new_session_is_detached(args, detached) => {
-            create_builtin_tmux_session(args)?;
+        TmuxCommand::NewSession => {
+            create_builtin_tmux_session(args, !new_session_is_detached(args, detached))?;
             Ok(true)
         }
         _ => Ok(false),
@@ -111,33 +111,6 @@ fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn Error>> {
         );
     }
     Ok(())
-}
-
-fn create_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let Some(name) = session_name_arg(args) else {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_tmux_session_name_required_hint(),
-        )));
-    };
-
-    if builtin_tmux_session_exists(&name)? {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            terman_common::builtin_tmux_session_exists_hint(&name),
-        )));
-    }
-
-    let server_pid = spawn_detached_tmux_server(&name)?;
-    if register_builtin_tmux_session(&name, Some(server_pid.to_string()), None)? {
-        println!("{}", terman_common::builtin_tmux_session_created_hint(&name));
-        Ok(())
-    } else {
-        Err(Box::new(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            terman_common::builtin_tmux_session_exists_hint(&name),
-        )))
-    }
 }
 
 fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {

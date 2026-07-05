@@ -8,6 +8,7 @@ mod cli;
 mod command;
 mod ipc;
 mod lifecycle;
+mod new_session;
 mod launcher;
 mod pty;
 mod service;

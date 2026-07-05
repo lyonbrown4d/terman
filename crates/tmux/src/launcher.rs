@@ -1,11 +1,18 @@
-use std::{env, io, process::{Command, Stdio}};
+use std::{
+    env, io,
+    process::{Command, Stdio},
+};
 
-pub(crate) fn spawn_detached_tmux_server(session_name: &str) -> io::Result<u32> {
+pub(crate) fn spawn_detached_tmux_server(
+    session_name: &str,
+    command_args: &[String],
+) -> io::Result<u32> {
     let mut command = Command::new(env::current_exe()?);
     command
         .arg("--__tmux-server")
         .arg("--__session-name")
         .arg(session_name)
+        .args(command_args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
