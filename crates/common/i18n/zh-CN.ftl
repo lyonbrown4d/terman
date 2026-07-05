@@ -47,6 +47,23 @@ builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路
 builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
 builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
 builtin-tmux-no-sessions = 当前没有 tmux 会话
+builtin-tmux-cli-about = 跨平台 tmux 终端会话工具（自实现内置后端）。
+builtin-tmux-cli-examples =
+    常见用法示例：
+      - terman-tmux new -s dev
+      - terman-tmux new-session -s dev
+      - terman-tmux attach -t <session>
+      - terman-tmux attach-session -t <session>
+      - terman-tmux list-sessions
+      - terman-tmux list-clients
+      - terman-tmux list-windows -t dev
+      - terman-tmux --detached new -s dev
+
+    排查示例：
+      - 会话不存在：terman-tmux attach -t missing-session
+      - 先查看会话：terman-tmux list-sessions
+      - 名称冲突：terman-tmux new -s demo
+      - 再复现冲突：terman-tmux new -s demo
 builtin-tmux-session-list-entry = {$name}：{$windows} 个窗口（已连接 {$attached_clients} 个客户端）
 builtin-tmux-client-list-entry = {$session}：已连接 {$attached_clients} 个客户端
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}

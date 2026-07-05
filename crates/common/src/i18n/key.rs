@@ -2,6 +2,8 @@
 pub enum MessageKey {
     NativeToolNotFound,
     BuiltinTmuxNoSessions,
+    BuiltinTmuxCliAbout,
+    BuiltinTmuxCliExamples,
     BuiltinTmuxSessionListEntry,
     BuiltinTmuxClientListEntry,
     BuiltinTmuxWindowListEntry,
@@ -61,6 +63,8 @@ impl MessageKey {
         match self {
             Self::NativeToolNotFound => "native-tool-not-found",
             Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
+            Self::BuiltinTmuxCliAbout => "builtin-tmux-cli-about",
+            Self::BuiltinTmuxCliExamples => "builtin-tmux-cli-examples",
             Self::BuiltinTmuxSessionListEntry => "builtin-tmux-session-list-entry",
             Self::BuiltinTmuxClientListEntry => "builtin-tmux-client-list-entry",
             Self::BuiltinTmuxWindowListEntry => "builtin-tmux-window-list-entry",

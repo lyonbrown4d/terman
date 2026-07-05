@@ -4,6 +4,14 @@ pub fn builtin_tmux_no_sessions_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxNoSessions, &[])
 }
 
+pub fn builtin_tmux_cli_about() -> String {
+    localized_message(MessageKey::BuiltinTmuxCliAbout, &[])
+}
+
+pub fn builtin_tmux_cli_examples() -> String {
+    localized_message(MessageKey::BuiltinTmuxCliExamples, &[])
+}
+
 pub fn builtin_tmux_session_list_entry_hint(
     name: &str,
     windows: u32,

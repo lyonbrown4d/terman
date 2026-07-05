@@ -47,6 +47,23 @@ builtin-screen-control-pastefile-path-required = Specify an input path as screen
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).
 builtin-tmux-no-sessions = no tmux sessions
+builtin-tmux-cli-about = Cross-platform tmux terminal session tool with a built-in backend.
+builtin-tmux-cli-examples =
+    Common examples:
+      - terman-tmux new -s dev
+      - terman-tmux new-session -s dev
+      - terman-tmux attach -t <session>
+      - terman-tmux attach-session -t <session>
+      - terman-tmux list-sessions
+      - terman-tmux list-clients
+      - terman-tmux list-windows -t dev
+      - terman-tmux --detached new -s dev
+
+    Troubleshooting examples:
+      - Missing session: terman-tmux attach -t missing-session
+      - List sessions first: terman-tmux list-sessions
+      - Name conflict: terman-tmux new -s demo
+      - Reproduce conflict: terman-tmux new -s demo
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
 builtin-tmux-client-list-entry = {$session}: {$attached_clients} attached client(s)
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
