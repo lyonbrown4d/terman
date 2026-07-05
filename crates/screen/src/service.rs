@@ -1,4 +1,5 @@
 mod attach;
+mod attach_output;
 mod client;
 mod control;
 mod ipc_client;
