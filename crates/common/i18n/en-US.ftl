@@ -9,7 +9,9 @@ builtin-screen-session-not-found = Built-in screen session `{$name}` was not fou
 builtin-screen-named-session-required = Named screen session launch requires a session name.
 builtin-screen-server-timeout = Timed out waiting for the built-in screen session server.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, stuff, detach, resize.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, stuff, detach, resize, info.
 builtin-screen-control-stuff-required = Specify text for `screen -X stuff`.
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
+builtin-screen-control-info = screen info: replay_bytes={$replay_bytes} attach_clients={$attach_clients}
+builtin-screen-session-name-empty = screen session name is required

@@ -17,6 +17,12 @@ pub(crate) enum ScreenControlEvent {
     Terminate,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ScreenSessionStatus {
+    pub(crate) replay_bytes: usize,
+    pub(crate) attach_clients: usize,
+}
+
 #[derive(Clone, Default)]
 pub(crate) struct ScreenSessionBus {
     inner: Arc<Mutex<ScreenSessionState>>,
@@ -26,6 +32,36 @@ pub(crate) struct ScreenSessionBus {
 struct ScreenSessionState {
     replay: Vec<u8>,
     subscribers: Vec<mpsc::Sender<ScreenSessionEvent>>,
+    attach_clients: usize,
+}
+
+pub(crate) struct ScreenSessionSubscription {
+    receiver: mpsc::Receiver<ScreenSessionEvent>,
+    bus: ScreenSessionBus,
+    active: bool,
+}
+
+impl ScreenSessionSubscription {
+    pub(crate) fn recv(&self) -> Result<ScreenSessionEvent, mpsc::RecvError> {
+        self.receiver.recv()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn try_recv(&self) -> Result<ScreenSessionEvent, mpsc::TryRecvError> {
+        self.receiver.try_recv()
+    }
+}
+
+impl Drop for ScreenSessionSubscription {
+    fn drop(&mut self) {
+        if !self.active {
+            return;
+        }
+        let Ok(mut state) = self.bus.inner.lock() else {
+            return;
+        };
+        state.attach_clients = state.attach_clients.saturating_sub(1);
+    }
 }
 
 impl ScreenSessionBus {
@@ -34,20 +70,34 @@ impl ScreenSessionBus {
     }
 
     pub(crate) fn subscribe(&self) -> mpsc::Receiver<ScreenSessionEvent> {
-        self.subscribe_with_replay().1
+        let (tx, rx) = mpsc::channel();
+        if let Ok(mut state) = self.inner.lock() {
+            state.subscribers.push(tx);
+        }
+        rx
     }
 
-    pub(crate) fn subscribe_with_replay(&self) -> (Vec<u8>, mpsc::Receiver<ScreenSessionEvent>) {
+    pub(crate) fn subscribe_with_replay(&self) -> (Vec<u8>, ScreenSessionSubscription) {
         let (tx, rx) = mpsc::channel();
+        let mut active = false;
         let replay = if let Ok(mut state) = self.inner.lock() {
             let replay = state.replay.clone();
             state.subscribers.push(tx);
+            state.attach_clients += 1;
+            active = true;
             replay
         } else {
             Vec::new()
         };
 
-        (replay, rx)
+        (
+            replay,
+            ScreenSessionSubscription {
+                receiver: rx,
+                bus: self.clone(),
+                active,
+            },
+        )
     }
 
     pub(crate) fn replay_snapshot(&self) -> Vec<u8> {
@@ -55,6 +105,19 @@ impl ScreenSessionBus {
             .lock()
             .map(|state| state.replay.clone())
             .unwrap_or_default()
+    }
+
+    pub(crate) fn status_snapshot(&self) -> ScreenSessionStatus {
+        self.inner
+            .lock()
+            .map(|state| ScreenSessionStatus {
+                replay_bytes: state.replay.len(),
+                attach_clients: state.attach_clients,
+            })
+            .unwrap_or(ScreenSessionStatus {
+                replay_bytes: 0,
+                attach_clients: 0,
+            })
     }
 
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
@@ -79,11 +142,7 @@ impl ScreenSessionBus {
         self.publish(ScreenSessionEvent::Exit(code), |_| {});
     }
 
-    fn publish(
-        &self,
-        event: ScreenSessionEvent,
-        update: impl FnOnce(&mut ScreenSessionState),
-    ) {
+    fn publish(&self, event: ScreenSessionEvent, update: impl FnOnce(&mut ScreenSessionState)) {
         let Ok(mut state) = self.inner.lock() else {
             return;
         };
@@ -110,11 +169,24 @@ mod tests {
     fn subscribes_with_replay_without_losing_snapshot() {
         let bus = ScreenSessionBus::new();
         bus.publish_output(b"hello");
-        let (replay, rx) = bus.subscribe_with_replay();
+        let (replay, subscription) = bus.subscribe_with_replay();
         bus.publish_output(b"!");
 
         assert_eq!(replay, b"hello".to_vec());
-        assert_eq!(rx.try_recv(), Ok(ScreenSessionEvent::Output(b"!".to_vec())));
+        assert_eq!(
+            subscription.try_recv(),
+            Ok(ScreenSessionEvent::Output(b"!".to_vec()))
+        );
+    }
+
+    #[test]
+    fn tracks_attach_client_count_for_replay_subscriptions() {
+        let bus = ScreenSessionBus::new();
+        let (_replay, subscription) = bus.subscribe_with_replay();
+
+        assert_eq!(bus.status_snapshot().attach_clients, 1);
+        drop(subscription);
+        assert_eq!(bus.status_snapshot().attach_clients, 0);
     }
 
     #[test]

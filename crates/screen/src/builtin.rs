@@ -22,7 +22,6 @@ use crate::{
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
-    shell::{default_shell, shell_command_args},
     terminal_input::key_to_bytes,
 };
 
@@ -93,29 +92,24 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         }
     });
 
-    let (exit_tx, exit_rx) = mpsc::channel::<i32>();
-    let exit_bus = session_bus.clone();
-    let child_wait_handle = thread::spawn(move || {
-        let status = child
-            .wait()
-            .map(|status| status.exit_code() as i32)
-            .unwrap_or(-1);
-        exit_bus.publish_exit(status);
-        let _ = exit_tx.send(status);
-    });
-
     let mut exit_code: Option<i32> = None;
 
     loop {
-        match exit_rx.try_recv() {
-            Ok(code) => {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let code = status.exit_code() as i32;
+                session_bus.publish_exit(code);
                 exit_code = Some(code);
                 break;
             }
-            Err(mpsc::TryRecvError::Empty) => {}
-            Err(mpsc::TryRecvError::Disconnected) => break,
+            Ok(None) => {}
+            Err(_) => {
+                exit_code = Some(-1);
+                break;
+            }
         }
 
+        let mut terminate_requested = false;
         while let Ok(control) = control_rx.try_recv() {
             match control {
                 ScreenControlEvent::Input(bytes) => {
@@ -136,7 +130,16 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                     let _ = master.resize(size);
                     session_bus.publish_resize(cols, rows);
                 }
+                ScreenControlEvent::Terminate => {
+                    let _ = child.kill();
+                    terminate_requested = true;
+                    break;
+                }
             }
+        }
+        if terminate_requested {
+            thread::sleep(Duration::from_millis(16));
+            continue;
         }
 
         match event::poll(Duration::from_millis(16)) {
@@ -169,10 +172,14 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         }
     }
 
+    if exit_code.is_none() {
+        let _ = child.kill();
+        if let Ok(status) = child.wait() {
+            exit_code = Some(status.exit_code() as i32);
+        }
+    }
     should_run.store(false, Ordering::Release);
     let _ = output_thread.join();
-    should_run.store(false, Ordering::Release);
-    let _ = child_wait_handle.join();
 
     let exit_code = exit_code.unwrap_or(-1);
     if exit_code == 0 {

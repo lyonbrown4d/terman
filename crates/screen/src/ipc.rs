@@ -70,6 +70,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     Detach,
     DetachAll,
+    Info,
     Ping,
     Quit,
     Input {
@@ -86,6 +87,7 @@ pub(crate) enum ScreenIpcResponse {
     Accepted,
     Attached { replay: Vec<u8> },
     Detached,
+    Info { replay_bytes: usize, attach_clients: usize },
     Output { bytes: Vec<u8> },
     Resize { cols: u16, rows: u16 },
     Exit { code: i32 },
