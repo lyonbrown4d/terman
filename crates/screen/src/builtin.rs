@@ -18,6 +18,7 @@ use portable_pty::{PtySize, native_pty_system};
 
 use crate::{
     ScreenArgs,
+    ipc::ScreenIpcEndpoint,
     pty::build_command,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
@@ -40,12 +41,20 @@ impl Drop for RawMode {
     }
 }
 
+fn screen_session_endpoint(args: &ScreenArgs) -> ScreenIpcEndpoint {
+    args.session_name
+        .as_deref()
+        .map(ScreenIpcEndpoint::for_new_session)
+        .unwrap_or_else(|| ScreenIpcEndpoint::for_session("anonymous"))
+}
 pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    let _session_record = register_builtin_screen_session(&args)?;
+    let endpoint = screen_session_endpoint(&args);
+    let _session_record = register_builtin_screen_session(&args, &endpoint)?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
     let _session_service = ScreenSessionService::start(
         args.session_name.as_deref(),
+        endpoint,
         session_bus.clone(),
         control_tx,
     )?;

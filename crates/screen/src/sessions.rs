@@ -9,7 +9,7 @@ pub(crate) use store::{
     builtin_screen_session_is_alive, parse_builtin_screen_session_record, sanitize_session_file_name,
 };
 
-use crate::ScreenArgs;
+use crate::{ScreenArgs, ipc::ScreenIpcEndpoint};
 
 pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
     if name.trim().is_empty() {
@@ -23,8 +23,9 @@ pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
 
 pub(crate) fn register_builtin_screen_session(
     args: &ScreenArgs,
+    endpoint: &ScreenIpcEndpoint,
 ) -> io::Result<Option<BuiltinScreenSessionGuard>> {
-    store::register_builtin_screen_session(args)
+    store::register_builtin_screen_session(args, endpoint)
 }
 
 pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {

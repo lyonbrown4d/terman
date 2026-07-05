@@ -120,6 +120,10 @@ pub struct ScreenArgs {
     /// Internal headless session server mode.
     #[arg(long = "__screen-server", hide = true)]
     pub internal_server: bool,
+
+    /// Internal server IPC endpoint name.
+    #[arg(long = "__endpoint-name", hide = true, requires = "internal_server")]
+    pub internal_endpoint_name: Option<String>,
 }
 
 impl Default for ScreenArgs {
@@ -141,6 +145,7 @@ impl Default for ScreenArgs {
             multi_attach: None,
             login_shell: false,
             internal_server: false,
+            internal_endpoint_name: None,
         }
     }
 }

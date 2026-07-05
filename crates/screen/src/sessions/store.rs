@@ -34,6 +34,7 @@ pub(crate) struct BuiltinScreenSession {
 
 pub(crate) fn register_builtin_screen_session(
     args: &ScreenArgs,
+    endpoint: &ScreenIpcEndpoint,
 ) -> io::Result<Option<BuiltinScreenSessionGuard>> {
     let Some(session_name) = &args.session_name else {
         return Ok(None);
@@ -49,13 +50,12 @@ pub(crate) fn register_builtin_screen_session(
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|_| String::from("<unknown>"));
     let command = args.command.clone().unwrap_or_else(default_shell);
-    let ipc_endpoint = ScreenIpcEndpoint::for_session(session_name);
     let record = BuiltinScreenSession {
         name: session_name.clone(),
         pid: std::process::id().to_string(),
         cwd,
         command,
-        ipc_endpoint: Some(ipc_endpoint.raw_name().to_string()),
+        ipc_endpoint: Some(endpoint.raw_name().to_string()),
     };
     let record = serde_json::to_string_pretty(&record)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;

@@ -14,6 +14,7 @@ use terman_common::{
 
 use crate::{
     ScreenArgs,
+    ipc::ScreenIpcEndpoint,
     service::{request_screen_attach, request_screen_server_ready},
     sessions::find_builtin_screen_session_for_attach,
 };
@@ -24,8 +25,8 @@ const SERVER_ATTACH_RETRY_DELAY: Duration = Duration::from_millis(25);
 pub(crate) fn run_detached_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let session_name = require_session_name(&args)?;
     ensure_named_session_available(&session_name)?;
-    spawn_screen_server(&args)?;
-    wait_until_ready(&session_name)
+    let endpoint = spawn_screen_server(&args)?;
+    wait_until_ready(&endpoint)
 }
 
 pub(crate) fn run_resume_or_create_screen_session(
@@ -87,10 +88,14 @@ fn ensure_named_session_available(session_name: &str) -> io::Result<()> {
     }
 }
 
-fn spawn_screen_server(args: &ScreenArgs) -> io::Result<()> {
+fn spawn_screen_server(args: &ScreenArgs) -> io::Result<ScreenIpcEndpoint> {
+    let session_name = require_session_name(args)?;
+    let endpoint = ScreenIpcEndpoint::for_new_session(&session_name);
     let mut command = Command::new(env::current_exe()?);
     command
         .arg("--__screen-server")
+        .arg("--__endpoint-name")
+        .arg(endpoint.raw_name())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
@@ -104,22 +109,20 @@ fn spawn_screen_server(args: &ScreenArgs) -> io::Result<()> {
     if let Some(rows) = args.rows {
         command.arg("--rows").arg(rows.to_string());
     }
-    if let Some(session_name) = &args.session_name {
-        command.arg("-S").arg(session_name);
-    }
+    command.arg("-S").arg(session_name);
     if args.login_shell {
         command.arg("--login-shell");
     }
 
     let _child = command.spawn()?;
-    Ok(())
+    Ok(endpoint)
 }
 
-fn wait_until_ready(session_name: &str) -> Result<(), Box<dyn Error>> {
+fn wait_until_ready(endpoint: &ScreenIpcEndpoint) -> Result<(), Box<dyn Error>> {
     let mut last_error: Option<io::Error> = None;
 
     for _ in 0..SERVER_ATTACH_ATTEMPTS {
-        match request_screen_server_ready(session_name) {
+        match request_screen_server_ready(endpoint) {
             Ok(()) => return Ok(()),
             Err(err) => {
                 last_error = Some(err);

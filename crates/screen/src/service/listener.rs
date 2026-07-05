@@ -18,6 +18,7 @@ pub(crate) struct ScreenSessionService {
 impl ScreenSessionService {
     pub(crate) fn start(
         session_name: Option<&str>,
+        endpoint: ScreenIpcEndpoint,
         bus: ScreenSessionBus,
         control_tx: mpsc::Sender<ScreenControlEvent>,
     ) -> io::Result<Option<Self>> {
@@ -25,7 +26,6 @@ impl ScreenSessionService {
             return Ok(None);
         };
 
-        let endpoint = ScreenIpcEndpoint::for_session(session_name);
         let session_name = session_name.to_string();
         let listener = endpoint.listener_options()?.create_sync()?;
         let handle = thread::spawn(move || {

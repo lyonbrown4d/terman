@@ -1,7 +1,8 @@
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    io,
+    io, process,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use interprocess::local_socket::{
@@ -23,6 +24,18 @@ impl ScreenIpcEndpoint {
         }
     }
 
+    pub(crate) fn for_new_session(session_name: &str) -> Self {
+        let sanitized = sanitize_ipc_component(session_name);
+        let entropy = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let pid = process::id();
+
+        Self {
+            raw_name: format!("{IPC_PREFIX}-{sanitized}-{pid:x}-{entropy:x}"),
+        }
+    }
     pub(crate) fn for_session(session_name: &str) -> Self {
         let mut hasher = DefaultHasher::new();
         session_name.hash(&mut hasher);
@@ -140,6 +153,12 @@ mod tests {
         assert!(left.raw_name().starts_with("terman-screen-dev_session-"));
     }
 
+    #[test]
+    fn creates_unique_endpoint_name_for_new_session() {
+        let endpoint = ScreenIpcEndpoint::for_new_session("dev/session");
+
+        assert!(endpoint.raw_name().starts_with("terman-screen-dev_session-"));
+    }
     #[test]
     fn preserves_raw_endpoint_name_from_session_record() {
         let endpoint = ScreenIpcEndpoint::from_raw_name("terman-screen-dev");

@@ -10,6 +10,7 @@ use portable_pty::{PtySize, native_pty_system};
 
 use crate::{
     ScreenArgs,
+    ipc::ScreenIpcEndpoint,
     pty::build_command,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
@@ -17,18 +18,23 @@ use crate::{
 };
 
 pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    if args.session_name.is_none() {
+    let Some(session_name) = args.session_name.as_deref() else {
         return Err(Box::new(io::Error::new(
             io::ErrorKind::InvalidInput,
             "internal screen server requires a session name",
         )));
-    }
-
-    let _session_record = register_builtin_screen_session(&args)?;
+    };
+    let endpoint = args
+        .internal_endpoint_name
+        .as_deref()
+        .map(ScreenIpcEndpoint::from_raw_name)
+        .unwrap_or_else(|| ScreenIpcEndpoint::for_session(session_name));
+    let _session_record = register_builtin_screen_session(&args, &endpoint)?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
     let _session_service = ScreenSessionService::start(
         args.session_name.as_deref(),
+        endpoint,
         session_bus.clone(),
         control_tx,
     )?;
