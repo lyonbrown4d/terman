@@ -586,8 +586,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "terman-common",
- "terman-screen",
- "terman-tmux",
 ]
 
 [[package]]
