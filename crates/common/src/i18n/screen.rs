@@ -100,6 +100,11 @@ pub fn builtin_screen_internal_server_exited_hint(code: i32) -> String {
     )
 }
 
+pub fn builtin_screen_failure_hint(code: i32) -> String {
+    let code = code.to_string();
+    localized_message(MessageKey::BuiltinScreenFailure, &[("code", &code)])
+}
+
 pub fn builtin_screen_control_command_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlCommandRequired, &[])
 }

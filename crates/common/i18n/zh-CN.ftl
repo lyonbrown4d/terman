@@ -15,6 +15,7 @@ builtin-screen-server-timeout = 等待内置 screen 会话服务启动超时。
 builtin-screen-service-timeout = 内置 screen 会话服务未响应。
 builtin-screen-internal-server-session-required = 内置 screen server 需要会话名。
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
+builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
 builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、echo、wall、stuff、pastefile、detach、resize、info、hardcopy、clear、reset、eval、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。

@@ -40,6 +40,7 @@ pub enum MessageKey {
     BuiltinScreenServiceTimeout,
     BuiltinScreenInternalServerSessionRequired,
     BuiltinScreenInternalServerExited,
+    BuiltinScreenFailure,
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
     BuiltinScreenControlEchoRequired,
@@ -102,6 +103,7 @@ impl MessageKey {
                 "builtin-screen-internal-server-session-required"
             }
             Self::BuiltinScreenInternalServerExited => "builtin-screen-internal-server-exited",
+            Self::BuiltinScreenFailure => "builtin-screen-failure",
             Self::BuiltinScreenControlCommandRequired => "builtin-screen-control-command-required",
             Self::BuiltinScreenControlCommandUnsupported => {
                 "builtin-screen-control-command-unsupported"

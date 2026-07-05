@@ -201,7 +201,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     } else {
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            screen_failure_message("内置 screen", exit_code, "进程退出码非零"),
+            terman_common::builtin_screen_failure_hint(exit_code),
         )))
     }
 }
@@ -211,7 +211,4 @@ fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16,
     (cols_override.unwrap_or(cols), rows_override.unwrap_or(rows))
 }
 
-fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
-    format!("{scope} 失败（退出码 {exit_code}）：{detail}")
-}
 

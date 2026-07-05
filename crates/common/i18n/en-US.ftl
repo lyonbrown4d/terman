@@ -15,6 +15,7 @@ builtin-screen-server-timeout = Timed out waiting for the built-in screen sessio
 builtin-screen-service-timeout = Built-in screen session service did not respond.
 builtin-screen-internal-server-session-required = Internal screen server requires a session name.
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
+builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
 builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, echo, wall, stuff, pastefile, detach, resize, info, hardcopy, clear, reset, eval, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
