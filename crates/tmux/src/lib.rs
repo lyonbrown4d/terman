@@ -4,6 +4,7 @@ mod args;
 mod attach;
 mod attach_keys;
 mod builtin;
+mod capture;
 mod cli;
 mod command;
 mod ipc;

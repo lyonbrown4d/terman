@@ -79,6 +79,7 @@ pub(crate) enum TmuxIpcRequest {
     Detach,
     DetachClient { client_id: String },
     DetachAll,
+    CapturePane,
     DisplayMessage { message: String },
     Info,
     Input { bytes: Vec<u8> },
@@ -95,6 +96,7 @@ pub(crate) enum TmuxIpcResponse {
     Accepted,
     Attached { replay: Vec<u8> },
     Detached,
+    Captured { bytes: Vec<u8> },
     Info {
         session_name: String,
         windows: u32,

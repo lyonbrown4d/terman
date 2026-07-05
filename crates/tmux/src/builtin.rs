@@ -2,6 +2,7 @@ use std::{error::Error, io};
 
 use crate::{
     attach::attach_builtin_tmux_session,
+    capture::capture_builtin_tmux_pane,
     args::{
         rename_session_name_arg, rename_window_name_arg, target_session_arg,
         target_session_name_arg, target_window_index_arg,
@@ -52,6 +53,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::DisplayMessage => {
             display_builtin_tmux_message(args)?;
+            Ok(true)
+        }
+        TmuxCommand::CapturePane => {
+            capture_builtin_tmux_pane(args)?;
             Ok(true)
         }
         TmuxCommand::NewWindow => {

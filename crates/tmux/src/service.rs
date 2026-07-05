@@ -81,6 +81,12 @@ fn handle_client(
             bus.detach_client(&client_id);
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
+        Ok(TmuxIpcRequest::CapturePane) => write_response(
+            stream,
+            &TmuxIpcResponse::Captured {
+                bytes: bus.replay_snapshot(),
+            },
+        ),
         Ok(TmuxIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)

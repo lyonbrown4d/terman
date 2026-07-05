@@ -8,6 +8,7 @@ pub(crate) enum TmuxCommand {
     HasSession,
     RenameSession,
     DisplayMessage,
+    CapturePane,
     NewWindow,
     ListWindows,
     KillWindow,
@@ -26,6 +27,7 @@ impl TmuxCommand {
             Some("has-session") => Self::HasSession,
             Some("rename-session") => Self::RenameSession,
             Some("display-message" | "display") => Self::DisplayMessage,
+            Some("capture-pane" | "capturep") => Self::CapturePane,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
             Some("kill-window" | "killw") => Self::KillWindow,
@@ -58,6 +60,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["has-session".into()]), TmuxCommand::HasSession);
         assert_eq!(TmuxCommand::parse(&["rename-session".into()]), TmuxCommand::RenameSession);
         assert_eq!(TmuxCommand::parse(&["display".into()]), TmuxCommand::DisplayMessage);
+        assert_eq!(TmuxCommand::parse(&["capturep".into()]), TmuxCommand::CapturePane);
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
         assert_eq!(TmuxCommand::parse(&["killw".into()]), TmuxCommand::KillWindow);

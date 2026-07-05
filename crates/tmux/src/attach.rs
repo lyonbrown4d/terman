@@ -78,6 +78,7 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
                 return Err(Box::new(io::Error::new(io::ErrorKind::PermissionDenied, reason)));
             }
             TmuxIpcResponse::Accepted
+            | TmuxIpcResponse::Captured { .. }
             | TmuxIpcResponse::Info { .. }
             | TmuxIpcResponse::Resize { .. } => {}
         }
