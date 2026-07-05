@@ -57,6 +57,7 @@ pub enum MessageKey {
     BuiltinScreenControlSleepRequired,
     BuiltinScreenControlVersion,
     BuiltinScreenControlInfo,
+    BuiltinScreenControlDisplaysEntry,
     BuiltinScreenControlWindowsEntry,
     BuiltinScreenControlUnexpectedResponse,
     BuiltinScreenControlHardcopyPathRequired,
@@ -136,6 +137,7 @@ impl MessageKey {
             Self::BuiltinScreenControlSleepRequired => "builtin-screen-control-sleep-required",
             Self::BuiltinScreenControlVersion => "builtin-screen-control-version",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
+            Self::BuiltinScreenControlDisplaysEntry => "builtin-screen-control-displays-entry",
             Self::BuiltinScreenControlWindowsEntry => "builtin-screen-control-windows-entry",
             Self::BuiltinScreenControlUnexpectedResponse => {
                 "builtin-screen-control-unexpected-response"

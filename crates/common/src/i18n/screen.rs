@@ -190,6 +190,30 @@ pub fn builtin_screen_control_info_hint(
     )
 }
 
+pub fn builtin_screen_control_displays_entry_hint(
+    session_name: &str,
+    attach_clients: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
+) -> String {
+    let attach_clients = attach_clients.to_string();
+    let cols = cols
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    let rows = rows
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| String::from("?"));
+    localized_message(
+        MessageKey::BuiltinScreenControlDisplaysEntry,
+        &[
+            ("session_name", session_name),
+            ("attach_clients", &attach_clients),
+            ("cols", &cols),
+            ("rows", &rows),
+        ],
+    )
+}
+
 pub fn builtin_screen_control_windows_entry_hint(
     session_name: &str,
     replay_bytes: usize,
