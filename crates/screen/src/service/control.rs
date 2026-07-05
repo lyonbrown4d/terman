@@ -6,6 +6,7 @@ use super::{
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     control_select::request_select_command,
     control_source::request_source_command,
+    control_version::request_version_command,
     control_windows::request_windows_command,
     ipc_client::request_endpoint_response,
     sessionname::request_sessionname_command,
@@ -50,6 +51,10 @@ fn execute_control_command(
         "at" => request_at_command(args, inline_payload, extra_args, execute_control_command),
         "colon" => request_colon_command(args, inline_payload, extra_args, execute_control_command),
         "source" => request_source_command(args, inline_payload, extra_args, execute_control_command),
+        "version" => {
+            request_version_command();
+            Ok(())
+        }
         "windows" => request_windows_command(args, request_session_response),
         "info" => request_session_info(args),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),

@@ -7,6 +7,7 @@ mod control_colon;
 mod control_parse;
 mod control_select;
 mod control_source;
+mod control_version;
 mod control_windows;
 mod ipc_client;
 mod listener;

@@ -53,6 +53,7 @@ pub enum MessageKey {
     BuiltinScreenControlStuffRequired,
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlSelectUnsupported,
+    BuiltinScreenControlVersion,
     BuiltinScreenControlInfo,
     BuiltinScreenControlWindowsEntry,
     BuiltinScreenControlUnexpectedResponse,
@@ -129,6 +130,7 @@ impl MessageKey {
             Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
             Self::BuiltinScreenControlResizeRequired => "builtin-screen-control-resize-required",
             Self::BuiltinScreenControlSelectUnsupported => "builtin-screen-control-select-unsupported",
+            Self::BuiltinScreenControlVersion => "builtin-screen-control-version",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
             Self::BuiltinScreenControlWindowsEntry => "builtin-screen-control-windows-entry",
             Self::BuiltinScreenControlUnexpectedResponse => {

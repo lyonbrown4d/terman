@@ -151,6 +151,10 @@ pub fn builtin_screen_control_select_unsupported_hint(selector: &str) -> String 
     )
 }
 
+pub fn builtin_screen_control_version_hint(version: &str) -> String {
+    localized_message(MessageKey::BuiltinScreenControlVersion, &[("version", version)])
+}
+
 pub fn builtin_screen_control_info_hint(
     session_name: &str,
     replay_bytes: usize,
