@@ -84,6 +84,7 @@ pub fn builtin_screen_control_resize_required_hint() -> String {
 }
 
 pub fn builtin_screen_control_info_hint(
+    session_name: &str,
     replay_bytes: usize,
     attach_clients: usize,
     cols: Option<u16>,
@@ -96,6 +97,7 @@ pub fn builtin_screen_control_info_hint(
     localized_message(
         MessageKey::BuiltinScreenControlInfo,
         &[
+            ("session_name", session_name),
             ("replay_bytes", &replay_bytes),
             ("attach_clients", &attach_clients),
             ("cols", &cols),

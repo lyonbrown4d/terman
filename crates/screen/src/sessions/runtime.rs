@@ -32,6 +32,7 @@ pub(crate) fn load_builtin_screen_runtime_status(
             attach_clients,
             cols,
             rows,
+            ..
         } => Ok(BuiltinScreenSessionRuntimeStatus {
             replay_bytes,
             attach_clients,

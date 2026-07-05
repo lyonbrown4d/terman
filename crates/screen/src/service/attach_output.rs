@@ -45,6 +45,7 @@ pub(super) fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<
 pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
+            session_name,
             replay_bytes,
             attach_clients,
             cols,
@@ -54,6 +55,7 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
             stdout.write_all(b"\r\n")?;
             stdout.write_all(
                 terman_common::builtin_screen_control_info_hint(
+                    &session_name,
                     replay_bytes,
                     attach_clients,
                     cols,

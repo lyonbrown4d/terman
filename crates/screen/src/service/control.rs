@@ -77,6 +77,7 @@ pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()
 fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
     match request_session_response(args, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
+            session_name,
             replay_bytes,
             attach_clients,
             cols,
@@ -85,6 +86,7 @@ fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
             println!(
                 "{}",
                 terman_common::builtin_screen_control_info_hint(
+                    &session_name,
                     replay_bytes,
                     attach_clients,
                     cols,

@@ -26,6 +26,7 @@ impl ScreenSessionService {
         };
 
         let endpoint = ScreenIpcEndpoint::for_session(session_name);
+        let session_name = session_name.to_string();
         let listener = endpoint.listener_options()?.create_sync()?;
         let handle = thread::spawn(move || {
             for stream in listener.incoming() {
@@ -34,8 +35,14 @@ impl ScreenSessionService {
                 };
                 let client_bus = bus.clone();
                 let client_control_tx = control_tx.clone();
+                let client_session_name = session_name.clone();
                 thread::spawn(move || {
-                    let _ = handle_client(&mut stream, &client_bus, &client_control_tx);
+                    let _ = handle_client(
+                        &mut stream,
+                        &client_session_name,
+                        &client_bus,
+                        &client_control_tx,
+                    );
                 });
             }
         });
@@ -46,6 +53,7 @@ impl ScreenSessionService {
 
 fn handle_client(
     stream: &mut LocalSocketStream,
+    session_name: &str,
     bus: &ScreenSessionBus,
     control_tx: &mpsc::Sender<ScreenControlEvent>,
 ) -> io::Result<()> {
@@ -89,6 +97,7 @@ fn handle_client(
             write_response(
                 stream,
                 &ScreenIpcResponse::Info {
+                    session_name: session_name.to_string(),
                     replay_bytes: status.replay_bytes,
                     attach_clients: status.attach_clients,
                     cols: status.cols,

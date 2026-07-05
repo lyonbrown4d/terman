@@ -13,7 +13,7 @@ builtin-screen-control-command-required = Specify a screen control command.
 builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, stuff, pastefile, detach, resize, info, hardcopy, clear, reset.
 builtin-screen-control-stuff-required = Specify text for `screen -X stuff`.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
-builtin-screen-control-info = screen info: replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
+builtin-screen-control-info = screen info: session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-hardcopy-path-required = Specify an output path as screen -X hardcopy <path>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
