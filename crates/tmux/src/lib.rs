@@ -15,6 +15,7 @@ mod service;
 mod server;
 mod session_core;
 mod sessions;
+mod status;
 mod shell;
 
 pub use cli::{TmuxArgs, run_with_binary_parse};
