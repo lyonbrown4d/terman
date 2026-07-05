@@ -3,7 +3,9 @@ use std::env;
 use which::which;
 
 pub fn which_binary(name: &str) -> Option<String> {
-    which(name).ok().map(|path| path.to_string_lossy().to_string())
+    which(name)
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
 }
 
 pub fn passthrough_env() -> Vec<(String, String)> {
@@ -26,9 +28,7 @@ pub fn which_wsl_binary() -> Option<String> {
 }
 
 pub fn wsl_install_hint(tool: &str) -> String {
-    format!(
-        "建议先在 WSL 内执行 `wsl -e which {tool}` / `wsl -e {tool} -V` 确认安装与版本。"
-    )
+    format!("建议先在 WSL 内执行 `wsl -e which {tool}` / `wsl -e {tool} -V` 确认安装与版本。")
 }
 
 pub fn wsl_precheck_not_found_hint(tool: &str) -> String {
@@ -66,4 +66,3 @@ mod tests {
         assert!(hint.contains("wsl -e screen -V"));
     }
 }
-

@@ -1,8 +1,3 @@
-[package]
-name = "terman"
-version = "0.1.0"
-edition = "2024"
-
 [workspace]
 members = [
     "crates/screen",
@@ -17,7 +12,3 @@ crossterm = "0.29.0"
 portable-pty = "0.8"
 terman-common = { path = "crates/common" }
 which = "6.0"
-
-[dependencies]
-clap = { workspace = true }
-terman-common = { workspace = true }

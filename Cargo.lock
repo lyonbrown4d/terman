@@ -581,14 +581,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "terman"
-version = "0.1.0"
-dependencies = [
- "clap",
- "terman-common",
-]
-
-[[package]]
 name = "terman-common"
 version = "0.1.0"
 dependencies = [

@@ -4,9 +4,9 @@ use std::{
     io::{self, Read, Write},
     process::{Command, ExitStatus, Stdio},
     sync::{
+        Arc,
         atomic::{AtomicBool, Ordering},
         mpsc,
-        Arc,
     },
     thread,
     time::Duration,
@@ -17,14 +17,13 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     terminal::{self, size as terminal_size},
 };
-use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use terman_common;
-
 
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "screen 桥接入口（先尝试系统 screen，失败自动回退内置）",
-    after_help = "常见用法示例：\n  - terman screen\n  - terman screen --system\n  - terman screen --system -S dev\n  - terman screen --system --detach\n  - terman screen --system --wsl\n  - terman screen --system --no-fallback",
+    after_help = "常见用法示例：\n  - terman screen\n  - terman screen --system\n  - terman screen --system -S dev\n  - terman screen --system --detach\n  - terman screen --system --wsl\n  - terman screen --system --no-fallback"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -135,7 +134,6 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     run_builtin_screen(args)
 }
 
-
 fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let launch = resolve_screen_launch(args.wsl)?;
 
@@ -162,7 +160,10 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .envs(terman_common::passthrough_env())
-        .env("TERM", env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")))
+        .env(
+            "TERM",
+            env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")),
+        )
         .status()?;
 
     if status.success() {
@@ -171,7 +172,14 @@ fn run_system_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
         let exit_code = status.code().unwrap_or(-1);
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            format!("{}", screen_failure_message("system screen", exit_code, &screen_system_runtime_hints(&system_args, exit_code, &launch.kind)))
+            format!(
+                "{}",
+                screen_failure_message(
+                    "system screen",
+                    exit_code,
+                    &screen_system_runtime_hints(&system_args, exit_code, &launch.kind)
+                )
+            ),
         )))
     }
 }
@@ -218,11 +226,8 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
     let mut hints = Vec::new();
 
     if let ScreenKind::Wsl = kind {
-        hints.push(
-            terman_common::wsl_runtime_hint("screen"),
-        );
+        hints.push(terman_common::wsl_runtime_hint("screen"));
     }
-
 
     if let ScreenKind::Wsl = kind {
         if is_screen_detached_arg(args) {
@@ -251,12 +256,8 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
         2 => {
             "通常与权限、终端环境或可执行文件上下文有关。建议在普通终端重试，或先确认 screen 安装和 shell 环境。"
         }
-        126 => {
-            "无法执行，请确认 screen 可执行文件有执行权限。"
-        }
-        127 => {
-            "未找到可执行文件，请先确认 screen 安装正常且在 PATH。"
-        }
+        126 => "无法执行，请确认 screen 可执行文件有执行权限。",
+        127 => "未找到可执行文件，请先确认 screen 安装正常且在 PATH。",
         _ => {
             "返回非预期状态，建议先执行 `terman screen --system --help` 获取可用参数并用最小参数重试。"
         }
@@ -266,7 +267,8 @@ fn screen_system_runtime_hints(args: &[String], exit_code: i32, kind: &ScreenKin
 }
 
 fn is_screen_attach_attempt(args: &[String]) -> bool {
-    args.iter().any(|arg| arg == "-r" || arg == "-R" || arg == "-x")
+    args.iter()
+        .any(|arg| arg == "-r" || arg == "-R" || arg == "-x")
 }
 
 fn is_screen_session_name_arg(args: &[String]) -> bool {
@@ -280,7 +282,8 @@ fn is_screen_session_name_arg(args: &[String]) -> bool {
 }
 
 fn is_screen_detached_arg(args: &[String]) -> bool {
-    args.iter().any(|arg| arg == "-d" || arg == "-D" || arg == "--detach")
+    args.iter()
+        .any(|arg| arg == "-d" || arg == "-D" || arg == "--detach")
 }
 
 fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -299,7 +302,7 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let command = build_command(&args)?;
     let mut child = pair.slave.spawn_command(command)?;
 
-    let mut master = pair.master;
+    let master = pair.master;
     let mut reader = master.try_clone_reader()?;
     let mut writer = master.take_writer()?;
 
@@ -327,7 +330,10 @@ fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
 
     let (exit_tx, exit_rx) = mpsc::channel::<i32>();
     let child_wait_handle = thread::spawn(move || {
-        let status = child.wait().map(|status| status.code().unwrap_or(-1)).unwrap_or(-1);
+        let status = child
+            .wait()
+            .map(|status| status.exit_code() as i32)
+            .unwrap_or(-1);
         let _ = exit_tx.send(status);
     });
 
@@ -434,7 +440,10 @@ fn resolve_screen_launch(use_wsl: bool) -> Result<ScreenLaunch, Box<dyn Error>> 
             });
         }
 
-        return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, screen_not_found_hint())));
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            screen_not_found_hint(),
+        )));
     }
 
     Err(Box::new(io::Error::new(
@@ -613,10 +622,12 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     run(cli.args)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg, screen_failure_message};
+    use super::{
+        is_screen_attach_attempt, is_screen_detached_arg, is_screen_session_name_arg,
+        screen_failure_message,
+    };
 
     #[test]
     fn recognizes_screen_detach_flags() {
@@ -636,7 +647,10 @@ mod tests {
 
     #[test]
     fn detects_screen_session_name_arg_requires_value() {
-        assert!(is_screen_session_name_arg(&["-S".to_string(), "dev".to_string()]));
+        assert!(is_screen_session_name_arg(&[
+            "-S".to_string(),
+            "dev".to_string()
+        ]));
         assert!(!is_screen_session_name_arg(&["-S".to_string()]));
         assert!(!is_screen_session_name_arg(&[]));
     }
@@ -647,4 +661,3 @@ mod tests {
         assert_eq!(msg, "system screen 失败（退出码 127）：未找到 screen");
     }
 }
-

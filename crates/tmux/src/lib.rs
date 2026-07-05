@@ -7,13 +7,12 @@ use std::{
 
 use terman_common;
 
-
 use clap::Args;
 
 #[derive(Args, Debug)]
 #[command(
     about = "tmux 桥接入口（按原生命令参数透传）",
-    after_help = "常见用法示例：\n  - terman tmux new -s dev\n  - terman tmux new-session -s dev\n  - terman tmux attach -t <session>\n  - terman tmux attach-session -t <session>\n  - terman tmux list-sessions\n  - terman tmux --detached new -s dev\n  - terman tmux --detached --wsl new -s dev\n  - terman tmux --wsl new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman tmux attach -t missing-session\n  - 先查看会话：terman tmux list-sessions\n  - 名称冲突：terman tmux new -s demo\n  - 再复现冲突：terman tmux new -s demo\n",
+    after_help = "常见用法示例：\n  - terman tmux new -s dev\n  - terman tmux new-session -s dev\n  - terman tmux attach -t <session>\n  - terman tmux attach-session -t <session>\n  - terman tmux list-sessions\n  - terman tmux --detached new -s dev\n  - terman tmux --detached --wsl new -s dev\n  - terman tmux --wsl new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman tmux attach -t missing-session\n  - 先查看会话：terman tmux list-sessions\n  - 名称冲突：terman tmux new -s demo\n  - 再复现冲突：terman tmux new -s demo\n"
 )]
 pub struct TmuxArgs {
     /// 等价于 tmux -d，启动会话前台/后台分离。
@@ -30,6 +29,7 @@ pub struct TmuxArgs {
     pub args: Vec<String>,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum TmuxKind {
     Native,
     Wsl,
@@ -50,7 +50,9 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
         TmuxKind::Native => {}
         TmuxKind::Wsl => {
             cmd.args(&launch.extra_args);
-            eprintln!("当前使用 WSL tmux 回退路径。建议长期使用 WSL 发行版中的 tmux 以获得更完整行为。");
+            eprintln!(
+                "当前使用 WSL tmux 回退路径。建议长期使用 WSL 发行版中的 tmux 以获得更完整行为。"
+            );
         }
     }
 
@@ -61,9 +63,13 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
                 passed_args.insert(0, String::from("-d"));
             }
         } else {
-            eprintln!("提示：--detached 通常与 `new/new-session` 配合使用；当前命令将按透传参数原样执行。");
+            eprintln!(
+                "提示：--detached 通常与 `new/new-session` 配合使用；当前命令将按透传参数原样执行。"
+            );
             if is_tmux_detached_without_tmux_command(&passed_args) {
-                eprintln!("提示：当前只传了 -d/--detached 未带子命令时易触发预期外行为。建议显式指定 new/new-session 再启动。\n示例：`terman tmux --detached new -s <name>`");
+                eprintln!(
+                    "提示：当前只传了 -d/--detached 未带子命令时易触发预期外行为。建议显式指定 new/new-session 再启动。\n示例：`terman tmux --detached new -s <name>`"
+                );
             }
         }
     }
@@ -74,7 +80,10 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .envs(terman_common::passthrough_env())
-        .env("TERM", env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")))
+        .env(
+            "TERM",
+            env::var("TERM").unwrap_or_else(|_| String::from("xterm-256color")),
+        )
         .status()?;
 
     let exit_code = status.code().unwrap_or(-1);
@@ -139,10 +148,7 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let status: ExitStatus = probe
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()?;
+    let status: ExitStatus = probe.stdout(Stdio::null()).stderr(Stdio::null()).status()?;
 
     if status.success() {
         Ok(())
@@ -152,7 +158,7 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
             io::ErrorKind::Other,
             format!(
                 "{}",
-                tmux_failure_message("tmux 可用性检查", code, tmux_launch_failure_hint(launch)),
+                tmux_failure_message("tmux 可用性检查", code, &tmux_launch_failure_hint(launch)),
             ),
         )))
     }
@@ -174,17 +180,14 @@ fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> String {
 }
 fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> String {
     let mut hints = Vec::new();
-    if kind == TmuxKind::Wsl {
-        hints.push(
-            terman_common::wsl_runtime_hint("tmux"),
-        );
+    if *kind == TmuxKind::Wsl {
+        hints.push(terman_common::wsl_runtime_hint("tmux"));
     }
-    if kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
+    if *kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
         hints.push(
             "WSL 回退路径执行 detached 场景失败时，建议先在 WSL 终端直接复现：wsl -e tmux <同样参数>，确认会话名、路径与环境变量无差异。".to_string(),
         );
     }
-
 
     if is_tmux_detached_without_tmux_command(args) {
         hints.push(
@@ -252,13 +255,12 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
 }
 
 fn is_tmux_detached_without_tmux_command(args: &[String]) -> bool {
-    is_tmux_detached_arg(args) && args.iter().all(|arg| arg == "-d" || arg == "--detached")
+    tmux_has_detached_arg(args) && args.iter().all(|arg| arg == "-d" || arg == "--detached")
 }
 
 fn is_tmux_detached_without_new_session(args: &[String]) -> bool {
-    is_tmux_detached_arg(args) && !is_tmux_new_session_command(args)
+    tmux_has_detached_arg(args) && !is_tmux_new_session_command(args)
 }
-
 
 fn is_tmux_list_sessions_command(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "list-sessions" || arg == "ls")
@@ -269,7 +271,8 @@ fn is_tmux_attach_without_target(args: &[String]) -> bool {
 }
 
 fn is_tmux_attach_command(args: &[String]) -> bool {
-    args.iter().any(|arg| arg == "attach" || arg == "attach-session")
+    args.iter()
+        .any(|arg| arg == "attach" || arg == "attach-session")
 }
 
 fn tmux_attach_has_target(args: &[String]) -> bool {
@@ -329,7 +332,10 @@ fn resolve_tmux_launch(args: &TmuxArgs) -> Result<TmuxLaunch, Box<dyn Error>> {
             });
         }
 
-        return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, tmux_not_found_hint())));
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            tmux_not_found_hint(),
+        )));
     }
 
     Err(Box::new(io::Error::new(
@@ -345,7 +351,6 @@ fn tmux_not_found_hint() -> &'static str {
     }
 }
 
-
 use clap::Parser;
 
 #[derive(Parser)]
@@ -359,27 +364,23 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
     run(cli.args)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::{
-        is_tmux_attach_without_target,
-        is_tmux_detached_without_new_session,
-        is_tmux_detached_without_tmux_command,
-        is_tmux_new_session_command,
-        is_tmux_list_sessions_command,
-        tmux_failure_message,
-        tmux_launch_failure_hint,
+        TmuxKind, TmuxLaunch, is_tmux_attach_without_target, is_tmux_detached_without_new_session,
+        is_tmux_detached_without_tmux_command, is_tmux_list_sessions_command,
+        is_tmux_new_session_command, tmux_failure_message, tmux_launch_failure_hint,
         tmux_wsl_runtime_hint,
-        TmuxLaunch,
-        TmuxKind,
     };
     #[test]
     fn detects_tmux_detached_and_attach_flags() {
         let args = vec!["-d".to_string()];
         assert!(is_tmux_detached_without_tmux_command(&args));
         assert!(is_tmux_detached_without_new_session(&args));
-        assert!(!is_tmux_detached_without_new_session(&["-d".to_string(), "new".to_string()]));
+        assert!(!is_tmux_detached_without_new_session(&[
+            "-d".to_string(),
+            "new".to_string()
+        ]));
     }
 
     #[test]
@@ -387,7 +388,9 @@ mod tests {
         let args = vec!["attach".to_string(), "-t".to_string(), "demo".to_string()];
         assert!(!is_tmux_attach_without_target(&args));
         assert!(is_tmux_attach_without_target(&["attach".to_string()]));
-        assert!(is_tmux_list_sessions_command(&["list-sessions".to_string()]));
+        assert!(is_tmux_list_sessions_command(
+            &["list-sessions".to_string()]
+        ));
         assert!(is_tmux_list_sessions_command(&["ls".to_string()]));
         assert!(is_tmux_new_session_command(&["new".to_string()]));
     }
@@ -411,8 +414,3 @@ mod tests {
         assert_eq!(msg, "tmux 失败（退出码 1）：命令返回失败");
     }
 }
-
-
-
-
-
