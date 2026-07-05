@@ -147,6 +147,12 @@ impl ScreenSessionBus {
         });
     }
 
+    pub(crate) fn detach_client(&self) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.attach_clients = state.attach_clients.saturating_sub(1);
+        }
+    }
+
     pub(crate) fn publish_detach(&self) {
         self.publish(ScreenSessionEvent::Detach, |_| {});
     }
@@ -200,6 +206,17 @@ mod tests {
         assert_eq!(bus.status_snapshot().attach_clients, 1);
         drop(subscription);
         assert_eq!(bus.status_snapshot().attach_clients, 0);
+    }
+
+    #[test]
+    fn detaches_one_client_without_broadcasting() {
+        let bus = ScreenSessionBus::new();
+        let (_replay, subscription) = bus.subscribe_with_replay();
+
+        bus.detach_client();
+
+        assert_eq!(bus.status_snapshot().attach_clients, 0);
+        assert!(subscription.try_recv().is_err());
     }
 
     #[test]

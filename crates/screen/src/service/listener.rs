@@ -72,7 +72,10 @@ fn handle_client(
             }
             stream_attach(stream, bus)
         }
-        Ok(ScreenIpcRequest::Detach) => write_response(stream, &ScreenIpcResponse::Accepted),
+        Ok(ScreenIpcRequest::Detach) => {
+            bus.detach_client();
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        },
         Ok(ScreenIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &ScreenIpcResponse::Accepted)
