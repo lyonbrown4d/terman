@@ -15,6 +15,7 @@ builtin-screen-cli-examples =
       - terman-screen -R dev
       - terman-screen -wipe
       - terman-screen -S dev -X quit
+      - terman-screen -S dev -Q info
       - terman-screen -S dev -X stuff "echo hi\n"
       - terman-screen -S dev -p 0 -X stuff "echo hi\n"
       - terman-screen -r dev

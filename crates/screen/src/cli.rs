@@ -58,10 +58,12 @@ pub struct ScreenArgs {
     )]
     pub window_selector: Option<String>,
 
-    /// Execute a control command against an existing screen session.
+    /// Execute or query a control command against an existing screen session.
     #[arg(
         short = 'X',
+        short_alias = 'Q',
         long = "execute",
+        alias = "query",
         value_name = "COMMAND",
         conflicts_with_all = ["command", "list", "wipe", "resume", "multi_attach", "internal_server"]
     )]
