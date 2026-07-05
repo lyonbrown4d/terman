@@ -100,7 +100,7 @@ terman-tmux new -s demo
 terman-tmux new -s demo
 ```
 
-Windows 就走 Windows 本机能力，Linux 就走 Linux 本机能力；项目不把 WSL 作为运行后端或依赖路径。
+Windows 就走 Windows 本机能力，Linux 就走 Linux 本机能力；项目不引入跨系统代理后端。
 
 ## 跨平台快速排查
 

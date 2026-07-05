@@ -1,17 +1,15 @@
 use std::{
-    env,
     error::Error,
     io,
     process::{Command, ExitStatus, Stdio},
 };
 
-use terman_common;
-
 use clap::Args;
+use terman_common;
 
 #[derive(Args, Debug)]
 #[command(
-    about = "tmux 桥接入口（按原生命令参数透传）",
+    about = "tmux 桥接入口（按当前平台的原生命令参数透传）",
     after_help = "常见用法示例：\n  - terman-tmux new -s dev\n  - terman-tmux new-session -s dev\n  - terman-tmux attach -t <session>\n  - terman-tmux attach-session -t <session>\n  - terman-tmux list-sessions\n  - terman-tmux --detached new -s dev\n\n排查示例（最小复现）：\n  - 会话不存在：terman-tmux attach -t missing-session\n  - 先查看会话：terman-tmux list-sessions\n  - 名称冲突：terman-tmux new -s demo\n  - 再复现冲突：terman-tmux new -s demo\n"
 )]
 pub struct TmuxArgs {
@@ -19,7 +17,6 @@ pub struct TmuxArgs {
     /// 已开启 `--detached` 且未显式使用 `new/new-session` 时，tmux 可能按默认行为忽略或返回不同结果。
     #[arg(long)]
     pub detached: bool,
-
 
     /// Directly passed arguments for tmux.
     #[arg(trailing_var_arg = true)]
@@ -82,6 +79,7 @@ pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
         )))
     }
 }
+
 fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
     let status: ExitStatus = Command::new(&launch.cmd)
         .arg("-V")
@@ -102,28 +100,17 @@ fn validate_tmux_launch(launch: &TmuxLaunch) -> Result<(), Box<dyn Error>> {
         )))
     }
 }
+
 fn tmux_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
     format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }
 
-fn tmux_launch_failure_hint(launch: &TmuxLaunch) -> String {
-    match launch.kind {
-        TmuxKind::Native => tmux_not_found_hint().to_string(),
-        TmuxKind::Wsl => {
-            format!("当前使用显式 --wsl tmux 兼容路径，{}", tmux_wsl_runtime_hint())
-        }
-    }
+fn tmux_launch_failure_hint() -> String {
+    tmux_not_found_hint()
 }
-fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> String {
+
+fn tmux_runtime_hints(args: &[String], exit_code: i32) -> String {
     let mut hints = Vec::new();
-    if *kind == TmuxKind::Wsl {
-        hints.push(terman_common::wsl_runtime_hint("tmux"));
-    }
-    if *kind == TmuxKind::Wsl && tmux_has_detached_arg(args) {
-        hints.push(
-            "显式 --wsl 兼容路径执行 detached 场景失败时，可在同一 WSL 发行版中复现：wsl -e tmux <同样参数>；如不想使用 WSL，请移除 --wsl。".to_string(),
-        );
-    }
 
     if is_tmux_detached_without_tmux_command(args) {
         hints.push(
@@ -152,37 +139,15 @@ fn tmux_runtime_hints(args: &[String], exit_code: i32, kind: &TmuxKind) -> Strin
             "新建会话命令返回 1，常见为会话名冲突或会话无法创建。建议先运行 terman-tmux list-sessions 确认现有会话，再换名重试。".to_string(),
         );
     }
+
     if hints.is_empty() {
-        let default_hint = match (kind, exit_code) {
-            (TmuxKind::Wsl, 1) => {
-                "常见失败原因：参数错误、会话不存在，或显式 --wsl 后端与终端环境不兼容。可执行 `wsl -e tmux -V` 检查该兼容后端；默认目标仍是本机跨平台 tmux。".to_string()
-            }
-            (TmuxKind::Wsl, 2) => {
-                "显式 --wsl 兼容路径执行失败（退出码 2）：常见为权限/文件系统上下文问题。可在同一 WSL 发行版中复现，或移除 --wsl 使用本机路径。".to_string()
-            }
-            (_, 1) => {
-                "常见失败原因：参数错误、会话不存在、或 tmux 当前状态不允许该操作。建议确认参数后重试。".to_string()
-            }
-            (_, 2) => {
-                "常见失败原因：tmux 无法执行该命令或权限受限。建议检查可执行文件与文件系统权限。".to_string()
-            }
-            (_, 126) => {
-                "tmux 可执行文件不可执行。可先确认 `tmux` 的权限（chmod +x 或重新安装）。".to_string()
-            }
-            (_, 127) => match kind {
-                TmuxKind::Wsl => {
-                    "显式 --wsl 兼容路径中未检测到 tmux。请确认该 WSL 发行版内已有 tmux，或移除 --wsl 使用本机跨平台路径。".to_string()
-                }
-                TmuxKind::Native => {
-                    "未检测到本机 tmux 命令。请先确认本机安装路径；--wsl 仅作为显式兼容后端。".to_string()
-                }
-            },
-            (_, 130) => {
-                "tmux 被用户中断（Ctrl-C）。如命令应当持久运行可改为后台启动并检查参数。".to_string()
-            }
-            _ => {
-                "建议先用最小参数复现，或结合 `tmux` 原生命令进行排查。".to_string()
-            }
+        let default_hint = match exit_code {
+            1 => "常见失败原因：参数错误、会话不存在、或 tmux 当前状态不允许该操作。建议确认参数后重试。".to_string(),
+            2 => "常见失败原因：tmux 无法执行该命令或权限受限。建议检查可执行文件与文件系统权限。".to_string(),
+            126 => "tmux 可执行文件不可执行。可先确认 `tmux` 的权限（chmod +x 或重新安装）。".to_string(),
+            127 => "未检测到本机 tmux 命令。请先确认本机安装路径。".to_string(),
+            130 => "tmux 被用户中断（Ctrl-C）。如命令应当持久运行可改为后台启动并检查参数。".to_string(),
+            _ => "建议先用最小参数复现，或结合 `tmux` 原生命令进行排查。".to_string(),
         };
         hints.push(default_hint);
     }
@@ -238,12 +203,9 @@ fn resolve_tmux_launch() -> Result<TmuxLaunch, Box<dyn Error>> {
         tmux_not_found_hint(),
     )))
 }
-fn tmux_not_found_hint() -> &'static str {
-    if cfg!(windows) {
-        "未检测到本机 tmux。请安装当前平台的 tmux 可执行文件，或继续使用 terman-screen。"
-    } else {
-        "未检测到 tmux。请先安装 tmux（apt/yum/brew/pacman）。"
-    }
+
+fn tmux_not_found_hint() -> String {
+    terman_common::native_tool_not_found_hint("tmux")
 }
 
 use clap::Parser;
@@ -262,11 +224,11 @@ pub fn run_with_binary_parse() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::{
-        TmuxKind, TmuxLaunch, is_tmux_attach_without_target, is_tmux_detached_without_new_session,
+        is_tmux_attach_without_target, is_tmux_detached_without_new_session,
         is_tmux_detached_without_tmux_command, is_tmux_list_sessions_command,
         is_tmux_new_session_command, tmux_failure_message, tmux_launch_failure_hint,
-        tmux_wsl_runtime_hint,
     };
+
     #[test]
     fn detects_tmux_detached_and_attach_flags() {
         let args = vec!["-d".to_string()];
@@ -291,16 +253,9 @@ mod tests {
     }
 
     #[test]
-    fn tmux_launch_failure_hint_for_wsl_contains_hint() {
-        let launch = TmuxLaunch {
-            cmd: String::from("tmux"),
-            kind: TmuxKind::Wsl,
-            extra_args: vec![],
-        };
-
+    fn tmux_launch_failure_hint_mentions_native_tool() {
         let hint = tmux_launch_failure_hint();
         assert!(hint.contains("tmux"));
-        assert!(hint.contains(&tmux_wsl_runtime_hint()));
     }
 
     #[test]
