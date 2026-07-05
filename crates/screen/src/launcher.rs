@@ -9,17 +9,23 @@ use std::{
 
 use terman_common::{
     builtin_screen_named_session_required_hint, builtin_screen_server_timeout_hint,
+    builtin_screen_session_exists_hint,
 };
 
-use crate::{ScreenArgs, service::request_screen_attach};
+use crate::{
+    ScreenArgs,
+    service::{request_screen_attach, request_screen_server_ready},
+    sessions::find_builtin_screen_session_for_attach,
+};
 
 const SERVER_ATTACH_ATTEMPTS: usize = 80;
 const SERVER_ATTACH_RETRY_DELAY: Duration = Duration::from_millis(25);
 
 pub(crate) fn run_detached_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    require_session_name(&args)?;
+    let session_name = require_session_name(&args)?;
+    ensure_named_session_available(&session_name)?;
     spawn_screen_server(&args)?;
-    Ok(())
+    wait_until_ready(&session_name)
 }
 
 pub(crate) fn run_resume_or_create_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -45,12 +51,8 @@ pub(crate) fn run_resume_or_create_screen_session(args: ScreenArgs) -> Result<()
 }
 
 pub(crate) fn run_named_screen_session(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
-    let session_name = args.session_name.clone().ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            builtin_screen_named_session_required_hint(),
-        )
-    })?;
+    let session_name = require_session_name(&args)?;
+    ensure_named_session_available(&session_name)?;
 
     spawn_screen_server(&args)?;
 
@@ -68,6 +70,17 @@ fn require_session_name(args: &ScreenArgs) -> io::Result<String> {
             builtin_screen_named_session_required_hint(),
         )
     })
+}
+
+fn ensure_named_session_available(session_name: &str) -> io::Result<()> {
+    match find_builtin_screen_session_for_attach(Some(session_name)) {
+        Ok(_) => Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            builtin_screen_session_exists_hint(session_name),
+        )),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(err),
+    }
 }
 
 fn spawn_screen_server(args: &ScreenArgs) -> io::Result<()> {
@@ -96,6 +109,27 @@ fn spawn_screen_server(args: &ScreenArgs) -> io::Result<()> {
 
     let _child = command.spawn()?;
     Ok(())
+}
+
+fn wait_until_ready(session_name: &str) -> Result<(), Box<dyn Error>> {
+    let mut last_error: Option<io::Error> = None;
+
+    for _ in 0..SERVER_ATTACH_ATTEMPTS {
+        match request_screen_server_ready(session_name) {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                last_error = Some(err);
+                thread::sleep(SERVER_ATTACH_RETRY_DELAY);
+            }
+        }
+    }
+
+    Err(Box::new(last_error.unwrap_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::TimedOut,
+            builtin_screen_server_timeout_hint(),
+        )
+    })))
 }
 
 fn attach_when_ready(args: &ScreenArgs) -> Result<(), Box<dyn Error>> {

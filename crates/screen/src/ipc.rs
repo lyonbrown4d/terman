@@ -69,6 +69,7 @@ pub(crate) enum ScreenIpcRequest {
         detach_existing: bool,
     },
     Detach,
+    Ping,
     Quit,
     Input {
         bytes: Vec<u8>,

@@ -104,6 +104,11 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     attach_interactive(endpoint, stream)
 }
 
+pub(crate) fn request_screen_server_ready(session_name: &str) -> io::Result<()> {
+    let endpoint = ScreenIpcEndpoint::for_session(session_name);
+    send_control_request(&endpoint, ScreenIpcRequest::Ping)
+}
+
 pub(crate) fn request_screen_control_command(args: &ScreenArgs) -> io::Result<()> {
     let Some(command_text) = args
         .execute
