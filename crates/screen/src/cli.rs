@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 #[derive(Args, Debug, Clone)]
 #[command(
     about = "跨平台 screen 终端会话工具（自实现内置后端）",
-    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -dmS dev\n  - terman-screen -D -r dev\n  - terman-screen -d -r dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
+    after_help = "常见用法示例：\n  - terman-screen\n  - terman-screen -S dev\n  - terman-screen --list\n  - terman-screen -ls\n  - terman-screen -d -S dev\n  - terman-screen -d -m -S dev\n  - terman-screen -dmS dev\n  - terman-screen -D -r dev\n  - terman-screen -d -r dev\n  - terman-screen -R dev\n  - terman-screen -wipe\n  - terman-screen -S dev -X quit\n  - terman-screen -S dev -X stuff \"echo hi\\n\"\n  - terman-screen -r dev\n  - terman-screen -x dev"
 )]
 pub struct ScreenArgs {
     /// If set, run this command string through the platform shell in built-in mode.
@@ -156,6 +156,7 @@ fn normalize_screen_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsStri
             Some("-wipe") => normalized.push(OsString::from("--wipe")),
             Some("-D") => normalized.push(OsString::from("--detach-existing")),
             Some("-d") if attach_requested => normalized.push(OsString::from("--detach-existing")),
+            Some("-m") => {}
             Some("-dm") => normalized.push(OsString::from("-d")),
             Some("-dmS") => {
                 normalized.push(OsString::from("-d"));
