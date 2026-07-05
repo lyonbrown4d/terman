@@ -80,6 +80,10 @@ pub fn builtin_screen_attach_target_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachTargetRequired, &[])
 }
 
+pub fn builtin_screen_attach_output_thread_panicked_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenAttachOutputThreadPanicked, &[])
+}
+
 pub fn builtin_screen_session_not_found_hint(name: &str) -> String {
     localized_message(MessageKey::BuiltinScreenSessionNotFound, &[("name", name)])
 }

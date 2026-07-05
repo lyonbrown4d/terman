@@ -111,7 +111,7 @@ pub(super) fn attach_interactive(
         Ok(result) => result,
         Err(_) => Err(io::Error::new(
             io::ErrorKind::Other,
-            "screen attach output thread panicked",
+            terman_common::builtin_screen_attach_output_thread_panicked_hint(),
         )),
     }
 }

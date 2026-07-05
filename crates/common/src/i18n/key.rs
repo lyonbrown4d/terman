@@ -38,6 +38,7 @@ pub enum MessageKey {
     BuiltinScreenAttachHelp,
     BuiltinScreenAttachHardcopyPathUnavailable,
     BuiltinScreenAttachTargetRequired,
+    BuiltinScreenAttachOutputThreadPanicked,
     BuiltinScreenSessionNotFound,
     BuiltinScreenNamedSessionRequired,
     BuiltinScreenServerTimeout,
@@ -103,6 +104,9 @@ impl MessageKey {
                 "builtin-screen-attach-hardcopy-path-unavailable"
             }
             Self::BuiltinScreenAttachTargetRequired => "builtin-screen-attach-target-required",
+            Self::BuiltinScreenAttachOutputThreadPanicked => {
+                "builtin-screen-attach-output-thread-panicked"
+            }
             Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
             Self::BuiltinScreenNamedSessionRequired => "builtin-screen-named-session-required",
             Self::BuiltinScreenServerTimeout => "builtin-screen-server-timeout",

@@ -29,6 +29,7 @@ builtin-screen-attach-unsupported = Built-in screen attach is not available yet.
 builtin-screen-attach-help = screen keys: Ctrl-A d detach | Ctrl-A D detach all | Ctrl-A k kill session | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A h hardcopy | Ctrl-A i info | Ctrl-A ? help | Ctrl-A Ctrl-A send literal Ctrl-A
 builtin-screen-attach-hardcopy-path-unavailable = No available screen attach hardcopy path.
 builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
+builtin-screen-attach-output-thread-panicked = Screen attach output thread panicked.
 builtin-screen-session-not-found = Built-in screen session `{$name}` was not found.
 builtin-screen-named-session-required = Named screen session launch requires a session name.
 builtin-screen-server-timeout = Timed out waiting for the built-in screen session server.
