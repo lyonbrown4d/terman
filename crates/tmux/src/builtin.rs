@@ -1,6 +1,7 @@
 use std::{error::Error, io};
 
 use crate::{
+    attach::attach_builtin_tmux_session,
     args::{
         rename_session_name_arg, rename_window_name_arg, session_name_arg, target_session_arg,
         target_session_name_arg, target_window_index_arg,
@@ -51,6 +52,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::RenameWindow => {
             rename_builtin_tmux_window_command(args)?;
+            Ok(true)
+        }
+        TmuxCommand::AttachSession => {
+            attach_builtin_tmux_session(args)?;
             Ok(true)
         }
         TmuxCommand::NewSession if new_session_is_detached(args, detached) => {

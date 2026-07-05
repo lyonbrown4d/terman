@@ -1,6 +1,7 @@
 use std::{error::Error, io};
 
 mod args;
+mod attach;
 mod builtin;
 mod cli;
 mod command;
