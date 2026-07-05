@@ -144,6 +144,10 @@ pub fn builtin_screen_control_resize_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlResizeRequired, &[])
 }
 
+pub fn builtin_screen_control_help_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlHelp, &[])
+}
+
 pub fn builtin_screen_control_select_unsupported_hint(selector: &str) -> String {
     localized_message(
         MessageKey::BuiltinScreenControlSelectUnsupported,

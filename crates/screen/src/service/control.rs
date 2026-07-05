@@ -3,6 +3,7 @@ use std::{fs, io};
 use super::{
     control_at::request_at_command,
     control_colon::request_colon_command,
+    control_help::request_help_command,
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     control_select::request_select_command,
     control_sleep::request_sleep_command,
@@ -45,6 +46,10 @@ fn execute_control_command(
         "quit" | "kill" => send_session_control_request(args, ScreenIpcRequest::Quit),
         "detach" | "pow_detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
+        "help" => {
+            request_help_command();
+            Ok(())
+        }
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
         "echo" | "wall" => request_echo_command(args, inline_payload, extra_args),

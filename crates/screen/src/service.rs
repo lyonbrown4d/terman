@@ -4,6 +4,7 @@ mod client;
 mod control;
 mod control_at;
 mod control_colon;
+mod control_help;
 mod control_parse;
 mod control_select;
 mod control_sleep;
