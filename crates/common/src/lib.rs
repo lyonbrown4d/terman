@@ -20,6 +20,9 @@ const EN_US_MESSAGES: &str = include_str!("../i18n/en-US.ftl");
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MessageKey {
     NativeToolNotFound,
+    BuiltinScreenNoSessions,
+    BuiltinScreenSessionListHeader,
+    BuiltinScreenSessionExists,
 }
 
 impl MessageKey {
@@ -28,6 +31,7 @@ impl MessageKey {
             Self::NativeToolNotFound => "native-tool-not-found",
             Self::BuiltinScreenNoSessions => "builtin-screen-no-sessions",
             Self::BuiltinScreenSessionListHeader => "builtin-screen-session-list-header",
+            Self::BuiltinScreenSessionExists => "builtin-screen-session-exists",
         }
     }
 }
@@ -44,6 +48,18 @@ pub fn localized_message(key: MessageKey, vars: &[(&str, &str)]) -> String {
 
 pub fn native_tool_not_found_hint(tool: &str) -> String {
     localized_message(MessageKey::NativeToolNotFound, &[("tool", tool)])
+}
+
+pub fn builtin_screen_no_sessions_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenNoSessions, &[])
+}
+
+pub fn builtin_screen_session_list_header() -> String {
+    localized_message(MessageKey::BuiltinScreenSessionListHeader, &[])
+}
+
+pub fn builtin_screen_session_exists_hint(name: &str) -> String {
+    localized_message(MessageKey::BuiltinScreenSessionExists, &[("name", name)])
 }
 
 fn localized_message_for_language(
@@ -116,10 +132,21 @@ fn fallback_message(key: MessageKey, vars: &[(&str, &str)]) -> String {
         .iter()
         .find_map(|(name, value)| (*name == "tool").then_some(*value))
         .unwrap_or("tool");
+    let session_name = vars
+        .iter()
+        .find_map(|(name, value)| (*name == "name").then_some(*value))
+        .unwrap_or("session");
 
     match key {
         MessageKey::NativeToolNotFound => format!(
             "{tool} was not found on this platform. Install a native {tool} executable or use the built-in implementation when available."
+        ),
+        MessageKey::BuiltinScreenNoSessions => String::from(
+            "No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.",
+        ),
+        MessageKey::BuiltinScreenSessionListHeader => String::from("Built-in screen sessions:"),
+        MessageKey::BuiltinScreenSessionExists => format!(
+            "Built-in screen session `{session_name}` already exists. Run `terman-screen --list` to inspect existing sessions, or choose another name."
         ),
     }
 }
@@ -190,8 +217,8 @@ pub fn terminal_env() -> Vec<(String, String)> {
 mod tests {
     use super::{
         MessageKey, MessageLanguage, command_status_with_timeout, localized_message_for_language,
-        builtin_screen_no_sessions_hint, builtin_screen_session_list_header,
-        message_language_from_tag, native_tool_not_found_hint,
+        builtin_screen_no_sessions_hint, builtin_screen_session_exists_hint,
+        builtin_screen_session_list_header, message_language_from_tag, native_tool_not_found_hint,
     };
     use std::time::Duration;
 
@@ -230,6 +257,13 @@ mod tests {
     fn native_tool_not_found_hint_mentions_tool() {
         let hint = native_tool_not_found_hint("screen");
         assert!(hint.contains("screen"));
+    }
+
+    #[test]
+    fn renders_builtin_screen_session_messages_from_resources() {
+        assert!(builtin_screen_no_sessions_hint().contains("screen"));
+        assert!(builtin_screen_session_list_header().contains("screen"));
+        assert!(builtin_screen_session_exists_hint("dev").contains("dev"));
     }
 
     #[test]

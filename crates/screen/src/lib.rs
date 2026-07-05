@@ -357,6 +357,12 @@ fn register_builtin_screen_session(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
+    if path.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            terman_common::builtin_screen_session_exists_hint(session_name),
+        ));
+    }
 
     let cwd = env::current_dir()
         .map(|path| path.to_string_lossy().to_string())
