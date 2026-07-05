@@ -16,7 +16,7 @@ pub(crate) fn kill_builtin_tmux_session_command(args: &[String]) -> Result<(), B
         return Err(session_not_found_error(&target));
     };
 
-    request_session_quit(&session);
+    request_builtin_tmux_session_quit(&session);
     if remove_builtin_tmux_session(&target)? {
         println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
         Ok(())
@@ -33,7 +33,7 @@ pub(crate) fn kill_builtin_tmux_server() -> Result<(), Box<dyn Error>> {
     }
 
     for session in sessions {
-        request_session_quit(&session);
+        request_builtin_tmux_session_quit(&session);
         if remove_builtin_tmux_session(&session.name)? {
             println!(
                 "{}",
@@ -45,7 +45,7 @@ pub(crate) fn kill_builtin_tmux_server() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn request_session_quit(session: &BuiltinTmuxSession) {
+pub(crate) fn request_builtin_tmux_session_quit(session: &BuiltinTmuxSession) {
     let endpoint = session_endpoint(session);
     let _ = request_endpoint_response(&endpoint, TmuxIpcRequest::Quit);
 }

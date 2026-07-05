@@ -7,7 +7,10 @@ use crate::{
         target_session_name_arg, target_window_index_arg,
     },
     command::TmuxCommand,
-    lifecycle::{kill_builtin_tmux_server, kill_builtin_tmux_session_command},
+    lifecycle::{
+        kill_builtin_tmux_server, kill_builtin_tmux_session_command,
+        request_builtin_tmux_session_quit,
+    },
     new_session::create_builtin_tmux_session,
     sessions::{
         AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, RenameBuiltinTmuxSession,
@@ -109,6 +112,10 @@ fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
 
 fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
+    let session = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target);
+
     match kill_builtin_tmux_window(&target)? {
         KillBuiltinTmuxWindow::Killed(windows) => {
             println!(
@@ -118,6 +125,9 @@ fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error
             Ok(())
         }
         KillBuiltinTmuxWindow::SessionKilled => {
+            if let Some(session) = session {
+                request_builtin_tmux_session_quit(&session);
+            }
             println!("{}", terman_common::builtin_tmux_session_killed_hint(&target));
             Ok(())
         }
