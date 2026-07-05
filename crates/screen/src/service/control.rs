@@ -2,6 +2,7 @@ use std::{fs, io};
 
 use super::{
     control_at::request_at_command,
+    control_colon::request_colon_command,
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     ipc_client::request_endpoint_response,
     sessionname::request_sessionname_command,
@@ -44,6 +45,7 @@ fn execute_control_command(
         "echo" | "wall" => request_echo_command(args, inline_payload, extra_args),
         "eval" => request_eval_command(args, inline_payload, extra_args),
         "at" => request_at_command(args, inline_payload, extra_args, execute_control_command),
+        "colon" => request_colon_command(args, inline_payload, extra_args, execute_control_command),
         "info" => request_session_info(args),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),

@@ -3,6 +3,7 @@ mod attach_output;
 mod client;
 mod control;
 mod control_at;
+mod control_colon;
 mod control_parse;
 mod ipc_client;
 mod listener;
