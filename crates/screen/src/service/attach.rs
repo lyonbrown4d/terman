@@ -14,7 +14,7 @@ use crossterm::{
 };
 use interprocess::local_socket::prelude::*;
 
-use super::client::send_control_request;
+use super::ipc_client::send_control_request;
 use crate::{
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_input::{ScreenInputAction, ScreenInputDecoder},
@@ -123,3 +123,4 @@ fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
         }
     }
 }
+
