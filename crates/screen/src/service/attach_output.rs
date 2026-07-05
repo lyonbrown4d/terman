@@ -1,4 +1,5 @@
 use std::{
+    env,
     fs::OpenOptions,
     io::{self, Write},
 };
@@ -6,7 +7,8 @@ use std::{
 use super::ipc_client::request_endpoint_response;
 use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse};
 
-const ATTACH_HARDCOPY_BASENAME: &str = "hardcopy";
+const ATTACH_HARDCOPY_PREFIX_ENV: &str = "TERMAN_SCREEN_HARDCOPY_PREFIX";
+const DEFAULT_ATTACH_HARDCOPY_PREFIX: &str = "hardcopy";
 const MAX_ATTACH_HARDCOPY_SLOTS: usize = 10_000;
 
 pub(super) fn print_attach_help() -> io::Result<()> {
@@ -73,8 +75,9 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
 }
 
 fn write_numbered_hardcopy(bytes: &[u8]) -> io::Result<String> {
+    let prefix = attach_hardcopy_prefix();
     for index in 0..MAX_ATTACH_HARDCOPY_SLOTS {
-        let path = attach_hardcopy_path(index);
+        let path = attach_hardcopy_path(&prefix, index);
         match OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(mut file) => {
                 file.write_all(bytes)?;
@@ -91,8 +94,16 @@ fn write_numbered_hardcopy(bytes: &[u8]) -> io::Result<String> {
     ))
 }
 
-fn attach_hardcopy_path(index: usize) -> String {
-    format!("{ATTACH_HARDCOPY_BASENAME}.{index}")
+fn attach_hardcopy_prefix() -> String {
+    env::var(ATTACH_HARDCOPY_PREFIX_ENV)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| DEFAULT_ATTACH_HARDCOPY_PREFIX.to_string())
+}
+
+fn attach_hardcopy_path(prefix: &str, index: usize) -> String {
+    format!("{prefix}.{index}")
 }
 
 #[cfg(test)]
@@ -101,7 +112,7 @@ mod tests {
 
     #[test]
     fn formats_attach_hardcopy_path() {
-        assert_eq!(attach_hardcopy_path(0), "hardcopy.0");
-        assert_eq!(attach_hardcopy_path(42), "hardcopy.42");
+        assert_eq!(attach_hardcopy_path("hardcopy", 0), "hardcopy.0");
+        assert_eq!(attach_hardcopy_path("screen-copy", 42), "screen-copy.42");
     }
 }
