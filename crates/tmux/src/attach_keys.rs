@@ -1,11 +1,33 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
-pub(crate) fn key_event_bytes(key: KeyEvent) -> Option<Vec<u8>> {
-    if key.kind != KeyEventKind::Press {
+pub(crate) fn is_key_press(key: &KeyEvent) -> bool {
+    key.kind == KeyEventKind::Press
+}
+
+pub(crate) fn is_tmux_prefix_key(key: &KeyEvent) -> bool {
+    is_key_press(key)
+        && matches!(&key.code, KeyCode::Char('b') | KeyCode::Char('B'))
+        && key.modifiers.contains(KeyModifiers::CONTROL)
+        && !key.modifiers.contains(KeyModifiers::ALT)
+}
+
+pub(crate) fn is_detach_key(key: &KeyEvent) -> bool {
+    is_key_press(key)
+        && matches!(&key.code, KeyCode::Char('d'))
+        && !key.modifiers.contains(KeyModifiers::CONTROL)
+        && !key.modifiers.contains(KeyModifiers::ALT)
+}
+
+pub(crate) fn tmux_prefix_bytes() -> Vec<u8> {
+    vec![0x02]
+}
+
+pub(crate) fn key_event_bytes(key: &KeyEvent) -> Option<Vec<u8>> {
+    if !is_key_press(key) {
         return None;
     }
 
-    match key.code {
+    match &key.code {
         KeyCode::Backspace => Some(vec![0x7f]),
         KeyCode::Enter => Some(vec![b'\r']),
         KeyCode::Left => Some(ansi_bytes("\x1b[D")),
@@ -21,8 +43,8 @@ pub(crate) fn key_event_bytes(key: KeyEvent) -> Option<Vec<u8>> {
         KeyCode::Delete => Some(ansi_bytes("\x1b[3~")),
         KeyCode::Insert => Some(ansi_bytes("\x1b[2~")),
         KeyCode::Esc => Some(vec![0x1b]),
-        KeyCode::Char(ch) => char_key_bytes(ch, key.modifiers),
-        KeyCode::F(number) => function_key_bytes(number),
+        KeyCode::Char(ch) => char_key_bytes(*ch, key.modifiers),
+        KeyCode::F(number) => function_key_bytes(*number),
         _ => None,
     }
 }

@@ -5,14 +5,16 @@ use std::{
 };
 
 use crossterm::{
-    event::{read, Event},
+    event::{read, Event, KeyEvent},
     terminal::{disable_raw_mode, enable_raw_mode, size},
 };
 use interprocess::local_socket::prelude::*;
 
 use crate::{
     args::target_session_arg,
-    attach_keys::key_event_bytes,
+    attach_keys::{
+        is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
+    },
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::load_builtin_tmux_sessions,
@@ -123,17 +125,57 @@ fn spawn_terminal_event_forwarder(endpoint: TmuxIpcEndpoint) -> thread::JoinHand
 }
 
 fn forward_terminal_events(endpoint: TmuxIpcEndpoint) -> io::Result<()> {
+    let mut input_mode = AttachInputMode::default();
     loop {
         match read()? {
             Event::Key(key) => {
-                if let Some(bytes) = key_event_bytes(key) {
-                    send_request(&endpoint, TmuxIpcRequest::Input { bytes })?;
+                if !input_mode.handle_key(&endpoint, key)? {
+                    return Ok(());
                 }
             }
             Event::Resize(cols, rows) => send_resize(&endpoint, cols, rows)?,
             _ => {}
         }
     }
+}
+
+#[derive(Default)]
+struct AttachInputMode {
+    prefix_pending: bool,
+}
+
+impl AttachInputMode {
+    fn handle_key(&mut self, endpoint: &TmuxIpcEndpoint, key: KeyEvent) -> io::Result<bool> {
+        if !is_key_press(&key) {
+            return Ok(true);
+        }
+
+        if self.prefix_pending {
+            self.prefix_pending = false;
+            if is_detach_key(&key) {
+                send_request(endpoint, TmuxIpcRequest::Detach)?;
+                return Ok(false);
+            }
+            send_input(endpoint, tmux_prefix_bytes())?;
+            if is_tmux_prefix_key(&key) {
+                return Ok(true);
+            }
+        }
+
+        if is_tmux_prefix_key(&key) {
+            self.prefix_pending = true;
+            return Ok(true);
+        }
+
+        if let Some(bytes) = key_event_bytes(&key) {
+            send_input(endpoint, bytes)?;
+        }
+        Ok(true)
+    }
+}
+
+fn send_input(endpoint: &TmuxIpcEndpoint, bytes: Vec<u8>) -> io::Result<()> {
+    send_request(endpoint, TmuxIpcRequest::Input { bytes })
 }
 
 fn send_resize(endpoint: &TmuxIpcEndpoint, cols: u16, rows: u16) -> io::Result<()> {
