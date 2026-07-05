@@ -4,7 +4,10 @@ use std::{
     io,
 };
 
-use interprocess::local_socket::{GenericNamespaced, Name, ToNsName};
+use interprocess::local_socket::{
+    ConnectOptions, GenericNamespaced, ListenerOptions, Name, ToNsName,
+};
+use serde::{Deserialize, Serialize};
 
 const IPC_PREFIX: &str = "terman-tmux";
 
@@ -14,6 +17,13 @@ pub(crate) struct TmuxIpcEndpoint {
 }
 
 impl TmuxIpcEndpoint {
+    #[allow(dead_code)]
+    pub(crate) fn from_raw_name(raw_name: &str) -> Self {
+        Self {
+            raw_name: raw_name.to_string(),
+        }
+    }
+
     pub(crate) fn for_session(session_name: &str) -> Self {
         let mut hasher = DefaultHasher::new();
         session_name.hash(&mut hasher);
@@ -36,6 +46,47 @@ impl TmuxIpcEndpoint {
             .to_ns_name::<GenericNamespaced>()?
             .into_owned())
     }
+
+    #[allow(dead_code)]
+    pub(crate) fn connect_options(&self) -> io::Result<ConnectOptions<'static>> {
+        Ok(ConnectOptions::new().name(self.socket_name()?))
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn listener_options(&self) -> io::Result<ListenerOptions<'static>> {
+        Ok(ListenerOptions::new().name(self.socket_name()?))
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub(crate) enum TmuxIpcRequest {
+    Attach,
+    Detach,
+    DetachAll,
+    Info,
+    Input { bytes: Vec<u8> },
+    Ping,
+    Quit,
+    Resize { cols: u16, rows: u16 },
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub(crate) enum TmuxIpcResponse {
+    Accepted,
+    Attached { replay: Vec<u8> },
+    Detached,
+    Info {
+        session_name: String,
+        windows: u32,
+        attached_clients: u32,
+        cwd: String,
+    },
+    Output { bytes: Vec<u8> },
+    Rejected { reason: String },
+    Resize { cols: u16, rows: u16 },
+    Exit { code: i32 },
 }
 
 fn sanitize_ipc_component(value: &str) -> String {
@@ -59,7 +110,7 @@ fn sanitize_ipc_component(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::TmuxIpcEndpoint;
+    use super::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse};
 
     #[test]
     fn creates_stable_endpoint_name_for_session() {
@@ -68,5 +119,31 @@ mod tests {
 
         assert_eq!(left.raw_name(), right.raw_name());
         assert!(left.raw_name().starts_with("terman-tmux-dev_session-"));
+    }
+
+    #[test]
+    fn preserves_raw_endpoint_name() {
+        let endpoint = TmuxIpcEndpoint::from_raw_name("terman-tmux-dev");
+
+        assert_eq!(endpoint.raw_name(), "terman-tmux-dev");
+    }
+
+    #[test]
+    fn models_tmux_ipc_protocol() {
+        assert_eq!(TmuxIpcRequest::Ping, TmuxIpcRequest::Ping);
+        assert_eq!(
+            TmuxIpcResponse::Info {
+                session_name: String::from("dev"),
+                windows: 1,
+                attached_clients: 0,
+                cwd: String::from("/tmp"),
+            },
+            TmuxIpcResponse::Info {
+                session_name: String::from("dev"),
+                windows: 1,
+                attached_clients: 0,
+                cwd: String::from("/tmp"),
+            }
+        );
     }
 }
