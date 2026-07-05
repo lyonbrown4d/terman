@@ -75,6 +75,7 @@ pub(crate) enum ScreenIpcRequest {
     Info,
     Ping,
     Quit,
+    Reset,
     Input {
         bytes: Vec<u8>,
     },
@@ -174,4 +175,5 @@ mod tests {
         );
     }
 }
+
 

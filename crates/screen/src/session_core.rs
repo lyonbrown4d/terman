@@ -118,6 +118,10 @@ impl ScreenSessionBus {
         }
     }
 
+    pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {
+        self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |_| {});
+    }
+
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
         self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |state| {
             state.replay.extend_from_slice(bytes);
@@ -195,4 +199,5 @@ mod tests {
         );
     }
 }
+
 
