@@ -2,6 +2,7 @@ use std::{error::Error, io};
 
 mod args;
 mod attach;
+mod attach_keys;
 mod builtin;
 mod cli;
 mod command;
