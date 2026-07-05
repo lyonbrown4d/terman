@@ -49,6 +49,10 @@ pub struct ScreenArgs {
     /// Start a login shell when supported by the platform shell.
     #[arg(long)]
     pub login_shell: bool,
+
+    /// Internal headless session server mode.
+    #[arg(long = "__screen-server", hide = true)]
+    pub internal_server: bool,
 }
 
 impl Default for ScreenArgs {
@@ -62,6 +66,7 @@ impl Default for ScreenArgs {
             resume: None,
             multi_attach: None,
             login_shell: false,
+            internal_server: false,
         }
     }
 }

@@ -1,19 +1,11 @@
 use std::{
     error::Error,
     io::{self, Read, Write},
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-        mpsc,
-    },
+    sync::mpsc,
     thread,
     time::Duration,
 };
 
-use crossterm::{
-    event::{self, Event},
-    terminal::{self, size as terminal_size},
-};
 use portable_pty::{PtySize, native_pty_system};
 
 use crate::{
@@ -22,26 +14,16 @@ use crate::{
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
-    shell::{default_shell, shell_command_args},
-    terminal_input::key_to_bytes,
 };
 
-struct RawMode;
-
-impl RawMode {
-    fn enter() -> io::Result<Self> {
-        terminal::enable_raw_mode()?;
-        Ok(Self)
+pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    if args.session_name.is_none() {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "internal screen server requires a session name",
+        )));
     }
-}
 
-impl Drop for RawMode {
-    fn drop(&mut self) {
-        let _ = terminal::disable_raw_mode();
-    }
-}
-
-pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let _session_record = register_builtin_screen_session(&args)?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
@@ -50,13 +32,11 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         session_bus.clone(),
         control_tx,
     )?;
-    let _raw = RawMode::enter()?;
-    let (cols, rows) = resolve_size(args.cols, args.rows);
 
     let pty_system = native_pty_system();
     let pty_size = PtySize {
-        cols,
-        rows,
+        cols: args.cols.unwrap_or(120),
+        rows: args.rows.unwrap_or(32),
         pixel_width: 0,
         pixel_height: 0,
     };
@@ -69,25 +49,13 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let mut reader = master.try_clone_reader()?;
     let mut writer = master.take_writer()?;
 
-    let should_run = Arc::new(AtomicBool::new(true));
-    let mut stdout = io::stdout();
-
-    let output_running = Arc::clone(&should_run);
     let output_bus = session_bus.clone();
     let output_thread = thread::spawn(move || {
         let mut buf = [0u8; 8192];
-        while output_running.load(Ordering::Acquire) {
+        loop {
             match reader.read(&mut buf) {
                 Ok(0) => break,
-                Ok(n) => {
-                    output_bus.publish_output(&buf[..n]);
-                    if stdout.write_all(&buf[..n]).is_err() {
-                        break;
-                    }
-                    if stdout.flush().is_err() {
-                        break;
-                    }
-                }
+                Ok(n) => output_bus.publish_output(&buf[..n]),
                 Err(_) => break,
             }
         }
@@ -104,8 +72,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         let _ = exit_tx.send(status);
     });
 
-    let mut exit_code: Option<i32> = None;
-
+    let mut exit_code = None;
     loop {
         match exit_rx.try_recv() {
             Ok(code) => {
@@ -139,39 +106,10 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             }
         }
 
-        match event::poll(Duration::from_millis(16)) {
-            Ok(true) => match event::read() {
-                Ok(Event::Key(key)) => {
-                    if let Some(bytes) = key_to_bytes(key) {
-                        if writer.write_all(&bytes).is_err() {
-                            break;
-                        }
-                        if writer.flush().is_err() {
-                            break;
-                        }
-                    }
-                }
-                Ok(Event::Resize(cols, rows)) => {
-                    let size = PtySize {
-                        cols,
-                        rows,
-                        pixel_width: 0,
-                        pixel_height: 0,
-                    };
-                    let _ = master.resize(size);
-                    session_bus.publish_resize(cols, rows);
-                }
-                Ok(_) => {}
-                Err(_) => break,
-            },
-            Ok(false) => {}
-            Err(_) => break,
-        }
+        thread::sleep(Duration::from_millis(16));
     }
 
-    should_run.store(false, Ordering::Release);
     let _ = output_thread.join();
-    should_run.store(false, Ordering::Release);
     let _ = child_wait_handle.join();
 
     let exit_code = exit_code.unwrap_or(-1);
@@ -180,16 +118,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     } else {
         Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
-            screen_failure_message("内置 screen", exit_code, "进程退出码非零"),
+            format!("internal screen server exited with code {exit_code}"),
         )))
     }
-}
-
-fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16, u16) {
-    let (cols, rows) = terminal_size().unwrap_or((120, 32));
-    (cols_override.unwrap_or(cols), rows_override.unwrap_or(rows))
-}
-
-fn screen_failure_message(scope: &str, exit_code: i32, detail: &str) -> String {
-    format!("{scope} 失败（退出码 {exit_code}）：{detail}")
 }

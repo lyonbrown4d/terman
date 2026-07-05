@@ -3,7 +3,9 @@ use std::error::Error;
 mod builtin;
 mod cli;
 mod ipc;
+mod pty;
 mod service;
+mod server;
 mod session_core;
 mod sessions;
 mod shell;
@@ -12,6 +14,7 @@ mod terminal_input;
 pub use cli::{ScreenArgs, run_with_binary_parse};
 use builtin::run_builtin_screen;
 use service::request_screen_attach;
+use server::run_screen_server;
 use sessions::{list_builtin_screen_sessions, validate_screen_session_name};
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -23,6 +26,10 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     }
     if let Some(Some(session_name)) = &args.multi_attach {
         validate_screen_session_name(session_name)?;
+    }
+
+    if args.internal_server {
+        return run_screen_server(args);
     }
 
     if is_builtin_screen_attach_requested(&args) {
