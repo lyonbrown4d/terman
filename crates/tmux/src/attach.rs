@@ -1,7 +1,8 @@
 use std::{
     error::Error,
     io::{self, BufRead, BufReader, Write},
-    thread,
+    process, thread,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use crossterm::{
@@ -55,10 +56,11 @@ fn find_session_endpoint(target: &str) -> Result<TmuxIpcEndpoint, Box<dyn Error>
 }
 
 fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Error>> {
-    let stream = open_attach_stream(endpoint)?;
+    let client_id = new_attach_client_id();
+    let stream = open_attach_stream(endpoint, &client_id)?;
     let _raw_mode = RawModeGuard::enable()?;
     sync_terminal_size(endpoint)?;
-    let _input_thread = spawn_terminal_event_forwarder(endpoint.clone());
+    let _input_thread = spawn_terminal_event_forwarder(endpoint.clone(), client_id);
     let mut reader = BufReader::new(stream);
     let mut stdout = io::stdout().lock();
 
@@ -82,14 +84,20 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
     }
 }
 
-fn open_attach_stream(endpoint: &TmuxIpcEndpoint) -> io::Result<LocalSocketStream> {
+fn open_attach_stream(endpoint: &TmuxIpcEndpoint, client_id: &str) -> io::Result<LocalSocketStream> {
     let mut stream = endpoint.connect_options()?.connect_sync()?;
-    write_attach_request(&mut stream)?;
+    write_attach_request(&mut stream, client_id)?;
     Ok(stream)
 }
 
-fn write_attach_request(stream: &mut LocalSocketStream) -> io::Result<()> {
-    serde_json::to_writer(&mut *stream, &TmuxIpcRequest::Attach).map_err(json_io_error)?;
+fn write_attach_request(stream: &mut LocalSocketStream, client_id: &str) -> io::Result<()> {
+    serde_json::to_writer(
+        &mut *stream,
+        &TmuxIpcRequest::Attach {
+            client_id: Some(client_id.to_string()),
+        },
+    )
+    .map_err(json_io_error)?;
     stream.write_all(b"\n")?;
     stream.flush()
 }
@@ -118,18 +126,21 @@ fn sync_terminal_size(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     send_resize(endpoint, cols, rows)
 }
 
-fn spawn_terminal_event_forwarder(endpoint: TmuxIpcEndpoint) -> thread::JoinHandle<()> {
+fn spawn_terminal_event_forwarder(
+    endpoint: TmuxIpcEndpoint,
+    client_id: String,
+) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        let _ = forward_terminal_events(endpoint);
+        let _ = forward_terminal_events(endpoint, client_id);
     })
 }
 
-fn forward_terminal_events(endpoint: TmuxIpcEndpoint) -> io::Result<()> {
+fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::Result<()> {
     let mut input_mode = AttachInputMode::default();
     loop {
         match read()? {
             Event::Key(key) => {
-                if !input_mode.handle_key(&endpoint, key)? {
+                if !input_mode.handle_key(&endpoint, &client_id, key)? {
                     return Ok(());
                 }
             }
@@ -145,7 +156,12 @@ struct AttachInputMode {
 }
 
 impl AttachInputMode {
-    fn handle_key(&mut self, endpoint: &TmuxIpcEndpoint, key: KeyEvent) -> io::Result<bool> {
+    fn handle_key(
+        &mut self,
+        endpoint: &TmuxIpcEndpoint,
+        client_id: &str,
+        key: KeyEvent,
+    ) -> io::Result<bool> {
         if !is_key_press(&key) {
             return Ok(true);
         }
@@ -153,7 +169,12 @@ impl AttachInputMode {
         if self.prefix_pending {
             self.prefix_pending = false;
             if is_detach_key(&key) {
-                send_request(endpoint, TmuxIpcRequest::Detach)?;
+                send_request(
+                    endpoint,
+                    TmuxIpcRequest::DetachClient {
+                        client_id: client_id.to_string(),
+                    },
+                )?;
                 return Ok(false);
             }
             send_input(endpoint, tmux_prefix_bytes())?;
@@ -191,6 +212,14 @@ fn send_request(endpoint: &TmuxIpcEndpoint, request: TmuxIpcRequest) -> io::Resu
         }
         _ => Ok(()),
     }
+}
+
+fn new_attach_client_id() -> String {
+    let entropy = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    format!("{:x}-{entropy:x}", process::id())
 }
 
 fn json_io_error(error: serde_json::Error) -> io::Error {

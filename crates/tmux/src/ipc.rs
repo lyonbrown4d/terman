@@ -75,8 +75,9 @@ impl TmuxIpcEndpoint {
 #[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub(crate) enum TmuxIpcRequest {
-    Attach,
+    Attach { client_id: Option<String> },
     Detach,
+    DetachClient { client_id: String },
     DetachAll,
     Info,
     Input { bytes: Vec<u8> },

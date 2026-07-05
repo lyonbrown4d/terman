@@ -76,8 +76,13 @@ fn handle_client(
     }
 
     match serde_json::from_str::<TmuxIpcRequest>(request.trim_end()) {
-        Ok(TmuxIpcRequest::Attach) => stream_attach(stream, bus),
-        Ok(TmuxIpcRequest::Detach | TmuxIpcRequest::DetachAll) => {
+        Ok(TmuxIpcRequest::Attach { client_id }) => stream_attach(stream, bus, client_id),
+        Ok(TmuxIpcRequest::Detach) => write_response(stream, &TmuxIpcResponse::Accepted),
+        Ok(TmuxIpcRequest::DetachClient { client_id }) => {
+            bus.detach_client(&client_id);
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }
+        Ok(TmuxIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
@@ -115,8 +120,12 @@ fn handle_client(
     }
 }
 
-fn stream_attach(stream: &mut LocalSocketStream, bus: &TmuxSessionBus) -> io::Result<()> {
-    let (replay, events) = bus.subscribe_with_replay();
+fn stream_attach(
+    stream: &mut LocalSocketStream,
+    bus: &TmuxSessionBus,
+    client_id: Option<String>,
+) -> io::Result<()> {
+    let (replay, events) = bus.subscribe_with_replay(client_id);
     write_response(stream, &TmuxIpcResponse::Attached { replay })?;
 
     while let Ok(event) = events.recv() {
