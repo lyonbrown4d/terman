@@ -168,6 +168,16 @@ mod tests {
     }
 
     #[test]
+    fn detects_screen_kill_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let kill = KeyEvent::new(KeyCode::Char('k'), KeyModifiers::empty());
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(decoder.decode_key(kill), Some(ScreenInputAction::Kill));
+    }
+
+    #[test]
     fn sends_literal_prefix_when_prefix_is_repeated() {
         let mut decoder = ScreenInputDecoder::new();
         let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
