@@ -4,6 +4,7 @@ builtin-screen-session-list-header = Built-in screen sessions:
 builtin-screen-session-exists = Built-in screen session `{$name}` already exists. Run `terman-screen --list` to inspect existing sessions, or choose another name.
 builtin-screen-session-name-empty = Screen session name cannot be empty.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
+builtin-screen-attach-help = screen keys: Ctrl-A d detach | Ctrl-A k kill session | Ctrl-A ? help | Ctrl-A Ctrl-A send literal Ctrl-A
 builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
 builtin-screen-session-not-found = Built-in screen session `{$name}` was not found.
 builtin-screen-named-session-required = Named screen session launch requires a session name.
@@ -17,6 +18,7 @@ builtin-screen-control-hardcopy-path-required = Specify an output path as screen
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).
+
 
 
 

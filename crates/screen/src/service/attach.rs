@@ -63,6 +63,12 @@ pub(super) fn attach_interactive(
                         running.store(false, Ordering::Release);
                         return Ok(());
                     }
+                    Some(ScreenInputAction::Help) => print_attach_help()?,
+                    Some(ScreenInputAction::Kill) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
+                        running.store(false, Ordering::Release);
+                        return Ok(());
+                    }
                     None => {}
                 },
                 Ok(Event::Resize(cols, rows)) => {
@@ -88,6 +94,14 @@ pub(super) fn attach_interactive(
 fn sync_attach_terminal_size(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     let (cols, rows) = terminal::size()?;
     send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
+}
+
+fn print_attach_help() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    stdout.write_all(b"\r\n")?;
+    stdout.write_all(terman_common::builtin_screen_attach_help_hint().as_bytes())?;
+    stdout.write_all(b"\r\n")?;
+    stdout.flush()
 }
 
 fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
@@ -123,5 +137,3 @@ fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
         }
     }
 }
-
-

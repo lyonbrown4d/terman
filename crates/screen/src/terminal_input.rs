@@ -6,6 +6,8 @@ const SCREEN_CONTROL_PREFIX: u8 = 0x01;
 pub(crate) enum ScreenInputAction {
     Bytes(Vec<u8>),
     Detach,
+    Help,
+    Kill,
 }
 
 #[derive(Default)]
@@ -41,6 +43,10 @@ impl ScreenInputDecoder {
             KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Detach)
             }
+            KeyCode::Char('k') | KeyCode::Char('K') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::Kill)
+            }
+            KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             _ if is_screen_prefix_key(key) => {
                 Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
             }
@@ -175,6 +181,16 @@ mod tests {
 
         assert_eq!(decoder.decode_key(prefix), None);
         assert_eq!(decoder.decode_key(kill), Some(ScreenInputAction::Kill));
+    }
+
+    #[test]
+    fn detects_screen_help_prefix() {
+        let mut decoder = ScreenInputDecoder::new();
+        let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+        let help = KeyEvent::new(KeyCode::Char('?'), KeyModifiers::empty());
+
+        assert_eq!(decoder.decode_key(prefix), None);
+        assert_eq!(decoder.decode_key(help), Some(ScreenInputAction::Help));
     }
 
     #[test]
