@@ -5,3 +5,5 @@ builtin-screen-session-exists = Built-in screen session `{$name}` already exists
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
 builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
 builtin-screen-session-not-found = Built-in screen session `{$name}` was not found.
+builtin-screen-named-session-required = Named screen session launch requires a session name.
+builtin-screen-server-timeout = Timed out waiting for the built-in screen session server.

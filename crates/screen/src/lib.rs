@@ -3,6 +3,7 @@ use std::error::Error;
 mod builtin;
 mod cli;
 mod ipc;
+mod launcher;
 mod pty;
 mod service;
 mod server;
@@ -13,6 +14,7 @@ mod terminal_input;
 
 pub use cli::{ScreenArgs, run_with_binary_parse};
 use builtin::run_builtin_screen;
+use launcher::run_named_screen_session;
 use service::request_screen_attach;
 use server::run_screen_server;
 use sessions::{list_builtin_screen_sessions, validate_screen_session_name};
@@ -40,6 +42,10 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     if args.list {
         list_builtin_screen_sessions()?;
         return Ok(());
+    }
+
+    if args.session_name.is_some() {
+        return run_named_screen_session(args);
     }
 
     run_builtin_screen(args)

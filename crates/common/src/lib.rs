@@ -26,6 +26,8 @@ pub enum MessageKey {
     BuiltinScreenAttachUnsupported,
     BuiltinScreenAttachTargetRequired,
     BuiltinScreenSessionNotFound,
+    BuiltinScreenNamedSessionRequired,
+    BuiltinScreenServerTimeout,
 }
 
 impl MessageKey {
@@ -38,6 +40,8 @@ impl MessageKey {
             Self::BuiltinScreenAttachUnsupported => "builtin-screen-attach-unsupported",
             Self::BuiltinScreenAttachTargetRequired => "builtin-screen-attach-target-required",
             Self::BuiltinScreenSessionNotFound => "builtin-screen-session-not-found",
+            Self::BuiltinScreenNamedSessionRequired => "builtin-screen-named-session-required",
+            Self::BuiltinScreenServerTimeout => "builtin-screen-server-timeout",
         }
     }
 }
@@ -78,6 +82,14 @@ pub fn builtin_screen_attach_target_required_hint() -> String {
 
 pub fn builtin_screen_session_not_found_hint(name: &str) -> String {
     localized_message(MessageKey::BuiltinScreenSessionNotFound, &[("name", name)])
+}
+
+pub fn builtin_screen_named_session_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenNamedSessionRequired, &[])
+}
+
+pub fn builtin_screen_server_timeout_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenServerTimeout, &[])
 }
 
 fn localized_message_for_language(

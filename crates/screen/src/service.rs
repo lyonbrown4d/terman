@@ -121,6 +121,7 @@ fn attach_interactive(endpoint: ScreenIpcEndpoint, stream: LocalSocketStream) ->
                     Some(ScreenInputAction::Detach) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Detach)?;
                         running.store(false, Ordering::Release);
+                        return Ok(());
                     }
                     None => {}
                 },
