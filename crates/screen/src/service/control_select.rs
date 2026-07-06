@@ -3,7 +3,7 @@ use std::io;
 use super::control_parse::control_command_payload;
 use crate::{
     ScreenArgs,
-    ipc::{ScreenIpcRequest, ScreenIpcResponse},
+    ipc::{ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo},
 };
 
 type SessionRequester = fn(&ScreenArgs, ScreenIpcRequest) -> io::Result<ScreenIpcResponse>;
@@ -22,13 +22,7 @@ pub(super) fn request_select_command(
             windows,
             ..
         } => {
-            let index = parse_window_selector(selector, active_window)?;
-            if !windows.iter().any(|window| window.index == index) {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    terman_common::builtin_screen_control_select_unsupported_hint(selector),
-                ));
-            }
+            let index = resolve_window_selector(selector, active_window, &windows)?;
             match request(args, ScreenIpcRequest::SelectWindow { index })? {
                 ScreenIpcResponse::Accepted => Ok(()),
                 ScreenIpcResponse::Rejected { reason } => {
@@ -44,16 +38,34 @@ pub(super) fn request_select_command(
     }
 }
 
-fn parse_window_selector(selector: &str, active_window: usize) -> io::Result<usize> {
+fn resolve_window_selector(
+    selector: &str,
+    active_window: usize,
+    windows: &[ScreenWindowInfo],
+) -> io::Result<usize> {
     match selector {
-        "" | "." | "#" => Ok(active_window),
-        value => value.parse::<usize>().map_err(|_| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                terman_common::builtin_screen_control_select_unsupported_hint(selector),
-            )
-        }),
+        "" | "." | "#" => return Ok(active_window),
+        _ => {}
     }
+
+    if let Ok(index) = selector.parse::<usize>() {
+        if windows.iter().any(|window| window.index == index) {
+            return Ok(index);
+        }
+    }
+
+    windows
+        .iter()
+        .find(|window| window.title == selector)
+        .map(|window| window.index)
+        .ok_or_else(|| unsupported_selector_error(selector))
+}
+
+fn unsupported_selector_error(selector: &str) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_screen_control_select_unsupported_hint(selector),
+    )
 }
 
 fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
@@ -65,18 +77,39 @@ fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_window_selector;
+    use super::resolve_window_selector;
+    use crate::ipc::ScreenWindowInfo;
 
-    #[test]
-    fn parses_current_window_selectors() {
-        assert_eq!(parse_window_selector("", 2).unwrap(), 2);
-        assert_eq!(parse_window_selector(".", 2).unwrap(), 2);
-        assert_eq!(parse_window_selector("#", 2).unwrap(), 2);
+    fn windows() -> Vec<ScreenWindowInfo> {
+        vec![
+            ScreenWindowInfo {
+                index: 0,
+                title: String::from("shell"),
+                active: false,
+                replay_bytes: 0,
+            },
+            ScreenWindowInfo {
+                index: 3,
+                title: String::from("editor"),
+                active: true,
+                replay_bytes: 0,
+            },
+        ]
     }
 
     #[test]
-    fn parses_numeric_window_selector() {
-        assert_eq!(parse_window_selector("3", 0).unwrap(), 3);
-        assert!(parse_window_selector("name", 0).is_err());
+    fn resolves_current_window_selectors() {
+        let windows = windows();
+        assert_eq!(resolve_window_selector("", 3, &windows).unwrap(), 3);
+        assert_eq!(resolve_window_selector(".", 3, &windows).unwrap(), 3);
+        assert_eq!(resolve_window_selector("#", 3, &windows).unwrap(), 3);
+    }
+
+    #[test]
+    fn resolves_numeric_and_named_window_selectors() {
+        let windows = windows();
+        assert_eq!(resolve_window_selector("0", 3, &windows).unwrap(), 0);
+        assert_eq!(resolve_window_selector("editor", 0, &windows).unwrap(), 3);
+        assert!(resolve_window_selector("missing", 0, &windows).is_err());
     }
 }

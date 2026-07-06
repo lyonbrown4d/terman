@@ -2,7 +2,7 @@ use std::io;
 
 use crate::{
     ScreenArgs,
-    ipc::{ScreenIpcRequest, ScreenIpcResponse},
+    ipc::{ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo},
 };
 
 pub(super) type SessionRequester = fn(&ScreenArgs, ScreenIpcRequest) -> io::Result<ScreenIpcResponse>;
@@ -66,19 +66,10 @@ fn window_target(
             active_window,
             windows,
             ..
-        } => {
-            let index = parse_window_selector(selector, active_window)?;
-            if !windows.iter().any(|window| window.index == index) {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    terman_common::builtin_screen_control_select_unsupported_hint(selector),
-                ));
-            }
-            Ok(Some(WindowTarget {
-                index,
-                restore: active_window,
-            }))
-        }
+        } => Ok(Some(WindowTarget {
+            index: resolve_window_selector(selector, active_window, &windows)?,
+            restore: active_window,
+        })),
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
@@ -86,16 +77,27 @@ fn window_target(
     }
 }
 
-fn parse_window_selector(selector: &str, active_window: usize) -> io::Result<usize> {
+fn resolve_window_selector(
+    selector: &str,
+    active_window: usize,
+    windows: &[ScreenWindowInfo],
+) -> io::Result<usize> {
     match selector {
-        "." | "#" => Ok(active_window),
-        value => value.parse::<usize>().map_err(|_| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                terman_common::builtin_screen_control_select_unsupported_hint(selector),
-            )
-        }),
+        "." | "#" => return Ok(active_window),
+        _ => {}
     }
+
+    if let Ok(index) = selector.parse::<usize>() {
+        if windows.iter().any(|window| window.index == index) {
+            return Ok(index);
+        }
+    }
+
+    windows
+        .iter()
+        .find(|window| window.title == selector)
+        .map(|window| window.index)
+        .ok_or_else(|| unsupported_selector_error(selector))
 }
 
 fn ensure_accepted(response: ScreenIpcResponse) -> io::Result<()> {
@@ -106,6 +108,13 @@ fn ensure_accepted(response: ScreenIpcResponse) -> io::Result<()> {
         }
         response => Err(unexpected_response_error(&response)),
     }
+}
+
+fn unsupported_selector_error(selector: &str) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_screen_control_select_unsupported_hint(selector),
+    )
 }
 
 fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
