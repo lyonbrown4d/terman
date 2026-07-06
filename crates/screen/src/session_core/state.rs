@@ -84,6 +84,27 @@ impl ScreenSessionState {
         }
         self.select_window(index)
     }
+    pub(super) fn renumber_window(&mut self, source: usize, index: usize) -> Option<()> {
+        let source_position = self.windows.iter().position(|window| window.index() == source)?;
+        if source == index {
+            return Some(());
+        }
+        if let Some(target) = self.window_mut(index) {
+            target.set_index(source);
+        }
+        self.windows[source_position].set_index(index);
+        if self.active_window == source {
+            self.active_window = index;
+        } else if self.active_window == index {
+            self.active_window = source;
+        }
+        if self.last_window == Some(source) {
+            self.last_window = Some(index);
+        } else if self.last_window == Some(index) {
+            self.last_window = Some(source);
+        }
+        Some(())
+    }
 
     pub(super) fn remove_window(&mut self, index: usize) -> Option<ScreenRemovedWindow> {
         let position = self.windows.iter().position(|window| window.index() == index)?;

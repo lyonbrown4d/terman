@@ -6,6 +6,7 @@ use super::{
     control_displays::request_displays_command,
     control_info::request_info_command,
     control_local::request_local_control_command,
+    control_number::request_number_command,
     control_register::{request_process_command, request_readreg_command, request_register_command},
     control_select::request_select_command,
     control_session::{
@@ -80,6 +81,7 @@ fn execute_control_command(
         "writebuf" => request_writebuf_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
+        "number" => request_number_command(args, inline_payload, extra_args),
         "scrollback" | "defscrollback" => {
             request_scrollback_command(args, inline_payload, extra_args)
         }

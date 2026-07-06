@@ -77,7 +77,7 @@ fn window_target(
     }
 }
 
-fn resolve_window_selector(
+pub(super) fn resolve_window_selector(
     selector: &str,
     active_window: usize,
     windows: &[ScreenWindowInfo],

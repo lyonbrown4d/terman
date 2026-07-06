@@ -56,6 +56,8 @@ pub enum MessageKey {
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlHelp,
     BuiltinScreenControlSelectUnsupported,
+    BuiltinScreenControlNumber,
+    BuiltinScreenControlNumberInvalid,
     BuiltinScreenControlScrollbackRequired,
     BuiltinScreenControlSleepRequired,
     BuiltinScreenControlTime,
@@ -147,6 +149,8 @@ impl MessageKey {
             Self::BuiltinScreenControlResizeRequired => "builtin-screen-control-resize-required",
             Self::BuiltinScreenControlHelp => "builtin-screen-control-help",
             Self::BuiltinScreenControlSelectUnsupported => "builtin-screen-control-select-unsupported",
+            Self::BuiltinScreenControlNumber => "builtin-screen-control-number",
+            Self::BuiltinScreenControlNumberInvalid => "builtin-screen-control-number-invalid",
             Self::BuiltinScreenControlScrollbackRequired => {
                 "builtin-screen-control-scrollback-required"
             }

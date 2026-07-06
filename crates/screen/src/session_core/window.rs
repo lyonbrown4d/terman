@@ -23,6 +23,10 @@ impl ScreenWindowState {
         self.index
     }
 
+    pub(super) fn set_index(&mut self, index: usize) {
+        self.index = index;
+    }
+
     pub(super) fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }

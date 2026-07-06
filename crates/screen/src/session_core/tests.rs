@@ -63,6 +63,19 @@ fn updates_window_title() {
 }
 
 #[test]
+fn renumbers_window_and_swaps_existing_index() {
+    let bus = ScreenSessionBus::new();
+    bus.add_window(1, Some(String::from("editor")));
+    bus.renumber_window(1, 0);
+    let status = bus.status_snapshot();
+    let active = status.windows.iter().find(|window| window.active).unwrap();
+
+    assert_eq!(status.active_window, 0);
+    assert_eq!(active.index, 0);
+    assert_eq!(active.title.as_deref(), Some("editor"));
+    assert!(status.windows.iter().any(|window| window.index == 1 && !window.active));
+}
+#[test]
 fn models_attach_control_events() {
     assert_eq!(
         ScreenControlEvent::Input(b"x".to_vec()),

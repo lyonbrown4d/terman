@@ -108,6 +108,10 @@ pub(crate) enum ScreenIpcRequest {
     SelectWindow {
         index: usize,
     },
+    NumberWindow {
+        source: usize,
+        index: usize,
+    },
     NextWindow,
     PreviousWindow,
     LastWindow,

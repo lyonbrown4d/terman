@@ -8,6 +8,7 @@ mod control_displays;
 mod control_help;
 mod control_info;
 mod control_local;
+mod control_number;
 mod control_parse;
 mod control_register;
 mod control_select;

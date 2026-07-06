@@ -13,7 +13,7 @@ use crate::{
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
     window_runtime::{
-        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_active_window, kill_windows, next_screen_window_index, resize_windows,
+        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_active_window, kill_windows, next_screen_window_index, renumber_screen_window, resize_windows,
         spawn_screen_window_runtime, switch_screen_window, take_exited_window, write_active_window_input,
     },
 };
@@ -142,7 +142,11 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
                 ScreenControlEvent::KillWindow => {
                     kill_active_window(&mut windows, active_window);
                 }
-                ScreenControlEvent::Resize { cols, rows } => {
+                ScreenControlEvent::NumberWindow { source, index } => {
+                    if renumber_screen_window(&mut windows, source, index, &mut active_window) {
+                        session_bus.renumber_window(source, index);
+                    }
+                }                ScreenControlEvent::Resize { cols, rows } => {
                     resize_windows(&windows, cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }

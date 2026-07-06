@@ -42,6 +42,18 @@ pub fn builtin_screen_control_select_unsupported_hint(selector: &str) -> String 
     )
 }
 
+
+pub fn builtin_screen_control_number_hint(index: usize, title: &str) -> String {
+    let index = index.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenControlNumber,
+        &[("index", &index), ("title", title)],
+    )
+}
+
+pub fn builtin_screen_control_number_invalid_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlNumberInvalid, &[])
+}
 pub fn builtin_screen_control_scrollback_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlScrollbackRequired, &[])
 }

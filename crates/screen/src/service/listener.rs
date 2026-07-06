@@ -173,6 +173,7 @@ fn handle_client(
             send_control_event(control_tx, ScreenControlEvent::SelectWindow { index })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::NumberWindow { source, index }) => { send_control_event(control_tx, ScreenControlEvent::NumberWindow { source, index })?; write_response(stream, &ScreenIpcResponse::Accepted) }
         Ok(ScreenIpcRequest::NextWindow) => {
             send_control_event(control_tx, ScreenControlEvent::NextWindow)?;
             write_response(stream, &ScreenIpcResponse::Accepted)

@@ -24,6 +24,7 @@ pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
     NewWindow { command: Option<String> },
     SelectWindow { index: usize },
+    NumberWindow { source: usize, index: usize },
     NextWindow,
     PreviousWindow,
     LastWindow,
@@ -156,6 +157,11 @@ impl ScreenSessionBus {
             .lock()
             .ok()
             .and_then(|mut state| state.select_last_window())
+    }
+    pub(crate) fn renumber_window(&self, source: usize, index: usize) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.renumber_window(source, index);
+        }
     }
     pub(crate) fn remove_window(&self, index: usize) -> Option<ScreenRemovedWindow> {
         self.inner
