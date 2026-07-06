@@ -12,14 +12,21 @@ pub(super) fn request_at_command(
     execute: ControlExecutor,
 ) -> io::Result<()> {
     let payload = control_command_payload(inline_payload, extra_args);
-    let Some((_, command_text)) = split_at_payload(&payload) else {
+    let Some((target, command_text)) = split_at_payload(&payload) else {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             terman_common::builtin_screen_control_command_required_hint(),
         ));
     };
     let (command, inline_payload) = split_control_command(command_text);
-    execute(args, command, inline_payload, &[])
+    let targeted_args = args_with_window_target(args, target);
+    execute(&targeted_args, command, inline_payload, &[])
+}
+
+fn args_with_window_target(args: &ScreenArgs, target: &str) -> ScreenArgs {
+    let mut args = args.clone();
+    args.window_selector = Some(target.to_string());
+    args
 }
 
 fn split_at_payload(payload: &str) -> Option<(&str, &str)> {
@@ -40,7 +47,10 @@ fn split_control_command(command: &str) -> (&str, &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::{split_at_payload, split_control_command};
+    use std::io;
+
+    use super::{request_at_command, split_at_payload, split_control_command};
+    use crate::ScreenArgs;
 
     #[test]
     fn splits_at_payload() {
@@ -48,6 +58,30 @@ mod tests {
         assert_eq!(split_at_payload("# stuff echo hi"), Some(("#", "stuff echo hi")));
         assert_eq!(split_at_payload("0"), None);
         assert_eq!(split_at_payload("  "), None);
+    }
+
+    #[test]
+    fn applies_target_to_nested_control_command() {
+        fn assert_targeted_args(
+            args: &ScreenArgs,
+            command: &str,
+            inline_payload: &str,
+            extra_args: &[String],
+        ) -> io::Result<()> {
+            assert_eq!(args.window_selector.as_deref(), Some("2"));
+            assert_eq!(command, "stuff");
+            assert_eq!(inline_payload, "echo hi");
+            assert!(extra_args.is_empty());
+            Ok(())
+        }
+
+        request_at_command(
+            &ScreenArgs::default(),
+            "2 stuff echo hi",
+            &[],
+            assert_targeted_args,
+        )
+        .unwrap();
     }
 
     #[test]
