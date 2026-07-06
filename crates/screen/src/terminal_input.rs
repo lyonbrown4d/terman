@@ -2,38 +2,9 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 const SCREEN_CONTROL_PREFIX: u8 = 0x01;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum ScreenInputAction {
-    Bytes(Vec<u8>),
-    Clear,
-    Detach,
-    DetachAll,
-    DumpTermcap,
-    Displays,
-    Fit,
-    Help,
-    Hardcopy,
-    Info,
-    Kill,
-    License,
-    LastMessage,
-    LogToggle,
-    NewWindow,
-    Number,
-    Paste,
-    Quit,
-    LastWindow,
-    NextWindow,
-    PreviousWindow,
-    SelectWindow(usize),
-    Time,
-    Version,
-    Windows,
-    WidthToggle,
-    Resize,
-    Reset,
-    Redisplay,
-}
+mod action;
+pub(crate) use self::action::ScreenInputAction;
+
 
 #[derive(Default)]
 pub(crate) struct ScreenInputDecoder {
