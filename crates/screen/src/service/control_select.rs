@@ -16,6 +16,10 @@ pub(super) fn request_select_command(
 ) -> io::Result<()> {
     let selector = control_command_payload(inline_payload, extra_args);
     let selector = selector.trim();
+    if selector == "-" {
+        return handle_select_response(request(args, ScreenIpcRequest::LastWindow)?);
+    }
+
     match request(args, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
             active_window,
@@ -23,13 +27,7 @@ pub(super) fn request_select_command(
             ..
         } => {
             let index = resolve_window_selector(selector, active_window, &windows)?;
-            match request(args, ScreenIpcRequest::SelectWindow { index })? {
-                ScreenIpcResponse::Accepted => Ok(()),
-                ScreenIpcResponse::Rejected { reason } => {
-                    Err(io::Error::new(io::ErrorKind::Unsupported, reason))
-                }
-                response => Err(unexpected_response_error(&response)),
-            }
+            handle_select_response(request(args, ScreenIpcRequest::SelectWindow { index })?)
         }
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
@@ -59,6 +57,16 @@ fn resolve_window_selector(
         .find(|window| window.title == selector)
         .map(|window| window.index)
         .ok_or_else(|| unsupported_selector_error(selector))
+}
+
+fn handle_select_response(response: ScreenIpcResponse) -> io::Result<()> {
+    match response {
+        ScreenIpcResponse::Accepted => Ok(()),
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        response => Err(unexpected_response_error(&response)),
+    }
 }
 
 fn unsupported_selector_error(selector: &str) -> io::Error {
