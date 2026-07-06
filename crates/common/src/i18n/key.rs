@@ -70,6 +70,8 @@ pub enum MessageKey {
     BuiltinScreenControlPastefilePathRequired,
     BuiltinScreenControlReadbufPathRequired,
     BuiltinScreenControlSourcePathRequired,
+    BuiltinScreenControlWritebufPathRequired,
+    BuiltinScreenControlWritebufComplete,
     BuiltinScreenWipeComplete,
 }
 
@@ -171,6 +173,12 @@ impl MessageKey {
             }
             Self::BuiltinScreenControlSourcePathRequired => {
                 "builtin-screen-control-source-path-required"
+            }
+            Self::BuiltinScreenControlWritebufPathRequired => {
+                "builtin-screen-control-writebuf-path-required"
+            }
+            Self::BuiltinScreenControlWritebufComplete => {
+                "builtin-screen-control-writebuf-complete"
             }
             Self::BuiltinScreenWipeComplete => "builtin-screen-wipe-complete",
         }

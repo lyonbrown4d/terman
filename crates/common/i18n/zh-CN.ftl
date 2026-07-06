@@ -34,6 +34,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X source .screenrc
       - terman-screen -S dev -X readbuf input.txt
       - terman-screen -S dev -X paste
+      - terman-screen -S dev -X writebuf output.txt
       - terman-screen -S dev -X stuff "echo hi\n"
       - terman-screen -S dev -p 0 -X stuff "echo hi\n"
       - terman-screen -r dev
@@ -57,11 +58,11 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、echo、wall、stuff、paste、pastefile、readbuf、source、detach、pow_detach、resize、select、next、prev、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、echo、wall、stuff、paste、pastefile、readbuf、writebuf、source、detach、pow_detach、resize、select、next、prev、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-log-required = 请按 screen -X log on 或 screen -X log off 指定日志状态。
 builtin-screen-control-logfile-required = 请按 screen -X logfile <路径> 指定日志文件路径。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、echo、wall、stuff、paste、pastefile、readbuf、source、detach、pow_detach、resize、select、next、prev、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、echo、wall、stuff、paste、pastefile、readbuf、writebuf、source、detach、pow_detach、resize、select、next、prev、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 内置 screen 当前只有一个窗口；select 仅支持 0、.、# 或空 selector。收到 `{$selector}`。
@@ -77,8 +78,10 @@ builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：
 builtin-screen-control-hardcopy-path-required = 请按 screen -X hardcopy <路径> 指定输出路径。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
 builtin-screen-control-readbuf-path-required = 请按 screen -X readbuf <路径> 指定输入文件路径。
+builtin-screen-control-writebuf-path-required = 请按 screen -X writebuf <路径> 指定输出文件路径。
 builtin-screen-control-source-path-required = 请按 screen -X source <路径> 指定命令文件路径。
 builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
+builtin-screen-control-writebuf-complete = 已将 {$bytes} 字节 screen paste buffer 写入 {$path}。
 builtin-screen-wipe-complete = 已清理 {$count} 个失效的内置 screen 会话记录。
 builtin-tmux-no-sessions = 当前没有 tmux 会话
 builtin-tmux-cli-about = 跨平台 tmux 终端会话工具（自实现内置后端）。

@@ -9,7 +9,7 @@ use super::{
     control_select::request_select_command,
     control_session::{
         request_echo_command, request_hardcopy_command, request_log_command, request_logfile_command,
-        request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command, request_title_command,
+        request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
         send_session_control_request,
     },
     control_source::request_source_command,
@@ -67,6 +67,7 @@ fn execute_control_command(
         "paste" => request_paste_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
         "readbuf" => request_readbuf_command(args, inline_payload, extra_args),
+        "writebuf" => request_writebuf_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
         "scrollback" | "defscrollback" => {

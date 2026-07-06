@@ -125,6 +125,12 @@ fn handle_client(
                 bytes: bus.replay_snapshot(),
             },
         ),
+        Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
+            stream,
+            &ScreenIpcResponse::PasteBuffer {
+                bytes: bus.paste_buffer_snapshot(),
+            },
+        ),
         Ok(ScreenIpcRequest::Info) => {
             let status = bus.status_snapshot();
             write_response(

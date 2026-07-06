@@ -150,6 +150,7 @@ fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
             ScreenIpcResponse::Detached => return Ok(()),
             ScreenIpcResponse::Hardcopy { .. } => {}
             ScreenIpcResponse::Info { .. } => {}
+            ScreenIpcResponse::PasteBuffer { .. } => {}
             ScreenIpcResponse::Output { bytes } => {
                 stdout.write_all(&bytes)?;
                 stdout.flush()?;

@@ -166,6 +166,10 @@ pub fn builtin_screen_control_readbuf_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlReadbufPathRequired, &[])
 }
 
+pub fn builtin_screen_control_writebuf_path_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlWritebufPathRequired, &[])
+}
+
 pub fn builtin_screen_control_source_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlSourcePathRequired, &[])
 }
@@ -174,6 +178,14 @@ pub fn builtin_screen_control_hardcopy_complete_hint(path: &str, bytes: usize) -
     let bytes = bytes.to_string();
     localized_message(
         MessageKey::BuiltinScreenControlHardcopyComplete,
+        &[("path", path), ("bytes", &bytes)],
+    )
+}
+
+pub fn builtin_screen_control_writebuf_complete_hint(path: &str, bytes: usize) -> String {
+    let bytes = bytes.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenControlWritebufComplete,
         &[("path", path), ("bytes", &bytes)],
     )
 }

@@ -113,6 +113,21 @@ pub(super) fn request_readbuf_command(
     send_session_control_request(args, ScreenIpcRequest::SetPasteBuffer { bytes })
 }
 
+pub(super) fn request_writebuf_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let path = control_command_payload(inline_payload, extra_args);
+    if path.trim().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_writebuf_path_required_hint(),
+        ));
+    }
+    request_session_writebuf(args, &path)
+}
+
 pub(super) fn request_resize_command(
     args: &ScreenArgs,
     inline_payload: &str,
@@ -220,6 +235,23 @@ fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
 fn request_session_pastefile(args: &ScreenArgs, path: &str) -> io::Result<()> {
     let bytes = fs::read(path)?;
     send_session_control_request(args, ScreenIpcRequest::Input { bytes })
+}
+
+fn request_session_writebuf(args: &ScreenArgs, path: &str) -> io::Result<()> {
+    match request_session_response(args, ScreenIpcRequest::GetPasteBuffer)? {
+        ScreenIpcResponse::PasteBuffer { bytes } => {
+            fs::write(path, &bytes)?;
+            println!(
+                "{}",
+                terman_common::builtin_screen_control_writebuf_complete_hint(path, bytes.len())
+            );
+            Ok(())
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        response => Err(unexpected_response_error(&response)),
+    }
 }
 
 fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
