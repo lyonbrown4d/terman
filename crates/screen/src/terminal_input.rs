@@ -95,7 +95,7 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::LastMessage)
             }
-            KeyCode::Char('C') | KeyCode::Char('C')
+            KeyCode::Char('c') | KeyCode::Char('C')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
             {
                 Some(ScreenInputAction::NewWindow)
