@@ -39,9 +39,14 @@ pub(super) fn decode_stuff_payload(payload: &str) -> Vec<u8> {
         }
 
         match chars.next() {
+            Some('a') => bytes.push(0x07),
+            Some('b') => bytes.push(0x08),
+            Some('e') | Some('E') => bytes.push(0x1b),
+            Some('f') => bytes.push(0x0c),
             Some('n') => bytes.push(b'\n'),
             Some('r') => bytes.push(b'\r'),
             Some('t') => bytes.push(b'\t'),
+            Some('v') => bytes.push(0x0b),
             Some('\\') => bytes.push(b'\\'),
             Some(first @ '0'..='7') => bytes.push(decode_octal_escape(first, &mut chars)),
             Some(other) => {
@@ -103,6 +108,7 @@ mod tests {
     #[test]
     fn decodes_stuff_escape_sequences() {
         assert_eq!(decode_stuff_payload("a\\n\\t"), b"a\n\t".to_vec());
+        assert_eq!(decode_stuff_payload("\\a\\b\\e\\E\\f\\v"), vec![7, 8, 27, 27, 12, 11]);
         assert_eq!(decode_stuff_payload("run\\015"), b"run\r".to_vec());
         assert_eq!(decode_stuff_payload("\\033[A"), vec![0x1b, b'[', b'A']);
         assert_eq!(decode_stuff_payload("a\\x"), b"a\\x".to_vec());
