@@ -41,6 +41,9 @@ pub(super) fn request_hardcopy_command(
     request_session_hardcopy(args, &path)
 }
 
+pub(super) fn request_kill_command(args: &ScreenArgs) -> io::Result<()> {
+    send_targeted_session_control_request(args, ScreenIpcRequest::KillWindow)
+}
 pub(super) fn request_log_command(
     args: &ScreenArgs,
     inline_payload: &str,

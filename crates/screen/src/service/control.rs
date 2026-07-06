@@ -8,7 +8,7 @@ use super::{
     control_local::request_local_control_command,
     control_select::request_select_command,
     control_session::{
-        request_echo_command, request_hardcopy_command, request_log_command, request_logfile_command, request_new_window_command,
+        request_echo_command, request_hardcopy_command, request_kill_command, request_log_command, request_logfile_command, request_new_window_command,
         request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
         send_session_control_request,
     },
@@ -49,7 +49,7 @@ fn execute_control_command(
 
     match command.as_str() {
         "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
-        "kill" => send_session_control_request(args, ScreenIpcRequest::KillWindow),
+        "kill" => request_kill_command(args),
         "detach" | "pow_detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
