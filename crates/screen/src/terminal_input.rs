@@ -10,6 +10,7 @@ pub(crate) enum ScreenInputAction {
     DetachAll,
     DumpTermcap,
     Displays,
+    Fit,
     Help,
     Hardcopy,
     Info,
@@ -61,6 +62,11 @@ impl ScreenInputDecoder {
         match key.code {
             KeyCode::Char('r') | KeyCode::Char('R') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Resize)
+            }
+            KeyCode::Char('F')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::Fit)
             }
             KeyCode::Char('Z')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>

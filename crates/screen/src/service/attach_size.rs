@@ -3,6 +3,10 @@ use std::io;
 use super::ipc_client::{request_endpoint_response, send_control_request};
 use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse};
 
+pub(super) fn fit_attach_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    let (cols, rows) = crossterm::terminal::size()?;
+    send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
+}
 pub(super) fn toggle_attach_width(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info { cols, rows, .. } => send_control_request(

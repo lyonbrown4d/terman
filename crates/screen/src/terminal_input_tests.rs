@@ -277,3 +277,12 @@ fn detects_screen_width_toggle_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(width), Some(ScreenInputAction::WidthToggle));
 }
+#[test]
+fn detects_screen_fit_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let fit = KeyEvent::new(KeyCode::Char('F'), KeyModifiers::SHIFT);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(fit), Some(ScreenInputAction::Fit));
+}
