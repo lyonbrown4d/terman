@@ -91,6 +91,16 @@ fn detects_screen_hardcopy_prefix() {
 }
 
 #[test]
+fn detects_screen_version_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let version = KeyEvent::new(KeyCode::Char('v'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(version), Some(ScreenInputAction::Version));
+}
+
+#[test]
 fn detects_screen_displays_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
