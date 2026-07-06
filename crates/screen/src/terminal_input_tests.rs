@@ -247,54 +247,6 @@ fn sends_literal_prefix_with_ctrl_a_a() {
         Some(ScreenInputAction::Bytes(vec![0x01]))
     );
 }
-#[test]
-fn detects_screen_license_prefix() {
-    let mut decoder = ScreenInputDecoder::new();
-    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-    let license = KeyEvent::new(KeyCode::Char(','), KeyModifiers::empty());
 
-    assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(license), Some(ScreenInputAction::License));
-}
-#[test]
-fn detects_screen_dumptermcap_prefix() {
-    let mut decoder = ScreenInputDecoder::new();
-    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-    let dumptermcap = KeyEvent::new(KeyCode::Char('.'), KeyModifiers::empty());
-
-    assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(
-        decoder.decode_key(dumptermcap),
-        Some(ScreenInputAction::DumpTermcap)
-    );
-}
-#[test]
-fn detects_screen_width_toggle_prefix() {
-    let mut decoder = ScreenInputDecoder::new();
-    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-    let width = KeyEvent::new(KeyCode::Char('W'), KeyModifiers::SHIFT);
-
-    assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(width), Some(ScreenInputAction::WidthToggle));
-}
-#[test]
-fn detects_screen_fit_prefix() {
-    let mut decoder = ScreenInputDecoder::new();
-    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-    let fit = KeyEvent::new(KeyCode::Char('F'), KeyModifiers::SHIFT);
-
-    assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(fit), Some(ScreenInputAction::Fit));
-}
-#[test]
-fn sends_xon_and_xoff_prefixes() {
-    let mut decoder = ScreenInputDecoder::new();
-    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-    let xon = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::empty());
-    let xoff = KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL);
-
-    assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(xon), Some(ScreenInputAction::Bytes(vec![0x11])));
-    assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(xoff), Some(ScreenInputAction::Bytes(vec![0x13])));
-}
+#[path = "terminal_input_tests/attach_keys.rs"]
+mod attach_keys;
