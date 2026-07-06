@@ -18,6 +18,12 @@ use crate::{
 struct HardcopyOptions {
     path: PathBuf,
     append: bool,
+    include_history: bool,
+}
+
+struct HardcopyPayload {
+    path: Option<PathBuf>,
+    include_history: bool,
 }
 
 pub(super) fn request_hardcopy_command(
@@ -27,7 +33,7 @@ pub(super) fn request_hardcopy_command(
 ) -> io::Result<()> {
     let payload = control_command_payload(inline_payload, extra_args);
     let options = hardcopy_options(args, &payload)?;
-    request_session_hardcopy(args, &options.path, options.append)
+    request_session_hardcopy(args, &options)
 }
 
 pub(super) fn request_hardcopy_append_command(
@@ -75,19 +81,20 @@ fn hardcopy_append_required_error() -> io::Error {
 fn hardcopydir_path(payload: &str) -> io::Result<PathBuf> {
     let path = payload.trim();
     if path.is_empty() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_screen_control_hardcopydir_required_hint(),
-        ));
+        return Err(hardcopydir_required_error());
     }
     let path = fs::canonicalize(path)?;
     if !path.is_dir() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_screen_control_hardcopydir_required_hint(),
-        ));
+        return Err(hardcopydir_required_error());
     }
     Ok(path)
+}
+
+fn hardcopydir_required_error() -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_screen_control_hardcopydir_required_hint(),
+    )
 }
 
 fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOptions> {
@@ -99,7 +106,8 @@ fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOpti
             windows,
             ..
         } => {
-            let path = match parse_hardcopy_path(payload) {
+            let payload = parse_hardcopy_payload(payload);
+            let path = match payload.path {
                 Some(path) => path,
                 None => numbered_hardcopy_path(
                     hardcopy_dir.as_deref(),
@@ -109,6 +117,7 @@ fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOpti
             Ok(HardcopyOptions {
                 path,
                 append: hardcopy_append,
+                include_history: payload.include_history,
             })
         }
         ScreenIpcResponse::Rejected { reason } => {
@@ -118,22 +127,27 @@ fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOpti
     }
 }
 
-fn parse_hardcopy_path(payload: &str) -> Option<PathBuf> {
+fn parse_hardcopy_payload(payload: &str) -> HardcopyPayload {
     let payload = payload.trim();
-    if payload.is_empty() || payload == "-h" {
-        return None;
+    if payload.is_empty() {
+        return HardcopyPayload { path: None, include_history: false };
+    }
+    if payload == "-h" {
+        return HardcopyPayload { path: None, include_history: true };
     }
     if let Some(rest) = payload.strip_prefix("-h") {
         if rest.chars().next().is_some_and(char::is_whitespace) {
             let path = rest.trim();
-            return if path.is_empty() {
-                None
-            } else {
-                Some(PathBuf::from(path))
+            return HardcopyPayload {
+                path: (!path.is_empty()).then(|| PathBuf::from(path)),
+                include_history: true,
             };
         }
     }
-    Some(PathBuf::from(payload))
+    HardcopyPayload {
+        path: Some(PathBuf::from(payload)),
+        include_history: false,
+    }
 }
 
 fn numbered_hardcopy_path(hardcopy_dir: Option<&Path>, index: usize) -> PathBuf {
@@ -156,11 +170,14 @@ fn selected_index(
     }
 }
 
-fn request_session_hardcopy(args: &ScreenArgs, path: &Path, append: bool) -> io::Result<()> {
-    match request_with_window_target(args, ScreenIpcRequest::Hardcopy, request_session_response)? {
+fn request_session_hardcopy(args: &ScreenArgs, options: &HardcopyOptions) -> io::Result<()> {
+    let request = ScreenIpcRequest::Hardcopy {
+        include_history: options.include_history,
+    };
+    match request_with_window_target(args, request, request_session_response)? {
         ScreenIpcResponse::Hardcopy { bytes } => {
-            write_hardcopy(path, append, &bytes)?;
-            let path = path.display().to_string();
+            write_hardcopy(&options.path, options.append, &bytes)?;
+            let path = options.path.display().to_string();
             println!(
                 "{}",
                 terman_common::builtin_screen_control_hardcopy_complete_hint(&path, bytes.len())
@@ -197,25 +214,13 @@ fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{
-        numbered_hardcopy_path, parse_hardcopy_append, parse_hardcopy_path, selected_index,
-    };
+    use super::{numbered_hardcopy_path, parse_hardcopy_append, parse_hardcopy_payload, selected_index};
     use crate::{ScreenArgs, ipc::ScreenWindowInfo};
 
     fn windows() -> Vec<ScreenWindowInfo> {
         vec![
-            ScreenWindowInfo {
-                index: 0,
-                title: String::from("shell"),
-                active: true,
-                replay_bytes: 1,
-            },
-            ScreenWindowInfo {
-                index: 2,
-                title: String::from("editor"),
-                active: false,
-                replay_bytes: 1,
-            },
+            ScreenWindowInfo { index: 0, title: String::from("shell"), active: true, replay_bytes: 1 },
+            ScreenWindowInfo { index: 2, title: String::from("editor"), active: false, replay_bytes: 1 },
         ]
     }
 
@@ -228,20 +233,15 @@ mod tests {
 
     #[test]
     fn parses_hardcopy_h_option_without_treating_it_as_path() {
-        assert_eq!(parse_hardcopy_path(""), None);
-        assert_eq!(parse_hardcopy_path("-h"), None);
-        assert_eq!(
-            parse_hardcopy_path("-h copy.txt"),
-            Some(PathBuf::from("copy.txt"))
-        );
-        assert_eq!(
-            parse_hardcopy_path("copy with spaces.txt"),
-            Some(PathBuf::from("copy with spaces.txt"))
-        );
-        assert_eq!(
-            parse_hardcopy_path("-hardcopy"),
-            Some(PathBuf::from("-hardcopy"))
-        );
+        let empty = parse_hardcopy_payload("");
+        assert_eq!(empty.path, None);
+        assert!(!empty.include_history);
+        let history = parse_hardcopy_payload("-h copy.txt");
+        assert_eq!(history.path, Some(PathBuf::from("copy.txt")));
+        assert!(history.include_history);
+        let path = parse_hardcopy_payload("-hardcopy");
+        assert_eq!(path.path, Some(PathBuf::from("-hardcopy")));
+        assert!(!path.include_history);
     }
 
     #[test]
@@ -256,10 +256,7 @@ mod tests {
 
     #[test]
     fn joins_hardcopydir_with_default_file_name() {
-        assert_eq!(
-            numbered_hardcopy_path(None, 3),
-            PathBuf::from("hardcopy.3")
-        );
+        assert_eq!(numbered_hardcopy_path(None, 3), PathBuf::from("hardcopy.3"));
         assert_eq!(
             numbered_hardcopy_path(Some(Path::new("copies")), 3),
             PathBuf::from("copies").join("hardcopy.3")

@@ -27,7 +27,12 @@ pub(super) fn print_attach_help() -> io::Result<()> {
 
 pub(super) fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     let settings = attach_hardcopy_settings(endpoint)?;
-    match request_endpoint_response(endpoint, ScreenIpcRequest::Hardcopy)? {
+    match request_endpoint_response(
+        endpoint,
+        ScreenIpcRequest::Hardcopy {
+            include_history: false,
+        },
+    )? {
         ScreenIpcResponse::Hardcopy { bytes } => {
             let path = write_numbered_hardcopy(&settings, &bytes)?;
             let mut stdout = io::stdout();

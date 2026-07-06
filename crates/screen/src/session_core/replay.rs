@@ -1,6 +1,7 @@
 pub(super) const DEFAULT_SCROLLBACK_LINES: usize = 1_000;
 
 const DEFAULT_SCROLLBACK_COLS: usize = 80;
+const DEFAULT_DISPLAY_ROWS: usize = 24;
 const MIN_SCROLLBACK_BYTES: usize = 4 * 1024;
 
 #[derive(Clone)]
@@ -21,6 +22,15 @@ impl Default for ScreenReplayBuffer {
 impl ScreenReplayBuffer {
     pub(super) fn snapshot(&self) -> Vec<u8> {
         self.bytes.clone()
+    }
+
+    pub(super) fn display_snapshot(&self, rows: Option<u16>, cols: Option<u16>) -> Vec<u8> {
+        let max_bytes = max_display_bytes(rows, cols);
+        if self.bytes.len() <= max_bytes {
+            self.bytes.clone()
+        } else {
+            self.bytes[self.bytes.len() - max_bytes..].to_vec()
+        }
     }
 
     pub(super) fn len(&self) -> usize {
@@ -56,6 +66,12 @@ impl ScreenReplayBuffer {
             self.bytes.drain(..overflow);
         }
     }
+}
+
+fn max_display_bytes(rows: Option<u16>, cols: Option<u16>) -> usize {
+    let rows = rows.map(usize::from).unwrap_or(DEFAULT_DISPLAY_ROWS);
+    let cols = cols.map(usize::from).unwrap_or(DEFAULT_SCROLLBACK_COLS);
+    rows.saturating_mul(cols)
 }
 
 fn max_replay_bytes(scrollback_lines: usize, cols: Option<u16>) -> usize {

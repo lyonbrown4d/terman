@@ -40,6 +40,19 @@ impl ScreenWindowState {
         self.replay.snapshot()
     }
 
+    pub(super) fn hardcopy_snapshot(
+        &self,
+        include_history: bool,
+        rows: Option<u16>,
+        cols: Option<u16>,
+    ) -> Vec<u8> {
+        if include_history {
+            self.replay.snapshot()
+        } else {
+            self.replay.display_snapshot(rows, cols)
+        }
+    }
+
     pub(super) fn replay_len(&self) -> usize {
         self.replay.len()
     }

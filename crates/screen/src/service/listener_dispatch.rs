@@ -116,10 +116,10 @@ pub(super) fn handle_client(
             bus.publish_transient_output(b"\x1bc");
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
-        Ok(ScreenIpcRequest::Hardcopy) => write_response(
+        Ok(ScreenIpcRequest::Hardcopy { include_history }) => write_response(
             stream,
             &ScreenIpcResponse::Hardcopy {
-                bytes: bus.replay_snapshot(),
+                bytes: bus.hardcopy_snapshot(include_history),
             },
         ),
         Ok(ScreenIpcRequest::NewWindow { command }) => {

@@ -84,11 +84,22 @@ impl ScreenSessionBus {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn replay_snapshot(&self) -> Vec<u8> {
+        self.hardcopy_snapshot(true)
+    }
+
+    pub(crate) fn hardcopy_snapshot(&self, include_history: bool) -> Vec<u8> {
         self.inner
             .lock()
             .ok()
-            .and_then(|state| state.active_window().map(ScreenWindowState::replay_snapshot))
+            .and_then(|state| {
+                let rows = state.rows;
+                let cols = state.cols;
+                state
+                    .active_window()
+                    .map(|window| window.hardcopy_snapshot(include_history, rows, cols))
+            })
             .unwrap_or_default()
     }
 

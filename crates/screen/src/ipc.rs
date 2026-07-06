@@ -37,7 +37,9 @@ pub(crate) enum ScreenIpcRequest {
     Echo {
         message: String,
     },
-    Hardcopy,
+    Hardcopy {
+        include_history: bool,
+    },
     SetHardcopyDir {
         path: PathBuf,
     },
