@@ -102,6 +102,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     Hardcopy,
     Info,
+    LastMessage,
     NewWindow {
         command: Option<String>,
     },

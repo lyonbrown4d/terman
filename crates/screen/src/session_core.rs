@@ -232,6 +232,20 @@ impl ScreenSessionBus {
     pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {
         self.broadcast(ScreenSessionEvent::Output(bytes.to_vec()));
     }
+    pub(crate) fn last_message_snapshot(&self) -> Vec<u8> {
+        self.inner
+            .lock()
+            .map(|state| state.last_message.clone())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn publish_message(&self, bytes: &[u8]) {
+        let message = bytes.to_vec();
+        let event = ScreenSessionEvent::Output(message.clone());
+        self.publish(event, |state| {
+            state.last_message = message;
+        });
+    }
 
     #[cfg(test)]
     pub(crate) fn publish_output(&self, bytes: &[u8]) {

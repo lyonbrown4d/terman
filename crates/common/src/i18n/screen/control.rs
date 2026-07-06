@@ -15,6 +15,10 @@ pub fn builtin_screen_control_echo_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlEchoRequired, &[])
 }
 
+
+pub fn builtin_screen_control_lastmsg_empty_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlLastmsgEmpty, &[])
+}
 pub fn builtin_screen_control_log_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlLogRequired, &[])
 }

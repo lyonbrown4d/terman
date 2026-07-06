@@ -66,6 +66,7 @@ fn execute_control_command(
         "windows" | "windowlist" => request_windows_command(args, request_session_response),
         "info" => request_info_command(args, request_session_response),
         "dinfo" => request_dinfo_command(args, request_session_response),
+        "lastmsg" => send_session_control_request(args, ScreenIpcRequest::LastMessage),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "log" => request_log_command(args, inline_payload, extra_args),
         "logfile" => request_logfile_command(args, inline_payload, extra_args),

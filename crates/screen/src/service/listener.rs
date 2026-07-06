@@ -93,7 +93,7 @@ fn handle_client(
         Ok(ScreenIpcRequest::Echo { message }) => {
             let mut bytes = message.into_bytes();
             bytes.extend_from_slice(b"\r\n");
-            bus.publish_transient_output(&bytes);
+            bus.publish_message(&bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::SetLogEnabled { enabled }) => {
@@ -137,7 +137,17 @@ fn handle_client(
                 bytes: bus.paste_buffer_snapshot(),
             },
         ),
-        Ok(ScreenIpcRequest::Info) => {
+        Ok(ScreenIpcRequest::LastMessage) => {
+            let mut bytes = bus.last_message_snapshot();
+            if bytes.is_empty() {
+                bytes = terman_common::builtin_screen_control_lastmsg_empty_hint().into_bytes();
+                bytes.extend_from_slice(b"\r\n");
+                bus.publish_message(&bytes);
+            } else {
+                bus.publish_transient_output(&bytes);
+            }
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }        Ok(ScreenIpcRequest::Info) => {
             let status = bus.status_snapshot();
             let session_name = current_session_name(session_name)?;
             let windows = status

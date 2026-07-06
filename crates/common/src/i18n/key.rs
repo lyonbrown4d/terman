@@ -50,6 +50,7 @@ pub enum MessageKey {
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
     BuiltinScreenControlEchoRequired,
+    BuiltinScreenControlLastmsgEmpty,
     BuiltinScreenControlLogRequired,
     BuiltinScreenControlLogfileRequired,
     BuiltinScreenControlStuffRequired,
@@ -142,6 +143,7 @@ impl MessageKey {
                 "builtin-screen-control-command-unsupported"
             }
             Self::BuiltinScreenControlEchoRequired => "builtin-screen-control-echo-required",
+            Self::BuiltinScreenControlLastmsgEmpty => "builtin-screen-control-lastmsg-empty",
             Self::BuiltinScreenControlLogRequired => "builtin-screen-control-log-required",
             Self::BuiltinScreenControlLogfileRequired => {
                 "builtin-screen-control-logfile-required"

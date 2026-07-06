@@ -45,6 +45,18 @@ fn detaches_one_client_without_broadcasting() {
 }
 
 #[test]
+fn tracks_last_message() {
+    let bus = ScreenSessionBus::new();
+    let (_replay, subscription) = bus.subscribe_with_replay(None);
+    bus.publish_message(b"message\r\n");
+
+    assert_eq!(bus.last_message_snapshot(), b"message\r\n".to_vec());
+    assert_eq!(
+        subscription.try_recv(),
+        Ok(ScreenSessionEvent::Output(b"message\r\n".to_vec()))
+    );
+}
+#[test]
 fn updates_scrollback_limit() {
     let bus = ScreenSessionBus::new();
     bus.set_scrollback_lines(0);
