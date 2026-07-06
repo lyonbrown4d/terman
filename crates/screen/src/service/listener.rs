@@ -106,6 +106,10 @@ fn handle_client(
             bus.set_scrollback_lines(lines);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetWindowTitle { title }) => {
+            bus.set_window_title(title);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Reset) => {
             bus.clear_replay();
             bus.publish_transient_output(b"\x1bc");
@@ -128,6 +132,7 @@ fn handle_client(
                     cols: status.cols,
                     rows: status.rows,
                     scrollback_lines: status.scrollback_lines,
+                    window_title: status.window_title,
                 },
             )
         }

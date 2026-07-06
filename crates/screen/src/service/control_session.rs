@@ -114,6 +114,22 @@ pub(super) fn request_scrollback_command(
     send_session_control_request(args, ScreenIpcRequest::SetScrollback { lines })
 }
 
+pub(super) fn request_title_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let title = control_command_payload(inline_payload, extra_args);
+    let title = title.trim().to_string();
+    if title.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_title_required_hint(),
+        ));
+    }
+    send_session_control_request(args, ScreenIpcRequest::SetWindowTitle { title })
+}
+
 pub(super) fn request_stuff_command(
     args: &ScreenArgs,
     inline_payload: &str,

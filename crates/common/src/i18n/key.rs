@@ -59,6 +59,7 @@ pub enum MessageKey {
     BuiltinScreenControlScrollbackRequired,
     BuiltinScreenControlSleepRequired,
     BuiltinScreenControlTime,
+    BuiltinScreenControlTitleRequired,
     BuiltinScreenControlVersion,
     BuiltinScreenControlInfo,
     BuiltinScreenControlDisplaysEntry,
@@ -147,6 +148,7 @@ impl MessageKey {
             }
             Self::BuiltinScreenControlSleepRequired => "builtin-screen-control-sleep-required",
             Self::BuiltinScreenControlTime => "builtin-screen-control-time",
+            Self::BuiltinScreenControlTitleRequired => "builtin-screen-control-title-required",
             Self::BuiltinScreenControlVersion => "builtin-screen-control-version",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
             Self::BuiltinScreenControlDisplaysEntry => "builtin-screen-control-displays-entry",

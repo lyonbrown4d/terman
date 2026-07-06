@@ -18,12 +18,14 @@ pub(super) fn request_windows_command(
             attach_clients,
             cols,
             rows,
+            window_title,
             ..
         } => {
+            let title = window_title.as_deref().unwrap_or(&session_name);
             println!(
                 "{}",
                 terman_common::builtin_screen_control_windows_entry_hint(
-                    &session_name,
+                    title,
                     replay_bytes,
                     attach_clients,
                     cols,

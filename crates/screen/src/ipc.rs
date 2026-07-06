@@ -109,6 +109,9 @@ pub(crate) enum ScreenIpcRequest {
     SetScrollback {
         lines: usize,
     },
+    SetWindowTitle {
+        title: String,
+    },
     Input {
         bytes: Vec<u8>,
     },
@@ -131,6 +134,7 @@ pub(crate) enum ScreenIpcResponse {
         cols: Option<u16>,
         rows: Option<u16>,
         scrollback_lines: usize,
+        window_title: Option<String>,
     },
     Output { bytes: Vec<u8> },
     Resize { cols: u16, rows: u16 },

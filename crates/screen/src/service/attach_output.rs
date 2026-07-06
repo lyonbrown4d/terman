@@ -48,6 +48,7 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
             cols,
             rows,
             scrollback_lines,
+            ..
         } => {
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;

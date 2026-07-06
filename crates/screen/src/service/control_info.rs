@@ -19,6 +19,7 @@ pub(super) fn request_info_command(
             cols,
             rows,
             scrollback_lines,
+            ..
         } => {
             println!(
                 "{}",

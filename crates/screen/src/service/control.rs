@@ -9,7 +9,7 @@ use super::{
     control_select::request_select_command,
     control_session::{
         request_echo_command, request_hardcopy_command, request_log_command, request_logfile_command,
-        request_pastefile_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command,
+        request_pastefile_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command, request_title_command,
         send_session_control_request,
     },
     control_source::request_source_command,
@@ -72,6 +72,7 @@ fn execute_control_command(
         }
         "next" | "prev" => request_window_navigation_command(args, request_session_response),
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
+        "title" | "aka" => request_title_command(args, inline_payload, extra_args),
         "stuff" => request_stuff_command(args, inline_payload, extra_args),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,

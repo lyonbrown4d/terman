@@ -58,6 +58,10 @@ pub fn builtin_screen_control_time_hint(unix_seconds: u64) -> String {
     )
 }
 
+pub fn builtin_screen_control_title_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlTitleRequired, &[])
+}
+
 pub fn builtin_screen_control_version_hint(version: &str) -> String {
     localized_message(MessageKey::BuiltinScreenControlVersion, &[("version", version)])
 }
