@@ -16,6 +16,7 @@ mod control_register;
 mod control_scrollback;
 mod control_select;
 mod control_session;
+mod control_shell;
 mod control_target;
 mod control_sleep;
 mod control_source;

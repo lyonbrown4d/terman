@@ -12,24 +12,25 @@ pub(crate) fn build_command(
     cwd: Option<&Path>,
     env_overrides: &BTreeMap<String, Option<String>>,
 ) -> Result<CommandBuilder, io::Error> {
-    let shell = default_shell();
+    let command_shell = default_shell();
+    let (window_shell, window_login_shell) = default_window_shell(env_overrides);
 
     let mut builder = match args.command.clone() {
         Some(cmd) => {
-            let mut builder = CommandBuilder::new(&shell);
-            for arg in shell_command_args(&shell, args.login_shell) {
+            let mut builder = CommandBuilder::new(&command_shell);
+            for arg in shell_command_args(&command_shell, args.login_shell) {
                 builder.arg(arg);
             }
             builder.arg(cmd);
             builder
         }
         None => {
-            if !cfg!(windows) && args.login_shell {
-                let mut builder = CommandBuilder::new(&shell);
+            if !cfg!(windows) && (args.login_shell || window_login_shell) {
+                let mut builder = CommandBuilder::new(&window_shell);
                 builder.arg("-l");
                 builder
             } else {
-                CommandBuilder::new(shell)
+                CommandBuilder::new(window_shell)
             }
         }
     };
@@ -46,6 +47,20 @@ pub(crate) fn build_command(
     }
     apply_screen_environment(&mut builder, args);
     Ok(builder)
+}
+
+fn default_window_shell(env_overrides: &BTreeMap<String, Option<String>>) -> (String, bool) {
+    let Some(Some(shell)) = env_overrides.get("SHELL") else {
+        return (default_shell(), false);
+    };
+    let shell = shell.trim();
+    if shell.is_empty() {
+        return (default_shell(), false);
+    }
+    match shell.strip_prefix('-').filter(|value| !value.is_empty()) {
+        Some(shell) => (shell.to_string(), true),
+        None => (shell.to_string(), false),
+    }
 }
 
 fn apply_screen_environment(builder: &mut CommandBuilder, args: &ScreenArgs) {
