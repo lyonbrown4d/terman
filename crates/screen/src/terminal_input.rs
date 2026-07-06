@@ -48,7 +48,8 @@ impl ScreenInputDecoder {
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
                 Some(ScreenInputAction::Reset)
-            }            KeyCode::Char('l') | KeyCode::Char('L')
+            }
+            KeyCode::Char('l') | KeyCode::Char('L')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
             {
                 Some(ScreenInputAction::Redisplay)
