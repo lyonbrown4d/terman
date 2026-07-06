@@ -10,6 +10,7 @@ mod pty_process;
 mod service;
 mod server;
 mod session_core;
+mod screen_exchange;
 mod sessions;
 mod shell;
 mod terminal_input;

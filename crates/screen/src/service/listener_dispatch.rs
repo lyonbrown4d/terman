@@ -91,6 +91,10 @@ pub(super) fn handle_client(
             bus.set_paste_buffer(bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetBufferFile { path }) => {
+            bus.set_buffer_file(path);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::SetRegister { name, bytes }) => {
             bus.set_register(name, bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
@@ -245,6 +249,7 @@ fn write_info(
             scrollback_lines: status.scrollback_lines,
             hardcopy_dir: status.hardcopy_dir,
             hardcopy_append: status.hardcopy_append,
+            buffer_file: status.buffer_file,
             window_title: status.window_title,
             active_window: status.active_window,
             windows,

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use super::{ScreenSessionStatus, ScreenWindowStatus, replay::DEFAULT_SCROLLBACK_LINES, window::ScreenWindowState};
+use crate::screen_exchange::default_screen_exchange_file;
 
 pub(crate) struct ScreenRemovedWindow {
     pub(crate) active_window: Option<usize>,
@@ -22,6 +23,7 @@ pub(super) struct ScreenSessionState {
     pub(super) last_message: Vec<u8>,
     pub(super) hardcopy_dir: Option<PathBuf>,
     pub(super) hardcopy_append: bool,
+    pub(super) buffer_file: PathBuf,
     pub(super) registers: HashMap<String, Vec<u8>>,
     pub(super) subscribers: Vec<ScreenSessionSubscriber>,
     pub(super) attach_clients: usize,
@@ -39,6 +41,7 @@ impl Default for ScreenSessionState {
             last_message: Vec::new(),
             hardcopy_dir: None,
             hardcopy_append: false,
+            buffer_file: default_screen_exchange_file(),
             registers: HashMap::new(),
             subscribers: Vec::new(),
             attach_clients: 0,
@@ -167,6 +170,7 @@ pub(super) fn session_status(state: &ScreenSessionState) -> ScreenSessionStatus 
         scrollback_lines,
         hardcopy_dir: state.hardcopy_dir.clone(),
         hardcopy_append: state.hardcopy_append,
+        buffer_file: state.buffer_file.clone(),
         window_title,
         active_window: state.active_window,
         windows: state
@@ -186,6 +190,7 @@ pub(super) fn fallback_status() -> ScreenSessionStatus {
         scrollback_lines: DEFAULT_SCROLLBACK_LINES,
         hardcopy_dir: None,
         hardcopy_append: false,
+        buffer_file: default_screen_exchange_file(),
         window_title: None,
         active_window: 0,
         windows: vec![ScreenWindowStatus {

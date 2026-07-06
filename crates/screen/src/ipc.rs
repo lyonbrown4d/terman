@@ -103,6 +103,9 @@ pub(crate) enum ScreenIpcRequest {
     SetPasteBuffer {
         bytes: Vec<u8>,
     },
+    SetBufferFile {
+        path: PathBuf,
+    },
     SetRegister {
         name: String,
         bytes: Vec<u8>,
@@ -143,6 +146,7 @@ pub(crate) enum ScreenIpcResponse {
         scrollback_lines: usize,
         hardcopy_dir: Option<PathBuf>,
         hardcopy_append: bool,
+        buffer_file: PathBuf,
         window_title: Option<String>,
         active_window: usize,
         windows: Vec<ScreenWindowInfo>,

@@ -122,6 +122,12 @@ impl ScreenSessionBus {
         }
     }
 
+    pub(crate) fn set_buffer_file(&self, path: std::path::PathBuf) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.buffer_file = path;
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn add_window(&self, index: usize, title: Option<String>) {
         self.add_window_with_scrollback(index, title, replay::DEFAULT_SCROLLBACK_LINES);

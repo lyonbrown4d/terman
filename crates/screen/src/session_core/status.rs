@@ -17,6 +17,7 @@ pub(crate) struct ScreenSessionStatus {
     pub(crate) scrollback_lines: usize,
     pub(crate) hardcopy_dir: Option<PathBuf>,
     pub(crate) hardcopy_append: bool,
+    pub(crate) buffer_file: PathBuf,
     pub(crate) window_title: Option<String>,
     pub(crate) active_window: usize,
     pub(crate) windows: Vec<ScreenWindowStatus>,

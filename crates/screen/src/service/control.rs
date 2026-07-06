@@ -2,6 +2,10 @@ use std::io;
 
 use super::{
     control_at::request_at_command,
+    control_buffer::{
+        request_bufferfile_command, request_readbuf_command, request_removebuf_command,
+        request_writebuf_command,
+    },
     control_chdir::request_chdir_command,
     control_colon::request_colon_command,
     control_displays::request_displays_command,
@@ -18,7 +22,7 @@ use super::{
     control_select::request_select_command,
     control_session::{
         request_echo_command, request_kill_command, request_logfile_command, request_new_window_command,
-        request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
+        request_paste_command, request_pastefile_command, request_resize_command, request_session_response, request_stuff_command, request_title_command, 
         send_session_control_request,
     },
     control_shell::{request_shell_command, request_shelltitle_command, request_term_command},
@@ -90,14 +94,12 @@ fn execute_control_command(
         "logfile" => request_logfile_command(args, inline_payload, extra_args),
         "paste" => request_paste_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
+        "bufferfile" => request_bufferfile_command(args, inline_payload, extra_args),
         "process" => request_process_command(args, inline_payload, extra_args),
         "register" => request_register_command(args, inline_payload, extra_args),
         "readreg" => request_readreg_command(args, inline_payload, extra_args),
         "readbuf" => request_readbuf_command(args, inline_payload, extra_args),
-        "removebuf" => send_session_control_request(
-            args,
-            ScreenIpcRequest::SetPasteBuffer { bytes: Vec::new() },
-        ),
+        "removebuf" => request_removebuf_command(args),
         "writebuf" => request_writebuf_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
