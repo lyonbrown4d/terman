@@ -171,6 +171,16 @@ fn detects_screen_windows_prefix() {
 }
 
 #[test]
+fn detects_screen_windowlist_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let windowlist = KeyEvent::new(KeyCode::Char('"'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(windowlist), Some(ScreenInputAction::Windows));
+}
+
+#[test]
 fn detects_screen_help_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
