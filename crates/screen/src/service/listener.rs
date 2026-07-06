@@ -102,6 +102,10 @@ fn handle_client(
             bus.set_hardcopy_dir(path);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetHardcopyAppend { append }) => {
+            bus.set_hardcopy_append(append);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::SetLogEnabled { enabled }) => {
             write_result_response(stream, bus.set_log_enabled(enabled))
         }
@@ -209,6 +213,7 @@ fn handle_client(
                     rows: status.rows,
                     scrollback_lines: status.scrollback_lines,
                     hardcopy_dir: status.hardcopy_dir,
+                    hardcopy_append: status.hardcopy_append,
                     window_title: status.window_title,
                     active_window: status.active_window,
                     windows,

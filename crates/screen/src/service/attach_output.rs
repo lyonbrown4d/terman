@@ -10,7 +10,12 @@ use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse, ScreenW
 
 const ATTACH_HARDCOPY_PREFIX_ENV: &str = "TERMAN_SCREEN_HARDCOPY_PREFIX";
 const DEFAULT_ATTACH_HARDCOPY_PREFIX: &str = "hardcopy";
-const MAX_ATTACH_HARDCOPY_SLOTS: usize = 10_000;
+
+struct AttachHardcopySettings {
+    append: bool,
+    directory: Option<PathBuf>,
+    window_index: usize,
+}
 
 pub(super) fn print_attach_help() -> io::Result<()> {
     let mut stdout = io::stdout();
@@ -21,10 +26,10 @@ pub(super) fn print_attach_help() -> io::Result<()> {
 }
 
 pub(super) fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
-    let hardcopy_dir = attach_hardcopy_dir(endpoint)?;
+    let settings = attach_hardcopy_settings(endpoint)?;
     match request_endpoint_response(endpoint, ScreenIpcRequest::Hardcopy)? {
         ScreenIpcResponse::Hardcopy { bytes } => {
-            let path = write_numbered_hardcopy(hardcopy_dir.as_deref(), &bytes)?;
+            let path = write_numbered_hardcopy(&settings, &bytes)?;
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;
             stdout.write_all(
@@ -146,9 +151,18 @@ pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<(
     }
 }
 
-fn attach_hardcopy_dir(endpoint: &ScreenIpcEndpoint) -> io::Result<Option<PathBuf>> {
+fn attach_hardcopy_settings(endpoint: &ScreenIpcEndpoint) -> io::Result<AttachHardcopySettings> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
-        ScreenIpcResponse::Info { hardcopy_dir, .. } => Ok(hardcopy_dir),
+        ScreenIpcResponse::Info {
+            active_window,
+            hardcopy_append,
+            hardcopy_dir,
+            ..
+        } => Ok(AttachHardcopySettings {
+            append: hardcopy_append,
+            directory: hardcopy_dir,
+            window_index: active_window,
+        }),
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
@@ -178,24 +192,30 @@ fn write_attach_window_entry(
     stdout.write_all(b"\r\n")
 }
 
-fn write_numbered_hardcopy(hardcopy_dir: Option<&Path>, bytes: &[u8]) -> io::Result<String> {
+fn write_numbered_hardcopy(
+    settings: &AttachHardcopySettings,
+    bytes: &[u8],
+) -> io::Result<String> {
     let prefix = attach_hardcopy_prefix();
-    for index in 0..MAX_ATTACH_HARDCOPY_SLOTS {
-        let path = attach_hardcopy_path(hardcopy_dir, &prefix, index);
-        match OpenOptions::new().write(true).create_new(true).open(&path) {
-            Ok(mut file) => {
-                file.write_all(bytes)?;
-                return Ok(path.display().to_string());
-            }
-            Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {}
-            Err(err) => return Err(err),
-        }
-    }
+    let path = attach_hardcopy_path(
+        settings.directory.as_deref(),
+        &prefix,
+        settings.window_index,
+    );
+    write_hardcopy(&path, settings.append, bytes)?;
+    Ok(path.display().to_string())
+}
 
-    Err(io::Error::new(
-        io::ErrorKind::AlreadyExists,
-        terman_common::builtin_screen_attach_hardcopy_path_unavailable_hint(),
-    ))
+fn write_hardcopy(path: &Path, append: bool, bytes: &[u8]) -> io::Result<()> {
+    let mut options = OpenOptions::new();
+    options.create(true).write(true);
+    if append {
+        options.append(true);
+    } else {
+        options.truncate(true);
+    }
+    let mut file = options.open(path)?;
+    file.write_all(bytes)
 }
 
 fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {

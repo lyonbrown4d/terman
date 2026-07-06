@@ -6,7 +6,9 @@ use super::{
     control_colon::request_colon_command,
     control_displays::request_displays_command,
     control_env::{request_setenv_command, request_unsetenv_command},
-    control_hardcopy::{request_hardcopy_command, request_hardcopydir_command},
+    control_hardcopy::{
+        request_hardcopy_append_command, request_hardcopy_command, request_hardcopydir_command,
+    },
     control_info::{request_dinfo_command, request_info_command},
     control_local::request_local_control_command,
     control_log::{request_deflog_command, request_log_command, request_logtstamp_command},
@@ -80,6 +82,7 @@ fn execute_control_command(
         "lastmsg" => send_session_control_request(args, ScreenIpcRequest::LastMessage),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "hardcopydir" => request_hardcopydir_command(args, inline_payload, extra_args),
+        "hardcopy_append" => request_hardcopy_append_command(args, inline_payload, extra_args),
         "log" => request_log_command(args, inline_payload, extra_args),
         "deflog" => request_deflog_command(args, inline_payload, extra_args),
         "logtstamp" => request_logtstamp_command(args, inline_payload, extra_args),

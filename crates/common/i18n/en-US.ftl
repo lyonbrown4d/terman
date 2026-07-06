@@ -23,6 +23,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X windowlist
       - terman-screen -S dev -X hardcopy
       - terman-screen -S dev -X hardcopydir .
+      - terman-screen -S dev -X hardcopy_append on
       - terman-screen -S dev -X screen
       - terman-screen -S dev -X chdir .
       - terman-screen -S dev -X setenv EDITOR vim
@@ -79,7 +80,7 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-chdir-directory-required = Specify an existing directory as screen -X chdir <path>.
 builtin-screen-control-chdir-home-required = HOME or USERPROFILE is not available for screen -X chdir.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
@@ -92,7 +93,7 @@ builtin-screen-control-shelltitle-required = Specify a default shell window titl
 builtin-screen-control-log-required = Specify screen log state as screen -X log [on|off], or omit the state to toggle logging.
 builtin-screen-control-logfile-required = Specify a log file path as screen -X logfile <path>, or a flush interval as screen -X logfile flush <seconds>.
 builtin-screen-control-logtstamp-required = Specify screen log timestamp as logtstamp [on|off], logtstamp after <seconds>, or logtstamp string <text>.
-builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, title, -, ., #, or an empty selector.
@@ -108,6 +109,7 @@ builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
 builtin-screen-control-hardcopy-path-required = Specify an optional output path as screen -X hardcopy [path].
 builtin-screen-control-hardcopydir-required = Specify an existing directory as screen -X hardcopydir <path>.
+builtin-screen-control-hardcopy-append-required = Specify hardcopy append state as screen -X hardcopy_append <on|off>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
 builtin-screen-control-readbuf-path-required = Specify an input path as screen -X readbuf <path>.
 builtin-screen-control-readreg-required = Specify register and input path as screen -X readreg <register> <path>.

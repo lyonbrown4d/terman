@@ -54,6 +54,7 @@ pub(crate) struct ScreenSessionStatus {
     pub(crate) rows: Option<u16>,
     pub(crate) scrollback_lines: usize,
     pub(crate) hardcopy_dir: Option<PathBuf>,
+    pub(crate) hardcopy_append: bool,
     pub(crate) window_title: Option<String>,
     pub(crate) active_window: usize,
     pub(crate) windows: Vec<ScreenWindowStatus>,
@@ -148,6 +149,12 @@ impl ScreenSessionBus {
     pub(crate) fn set_hardcopy_dir(&self, path: PathBuf) {
         if let Ok(mut state) = self.inner.lock() {
             state.hardcopy_dir = Some(path);
+        }
+    }
+
+    pub(crate) fn set_hardcopy_append(&self, append: bool) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.hardcopy_append = append;
         }
     }
 

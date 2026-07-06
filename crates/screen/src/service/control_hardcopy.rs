@@ -1,5 +1,7 @@
 use std::{
-    fs, io,
+    fs,
+    fs::OpenOptions,
+    io::{self, Write},
     path::{Path, PathBuf},
 };
 
@@ -13,18 +15,29 @@ use crate::{
     ipc::{ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo},
 };
 
+struct HardcopyOptions {
+    path: PathBuf,
+    append: bool,
+}
+
 pub(super) fn request_hardcopy_command(
     args: &ScreenArgs,
     inline_payload: &str,
     extra_args: &[String],
 ) -> io::Result<()> {
-    let path = control_command_payload(inline_payload, extra_args);
-    let path = if path.trim().is_empty() {
-        default_hardcopy_path(args)?
-    } else {
-        PathBuf::from(path.trim())
-    };
-    request_session_hardcopy(args, &path)
+    let payload = control_command_payload(inline_payload, extra_args);
+    let options = hardcopy_options(args, &payload)?;
+    request_session_hardcopy(args, &options.path, options.append)
+}
+
+pub(super) fn request_hardcopy_append_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let payload = control_command_payload(inline_payload, extra_args);
+    let append = parse_hardcopy_append(&payload)?;
+    send_session_control_request(args, ScreenIpcRequest::SetHardcopyAppend { append })
 }
 
 pub(super) fn request_hardcopydir_command(
@@ -35,6 +48,28 @@ pub(super) fn request_hardcopydir_command(
     let payload = control_command_payload(inline_payload, extra_args);
     let path = hardcopydir_path(&payload)?;
     send_session_control_request(args, ScreenIpcRequest::SetHardcopyDir { path })
+}
+
+fn parse_hardcopy_append(payload: &str) -> io::Result<bool> {
+    let mut parts = payload.split_whitespace();
+    let Some(state) = parts.next() else {
+        return Err(hardcopy_append_required_error());
+    };
+    if parts.next().is_some() {
+        return Err(hardcopy_append_required_error());
+    }
+    match state.to_ascii_lowercase().as_str() {
+        "on" | "1" | "true" => Ok(true),
+        "off" | "0" | "false" => Ok(false),
+        _ => Err(hardcopy_append_required_error()),
+    }
+}
+
+fn hardcopy_append_required_error() -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_screen_control_hardcopy_append_required_hint(),
+    )
 }
 
 fn hardcopydir_path(payload: &str) -> io::Result<PathBuf> {
@@ -55,17 +90,28 @@ fn hardcopydir_path(payload: &str) -> io::Result<PathBuf> {
     Ok(path)
 }
 
-fn default_hardcopy_path(args: &ScreenArgs) -> io::Result<PathBuf> {
+fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOptions> {
     match request_session_response(args, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
             active_window,
+            hardcopy_append,
             hardcopy_dir,
             windows,
             ..
-        } => Ok(numbered_hardcopy_path(
-            hardcopy_dir.as_deref(),
-            selected_index(args, active_window, &windows)?,
-        )),
+        } => {
+            let path = if payload.trim().is_empty() {
+                numbered_hardcopy_path(
+                    hardcopy_dir.as_deref(),
+                    selected_index(args, active_window, &windows)?,
+                )
+            } else {
+                PathBuf::from(payload.trim())
+            };
+            Ok(HardcopyOptions {
+                path,
+                append: hardcopy_append,
+            })
+        }
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
@@ -93,10 +139,10 @@ fn selected_index(
     }
 }
 
-fn request_session_hardcopy(args: &ScreenArgs, path: &Path) -> io::Result<()> {
+fn request_session_hardcopy(args: &ScreenArgs, path: &Path, append: bool) -> io::Result<()> {
     match request_with_window_target(args, ScreenIpcRequest::Hardcopy, request_session_response)? {
         ScreenIpcResponse::Hardcopy { bytes } => {
-            fs::write(path, &bytes)?;
+            write_hardcopy(path, append, &bytes)?;
             let path = path.display().to_string();
             println!(
                 "{}",
@@ -111,6 +157,18 @@ fn request_session_hardcopy(args: &ScreenArgs, path: &Path) -> io::Result<()> {
     }
 }
 
+fn write_hardcopy(path: &Path, append: bool, bytes: &[u8]) -> io::Result<()> {
+    let mut options = OpenOptions::new();
+    options.create(true).write(true);
+    if append {
+        options.append(true);
+    } else {
+        options.truncate(true);
+    }
+    let mut file = options.open(path)?;
+    file.write_all(bytes)
+}
+
 fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
     io::Error::new(
         io::ErrorKind::InvalidData,
@@ -122,7 +180,7 @@ fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{numbered_hardcopy_path, selected_index};
+    use super::{numbered_hardcopy_path, parse_hardcopy_append, selected_index};
     use crate::{ScreenArgs, ipc::ScreenWindowInfo};
 
     fn windows() -> Vec<ScreenWindowInfo> {
@@ -140,6 +198,13 @@ mod tests {
                 replay_bytes: 1,
             },
         ]
+    }
+
+    #[test]
+    fn parses_hardcopy_append_state() {
+        assert!(parse_hardcopy_append("on").unwrap());
+        assert!(!parse_hardcopy_append("off").unwrap());
+        assert!(parse_hardcopy_append("").is_err());
     }
 
     #[test]
