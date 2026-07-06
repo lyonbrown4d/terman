@@ -13,7 +13,7 @@ pub(super) fn request_local_control_command(
     extra_args: &[String],
 ) -> Option<io::Result<()>> {
     match command {
-        "help" => Some(request_help()),
+        "help" | "commands" => Some(request_help()),
         "sleep" => Some(request_sleep_command(inline_payload, extra_args)),
         "time" => Some(request_time()),
         "version" => Some(request_version()),
