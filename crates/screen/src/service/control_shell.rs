@@ -27,3 +27,24 @@ pub(super) fn request_shell_command(
         },
     )
 }
+pub(super) fn request_shelltitle_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let title = control_command_payload(inline_payload, extra_args);
+    let title = title.trim();
+    if title.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_shelltitle_required_hint(),
+        ));
+    }
+    send_session_control_request(
+        args,
+        ScreenIpcRequest::SetEnv {
+            name: String::from("TERMAN_SCREEN_SHELL_TITLE"),
+            value: title.to_string(),
+        },
+    )
+}

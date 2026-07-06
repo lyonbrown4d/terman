@@ -25,6 +25,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X chdir .
       - terman-screen -S dev -X setenv EDITOR vim
       - terman-screen -S dev -X unsetenv EDITOR
+      - terman-screen -S dev -X shelltitle shell
       - terman-screen -S dev -X title editor
       - terman-screen -S dev -X select 0
       - terman-screen -S dev -X select -
@@ -73,7 +74,7 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-chdir-directory-required = Specify an existing directory as screen -X chdir <path>.
 builtin-screen-control-chdir-home-required = HOME or USERPROFILE is not available for screen -X chdir.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
@@ -82,9 +83,10 @@ builtin-screen-control-setenv-required = Specify environment variable and value 
 builtin-screen-control-unsetenv-required = Specify environment variable name as screen -X unsetenv <name>.
 builtin-screen-control-env-name-invalid = Environment variable names cannot be empty or contain =.
 builtin-screen-control-shell-required = Specify a shell command as screen -X shell <command>.
+builtin-screen-control-shelltitle-required = Specify a default shell window title as screen -X shelltitle <title>.
 builtin-screen-control-log-required = Specify screen log state as screen -X log on or screen -X log off.
 builtin-screen-control-logfile-required = Specify a log file path as screen -X logfile <path>.
-builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, title, -, ., #, or an empty selector.

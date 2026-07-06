@@ -25,6 +25,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X chdir .
       - terman-screen -S dev -X setenv EDITOR vim
       - terman-screen -S dev -X unsetenv EDITOR
+      - terman-screen -S dev -X shelltitle shell
       - terman-screen -S dev -X title editor
       - terman-screen -S dev -X select 0
       - terman-screen -S dev -X select -
@@ -73,7 +74,7 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、shelltitle、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-chdir-directory-required = 请按 screen -X chdir <路径> 指定一个已存在的目录。
 builtin-screen-control-chdir-home-required = screen -X chdir 无法找到 HOME 或 USERPROFILE。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
@@ -82,9 +83,10 @@ builtin-screen-control-setenv-required = 请按 screen -X setenv <名称> <值> 
 builtin-screen-control-unsetenv-required = 请按 screen -X unsetenv <名称> 指定环境变量名。
 builtin-screen-control-env-name-invalid = 环境变量名不能为空，也不能包含 =。
 builtin-screen-control-shell-required = 请按 screen -X shell <命令> 指定默认 shell 命令。
+builtin-screen-control-shelltitle-required = 请按 screen -X shelltitle <标题> 指定默认 shell 窗口标题。
 builtin-screen-control-log-required = 请按 screen -X log on 或 screen -X log off 指定日志状态。
 builtin-screen-control-logfile-required = 请按 screen -X logfile <路径> 指定日志文件路径。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、shelltitle、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 不支持的 screen 窗口 selector `{$selector}`。请使用可见的数字窗口索引、标题、-、.、# 或空 selector。

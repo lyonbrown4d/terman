@@ -43,6 +43,10 @@ pub fn builtin_screen_control_shell_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlShellRequired, &[])
 }
 
+pub fn builtin_screen_control_shelltitle_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlShelltitleRequired, &[])
+}
+
 pub fn builtin_screen_control_log_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlLogRequired, &[])
 }

@@ -87,6 +87,19 @@ pub(crate) fn spawn_screen_window_runtime(
     Ok(ScreenWindowRuntime { index: window_index, pty })
 }
 
+pub(crate) fn new_screen_window_title(
+    command: Option<&str>,
+    env_overrides: &BTreeMap<String, Option<String>>,
+) -> Option<String> {
+    command.map(str::to_string).or_else(|| {
+        env_overrides
+            .get("TERMAN_SCREEN_SHELL_TITLE")
+            .and_then(Option::as_ref)
+            .map(|title| title.trim())
+            .filter(|title| !title.is_empty())
+            .map(str::to_string)
+    })
+}
 pub(crate) fn next_screen_window_index(windows: &[ScreenWindowRuntime]) -> usize {
     windows
         .iter()

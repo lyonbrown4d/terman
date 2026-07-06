@@ -23,7 +23,7 @@ use crate::{
     sessions::register_builtin_screen_session,
     terminal_input::key_to_bytes,
     window_runtime::{
-        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_active_window, kill_windows, next_screen_window_index, renumber_screen_window, resize_windows,
+        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_active_window, kill_windows, new_screen_window_title, next_screen_window_index, renumber_screen_window, resize_windows,
         spawn_screen_window_runtime, switch_screen_window, take_exited_window, write_active_window_input,
     },
 };
@@ -118,6 +118,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                 }
                 ScreenControlEvent::NewWindow { command } => {
                     let index = next_screen_window_index(&windows);
+                    let title = new_screen_window_title(command.as_deref(), &default_env);
                     match spawn_screen_window_runtime(
                         &args,
                         index,
@@ -129,7 +130,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                         output_tx.clone(),
                     ) {
                         Ok(window) => {
-                            session_bus.add_window_with_scrollback(index, command, default_scrollback_lines);
+                            session_bus.add_window_with_scrollback(index, title, default_scrollback_lines);
                             windows.push(window);
                             if let Some(replay) = switch_screen_window(
                                 &session_bus,

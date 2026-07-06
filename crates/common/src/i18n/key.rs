@@ -57,6 +57,7 @@ pub enum MessageKey {
     BuiltinScreenControlUnsetenvRequired,
     BuiltinScreenControlEnvNameInvalid,
     BuiltinScreenControlShellRequired,
+    BuiltinScreenControlShelltitleRequired,
     BuiltinScreenControlLogRequired,
     BuiltinScreenControlLogfileRequired,
     BuiltinScreenControlStuffRequired,
@@ -160,6 +161,7 @@ impl MessageKey {
             Self::BuiltinScreenControlUnsetenvRequired => "builtin-screen-control-unsetenv-required",
             Self::BuiltinScreenControlEnvNameInvalid => "builtin-screen-control-env-name-invalid",
             Self::BuiltinScreenControlShellRequired => "builtin-screen-control-shell-required",
+            Self::BuiltinScreenControlShelltitleRequired => "builtin-screen-control-shelltitle-required",
             Self::BuiltinScreenControlLogRequired => "builtin-screen-control-log-required",
             Self::BuiltinScreenControlLogfileRequired => {
                 "builtin-screen-control-logfile-required"
