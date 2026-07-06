@@ -21,6 +21,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X displays
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X windowlist
+      - terman-screen -S dev -X hardcopy
       - terman-screen -S dev -X screen
       - terman-screen -S dev -X chdir .
       - terman-screen -S dev -X setenv EDITOR vim
@@ -104,7 +105,7 @@ builtin-screen-control-dinfo = screen 显示信息：session={$session_name} siz
 builtin-screen-control-displays-entry = displays：session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。
-builtin-screen-control-hardcopy-path-required = 请按 screen -X hardcopy <路径> 指定输出路径。
+builtin-screen-control-hardcopy-path-required = 可按 screen -X hardcopy [路径] 指定输出路径；省略时写入 hardcopy.<窗口编号>。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
 builtin-screen-control-readbuf-path-required = 请按 screen -X readbuf <路径> 指定输入文件路径。
 builtin-screen-control-readreg-required = 请按 screen -X readreg <寄存器> <路径> 指定寄存器和输入文件路径。

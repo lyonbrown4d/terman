@@ -21,6 +21,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X displays
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X windowlist
+      - terman-screen -S dev -X hardcopy
       - terman-screen -S dev -X screen
       - terman-screen -S dev -X chdir .
       - terman-screen -S dev -X setenv EDITOR vim
@@ -104,7 +105,7 @@ builtin-screen-control-dinfo = screen display info: session={$session_name} size
 builtin-screen-control-displays-entry = displays: session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
-builtin-screen-control-hardcopy-path-required = Specify an output path as screen -X hardcopy <path>.
+builtin-screen-control-hardcopy-path-required = Specify an optional output path as screen -X hardcopy [path].
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
 builtin-screen-control-readbuf-path-required = Specify an input path as screen -X readbuf <path>.
 builtin-screen-control-readreg-required = Specify register and input path as screen -X readreg <register> <path>.

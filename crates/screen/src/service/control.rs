@@ -6,6 +6,7 @@ use super::{
     control_colon::request_colon_command,
     control_displays::request_displays_command,
     control_env::{request_setenv_command, request_unsetenv_command},
+    control_hardcopy::request_hardcopy_command,
     control_info::{request_dinfo_command, request_info_command},
     control_local::request_local_control_command,
     control_log::{request_deflog_command, request_log_command, request_logtstamp_command},
@@ -14,7 +15,7 @@ use super::{
     control_scrollback::{request_defscrollback_command, request_scrollback_command},
     control_select::request_select_command,
     control_session::{
-        request_echo_command, request_hardcopy_command, request_kill_command, request_logfile_command, request_new_window_command,
+        request_echo_command, request_kill_command, request_logfile_command, request_new_window_command,
         request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
         send_session_control_request,
     },

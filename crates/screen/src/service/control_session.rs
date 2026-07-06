@@ -26,21 +26,6 @@ pub(super) fn request_echo_command(
     send_session_control_request(args, ScreenIpcRequest::Echo { message })
 }
 
-pub(super) fn request_hardcopy_command(
-    args: &ScreenArgs,
-    inline_payload: &str,
-    extra_args: &[String],
-) -> io::Result<()> {
-    let path = control_command_payload(inline_payload, extra_args);
-    if path.is_empty() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_screen_control_hardcopy_path_required_hint(),
-        ));
-    }
-    request_session_hardcopy(args, &path)
-}
-
 pub(super) fn request_kill_command(args: &ScreenArgs) -> io::Result<()> {
     send_targeted_session_control_request(args, ScreenIpcRequest::KillWindow)
 }
@@ -242,23 +227,6 @@ pub(super) fn request_session_response(
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
     request_endpoint_response(&endpoint, request)
-}
-
-fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
-    match request_with_window_target(args, ScreenIpcRequest::Hardcopy, request_session_response)? {
-        ScreenIpcResponse::Hardcopy { bytes } => {
-            fs::write(path, &bytes)?;
-            println!(
-                "{}",
-                terman_common::builtin_screen_control_hardcopy_complete_hint(path, bytes.len())
-            );
-            Ok(())
-        }
-        ScreenIpcResponse::Rejected { reason } => {
-            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
-        }
-        response => Err(unexpected_response_error(&response)),
-    }
 }
 
 fn request_session_pastefile(args: &ScreenArgs, path: &str) -> io::Result<()> {
