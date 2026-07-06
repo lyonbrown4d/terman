@@ -146,6 +146,9 @@ impl ScreenInputDecoder {
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             KeyCode::Char('.') if key.modifiers.is_empty() => Some(ScreenInputAction::DumpTermcap),
             KeyCode::Char(',') if key.modifiers.is_empty() => Some(ScreenInputAction::License),
+            KeyCode::Char('<') if key.modifiers.is_empty() => Some(ScreenInputAction::ReadBuffer),
+            KeyCode::Char('>') if key.modifiers.is_empty() => Some(ScreenInputAction::WriteBuffer),
+            KeyCode::Char('=') if key.modifiers.is_empty() => Some(ScreenInputAction::RemoveBuffer),
             KeyCode::Char('\\') if key.modifiers.is_empty() => Some(ScreenInputAction::Quit),
             KeyCode::Char('"') if key.modifiers.is_empty() => Some(ScreenInputAction::Windows),
             KeyCode::Char(']')

@@ -168,3 +168,21 @@ fn detects_screen_number_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(number), Some(ScreenInputAction::Number));
 }
+#[test]
+fn detects_screen_exchange_buffer_prefixes() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let read_buffer = KeyEvent::new(KeyCode::Char('<'), KeyModifiers::empty());
+    let write_buffer = KeyEvent::new(KeyCode::Char('>'), KeyModifiers::empty());
+    let remove_buffer = KeyEvent::new(KeyCode::Char('='), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(read_buffer), Some(ScreenInputAction::ReadBuffer));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(write_buffer), Some(ScreenInputAction::WriteBuffer));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(
+        decoder.decode_key(remove_buffer),
+        Some(ScreenInputAction::RemoveBuffer)
+    );
+}

@@ -20,6 +20,8 @@ pub(crate) enum ScreenInputAction {
     Paste,
     PreviousWindow,
     Quit,
+    ReadBuffer,
+    RemoveBuffer,
     Resize,
     Redisplay,
     Reset,
@@ -28,5 +30,6 @@ pub(crate) enum ScreenInputAction {
     Version,
     WidthToggle,
     Windows,
+    WriteBuffer,
     NextWindow,
 }

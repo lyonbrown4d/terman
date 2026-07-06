@@ -15,6 +15,7 @@ use crossterm::{
 use interprocess::local_socket::prelude::*;
 
 use super::{
+    attach_buffer::{read_attach_buffer, remove_attach_buffer, write_attach_buffer},
     attach_number::print_attach_number,
     attach_output::{
         print_attach_displays, print_attach_hardcopy, print_attach_help, print_attach_info,
@@ -110,6 +111,8 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Paste) => {
                         send_control_request(&endpoint, ScreenIpcRequest::PasteBuffer)?;
                     }
+                    Some(ScreenInputAction::ReadBuffer) => read_attach_buffer(&endpoint)?,
+                    Some(ScreenInputAction::RemoveBuffer) => remove_attach_buffer(&endpoint)?,
                     Some(ScreenInputAction::Quit) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
                         running.store(false, Ordering::Release);
@@ -118,6 +121,7 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Time) => print_attach_time()?,
                     Some(ScreenInputAction::Version) => print_attach_version()?,
                     Some(ScreenInputAction::Windows) => print_attach_windows(&endpoint)?,
+                    Some(ScreenInputAction::WriteBuffer) => write_attach_buffer(&endpoint)?,
                     Some(ScreenInputAction::WidthToggle) => toggle_attach_width(&endpoint)?,
                     Some(ScreenInputAction::LastWindow) => {
                         send_control_request(&endpoint, ScreenIpcRequest::LastWindow)?;
