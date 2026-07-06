@@ -5,6 +5,7 @@ mod cli;
 mod ipc;
 mod launcher;
 mod pty;
+mod pty_process;
 mod service;
 mod server;
 mod session_core;

@@ -1,17 +1,15 @@
 use std::{
     error::Error,
-    io::{self, Read, Write},
+    io::{self, Read},
     sync::{Arc, Mutex, mpsc},
     thread,
     time::Duration,
 };
 
-use portable_pty::{PtySize, native_pty_system};
-
 use crate::{
     ScreenArgs,
     ipc::ScreenIpcEndpoint,
-    pty::build_command,
+    pty_process::spawn_screen_pty,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
@@ -41,24 +39,12 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         control_tx,
     )?;
 
-    let pty_system = native_pty_system();
     let cols = args.cols.unwrap_or(120);
     let rows = args.rows.unwrap_or(32);
-    let pty_size = PtySize {
-        cols,
-        rows,
-        pixel_width: 0,
-        pixel_height: 0,
-    };
     session_bus.publish_resize(cols, rows);
 
-    let pair = pty_system.openpty(pty_size)?;
-    let command = build_command(&args)?;
-    let mut child = pair.slave.spawn_command(command)?;
-
-    let master = pair.master;
-    let mut reader = master.try_clone_reader()?;
-    let mut writer = master.take_writer()?;
+    let mut pty = spawn_screen_pty(&args, cols, rows)?;
+    let mut reader = pty.take_reader()?;
 
     let output_bus = session_bus.clone();
     let output_thread = thread::spawn(move || {
@@ -74,9 +60,8 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
 
     let mut terminate_requested = false;
     let exit_code = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                let code = status.exit_code() as i32;
+        match pty.try_wait_code() {
+            Ok(Some(code)) => {
                 session_bus.publish_exit(code);
                 break code;
             }
@@ -90,27 +75,18 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         while let Ok(control) = control_rx.try_recv() {
             match control {
                 ScreenControlEvent::Input(bytes) => {
-                    if writer.write_all(&bytes).is_err() {
-                        break;
-                    }
-                    if writer.flush().is_err() {
+                    if pty.write_input(&bytes).is_err() {
                         break;
                     }
                 }
                 ScreenControlEvent::Resize { cols, rows } => {
-                    let size = PtySize {
-                        cols,
-                        rows,
-                        pixel_width: 0,
-                        pixel_height: 0,
-                    };
-                    let _ = master.resize(size);
+                    pty.resize(cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }
                 ScreenControlEvent::Terminate => {
                     if !terminate_requested {
                         terminate_requested = true;
-                        let _ = child.kill();
+                        let _ = pty.kill();
                     }
                 }
             }

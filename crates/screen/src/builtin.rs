@@ -14,12 +14,11 @@ use crossterm::{
     event::{self, Event},
     terminal::{self, size as terminal_size},
 };
-use portable_pty::{PtySize, native_pty_system};
 
 use crate::{
     ScreenArgs,
     ipc::ScreenIpcEndpoint,
-    pty::build_command,
+    pty_process::spawn_screen_pty,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
@@ -47,6 +46,7 @@ fn screen_session_endpoint(args: &ScreenArgs) -> ScreenIpcEndpoint {
         .map(ScreenIpcEndpoint::for_new_session)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session("anonymous"))
 }
+
 pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let endpoint = screen_session_endpoint(&args);
     let session_name_state = args
@@ -66,21 +66,8 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
 
-    let pty_system = native_pty_system();
-    let pty_size = PtySize {
-        cols,
-        rows,
-        pixel_width: 0,
-        pixel_height: 0,
-    };
-
-    let pair = pty_system.openpty(pty_size)?;
-    let command = build_command(&args)?;
-    let mut child = pair.slave.spawn_command(command)?;
-
-    let master = pair.master;
-    let mut reader = master.try_clone_reader()?;
-    let mut writer = master.take_writer()?;
+    let mut pty = spawn_screen_pty(&args, cols, rows)?;
+    let mut reader = pty.take_reader()?;
 
     let should_run = Arc::new(AtomicBool::new(true));
     let mut stdout = io::stdout();
@@ -109,9 +96,8 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let mut exit_code: Option<i32> = None;
 
     loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                let code = status.exit_code() as i32;
+        match pty.try_wait_code() {
+            Ok(Some(code)) => {
                 session_bus.publish_exit(code);
                 exit_code = Some(code);
                 break;
@@ -127,25 +113,16 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         while let Ok(control) = control_rx.try_recv() {
             match control {
                 ScreenControlEvent::Input(bytes) => {
-                    if writer.write_all(&bytes).is_err() {
-                        break;
-                    }
-                    if writer.flush().is_err() {
+                    if pty.write_input(&bytes).is_err() {
                         break;
                     }
                 }
                 ScreenControlEvent::Resize { cols, rows } => {
-                    let size = PtySize {
-                        cols,
-                        rows,
-                        pixel_width: 0,
-                        pixel_height: 0,
-                    };
-                    let _ = master.resize(size);
+                    pty.resize(cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }
                 ScreenControlEvent::Terminate => {
-                    let _ = child.kill();
+                    let _ = pty.kill();
                     terminate_requested = true;
                     break;
                 }
@@ -160,22 +137,13 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             Ok(true) => match event::read() {
                 Ok(Event::Key(key)) => {
                     if let Some(bytes) = key_to_bytes(key) {
-                        if writer.write_all(&bytes).is_err() {
-                            break;
-                        }
-                        if writer.flush().is_err() {
+                        if pty.write_input(&bytes).is_err() {
                             break;
                         }
                     }
                 }
                 Ok(Event::Resize(cols, rows)) => {
-                    let size = PtySize {
-                        cols,
-                        rows,
-                        pixel_width: 0,
-                        pixel_height: 0,
-                    };
-                    let _ = master.resize(size);
+                    pty.resize(cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }
                 Ok(_) => {}
@@ -187,9 +155,9 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     }
 
     if exit_code.is_none() {
-        let _ = child.kill();
-        if let Ok(status) = child.wait() {
-            exit_code = Some(status.exit_code() as i32);
+        let _ = pty.kill();
+        if let Ok(code) = pty.wait_code() {
+            exit_code = Some(code);
         }
     }
     should_run.store(false, Ordering::Release);
@@ -210,5 +178,3 @@ fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16,
     let (cols, rows) = terminal_size().unwrap_or((120, 32));
     (cols_override.unwrap_or(cols), rows_override.unwrap_or(rows))
 }
-
-
