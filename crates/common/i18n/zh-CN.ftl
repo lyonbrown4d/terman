@@ -22,6 +22,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X windowlist
       - terman-screen -S dev -X hardcopy
+      - terman-screen -S dev -X hardcopy -h
       - terman-screen -S dev -X hardcopydir .
       - terman-screen -S dev -X hardcopy_append on
       - terman-screen -S dev -X screen
@@ -107,7 +108,7 @@ builtin-screen-control-dinfo = screen 显示信息：session={$session_name} siz
 builtin-screen-control-displays-entry = displays：session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。
-builtin-screen-control-hardcopy-path-required = 可按 screen -X hardcopy [路径] 指定输出路径；省略时写入 hardcopy.<窗口编号>。
+builtin-screen-control-hardcopy-path-required = 可按 screen -X hardcopy [-h] [路径] 指定输出路径；省略时写入 hardcopy.<窗口编号>。
 builtin-screen-control-hardcopydir-required = 请按 screen -X hardcopydir <路径> 指定一个已存在的目录。
 builtin-screen-control-hardcopy-append-required = 请按 screen -X hardcopy_append <on|off> 指定 hardcopy 追加写入状态。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。

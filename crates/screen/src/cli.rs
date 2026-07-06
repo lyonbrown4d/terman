@@ -70,7 +70,7 @@ pub struct ScreenArgs {
     pub execute: Option<String>,
 
     /// Extra arguments for the screen control command.
-    #[arg(value_name = "ARG", trailing_var_arg = true, requires = "execute")]
+    #[arg(value_name = "ARG", trailing_var_arg = true, allow_hyphen_values = true, requires = "execute")]
     pub execute_args: Vec<String>,
 
     /// Resume an existing session, or create a named session when it does not exist.

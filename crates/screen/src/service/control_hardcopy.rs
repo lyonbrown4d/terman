@@ -99,13 +99,12 @@ fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOpti
             windows,
             ..
         } => {
-            let path = if payload.trim().is_empty() {
-                numbered_hardcopy_path(
+            let path = match parse_hardcopy_path(payload) {
+                Some(path) => path,
+                None => numbered_hardcopy_path(
                     hardcopy_dir.as_deref(),
                     selected_index(args, active_window, &windows)?,
-                )
-            } else {
-                PathBuf::from(payload.trim())
+                ),
             };
             Ok(HardcopyOptions {
                 path,
@@ -117,6 +116,24 @@ fn hardcopy_options(args: &ScreenArgs, payload: &str) -> io::Result<HardcopyOpti
         }
         response => Err(unexpected_response_error(&response)),
     }
+}
+
+fn parse_hardcopy_path(payload: &str) -> Option<PathBuf> {
+    let payload = payload.trim();
+    if payload.is_empty() || payload == "-h" {
+        return None;
+    }
+    if let Some(rest) = payload.strip_prefix("-h") {
+        if rest.chars().next().is_some_and(char::is_whitespace) {
+            let path = rest.trim();
+            return if path.is_empty() {
+                None
+            } else {
+                Some(PathBuf::from(path))
+            };
+        }
+    }
+    Some(PathBuf::from(payload))
 }
 
 fn numbered_hardcopy_path(hardcopy_dir: Option<&Path>, index: usize) -> PathBuf {
@@ -180,7 +197,9 @@ fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{numbered_hardcopy_path, parse_hardcopy_append, selected_index};
+    use super::{
+        numbered_hardcopy_path, parse_hardcopy_append, parse_hardcopy_path, selected_index,
+    };
     use crate::{ScreenArgs, ipc::ScreenWindowInfo};
 
     fn windows() -> Vec<ScreenWindowInfo> {
@@ -205,6 +224,24 @@ mod tests {
         assert!(parse_hardcopy_append("on").unwrap());
         assert!(!parse_hardcopy_append("off").unwrap());
         assert!(parse_hardcopy_append("").is_err());
+    }
+
+    #[test]
+    fn parses_hardcopy_h_option_without_treating_it_as_path() {
+        assert_eq!(parse_hardcopy_path(""), None);
+        assert_eq!(parse_hardcopy_path("-h"), None);
+        assert_eq!(
+            parse_hardcopy_path("-h copy.txt"),
+            Some(PathBuf::from("copy.txt"))
+        );
+        assert_eq!(
+            parse_hardcopy_path("copy with spaces.txt"),
+            Some(PathBuf::from("copy with spaces.txt"))
+        );
+        assert_eq!(
+            parse_hardcopy_path("-hardcopy"),
+            Some(PathBuf::from("-hardcopy"))
+        );
     }
 
     #[test]

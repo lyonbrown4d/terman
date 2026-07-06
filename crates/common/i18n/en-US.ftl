@@ -22,6 +22,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X windowlist
       - terman-screen -S dev -X hardcopy
+      - terman-screen -S dev -X hardcopy -h
       - terman-screen -S dev -X hardcopydir .
       - terman-screen -S dev -X hardcopy_append on
       - terman-screen -S dev -X screen
@@ -107,7 +108,7 @@ builtin-screen-control-dinfo = screen display info: session={$session_name} size
 builtin-screen-control-displays-entry = displays: session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
-builtin-screen-control-hardcopy-path-required = Specify an optional output path as screen -X hardcopy [path].
+builtin-screen-control-hardcopy-path-required = Specify an optional output path as screen -X hardcopy [-h] [path].
 builtin-screen-control-hardcopydir-required = Specify an existing directory as screen -X hardcopydir <path>.
 builtin-screen-control-hardcopy-append-required = Specify hardcopy append state as screen -X hardcopy_append <on|off>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
