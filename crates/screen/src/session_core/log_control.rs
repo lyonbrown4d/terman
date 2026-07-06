@@ -14,6 +14,17 @@ impl ScreenSessionBus {
         }
     }
 
+    pub(crate) fn set_log_flush_interval(&self, seconds: u64) -> io::Result<()> {
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+        match state.active_window_mut() {
+            Some(window) => window.set_log_flush_interval(seconds),
+            None => Ok(()),
+        }
+    }
+
     pub(crate) fn set_log_enabled(&self, enabled: bool) -> io::Result<()> {
         let mut state = self
             .inner

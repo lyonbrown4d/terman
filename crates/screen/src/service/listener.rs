@@ -105,6 +105,9 @@ fn handle_client(
         Ok(ScreenIpcRequest::SetLogFile { path }) => {
             write_result_response(stream, bus.set_log_path(path))
         }
+        Ok(ScreenIpcRequest::SetLogFlush { seconds }) => {
+            write_result_response(stream, bus.set_log_flush_interval(seconds))
+        }
         Ok(ScreenIpcRequest::SetPasteBuffer { bytes }) => {
             bus.set_paste_buffer(bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)

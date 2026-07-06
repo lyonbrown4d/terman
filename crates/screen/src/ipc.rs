@@ -142,6 +142,9 @@ pub(crate) enum ScreenIpcRequest {
     SetLogFile {
         path: String,
     },
+    SetLogFlush {
+        seconds: u64,
+    },
     SetPasteBuffer {
         bytes: Vec<u8>,
     },

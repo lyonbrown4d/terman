@@ -49,14 +49,40 @@ pub(super) fn request_logfile_command(
     inline_payload: &str,
     extra_args: &[String],
 ) -> io::Result<()> {
-    let path = control_command_payload(inline_payload, extra_args);
-    if path.trim().is_empty() {
+    let payload = control_command_payload(inline_payload, extra_args);
+    if let Some(seconds) = logfile_flush_seconds(&payload)? {
+        return send_targeted_session_control_request(args, ScreenIpcRequest::SetLogFlush { seconds });
+    }
+    if payload.trim().is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             terman_common::builtin_screen_control_logfile_required_hint(),
         ));
     }
-    send_targeted_session_control_request(args, ScreenIpcRequest::SetLogFile { path })
+    send_targeted_session_control_request(args, ScreenIpcRequest::SetLogFile { path: payload })
+}
+
+fn logfile_flush_seconds(payload: &str) -> io::Result<Option<u64>> {
+    let mut parts = payload.split_whitespace();
+    let Some(command) = parts.next() else {
+        return Ok(None);
+    };
+    if !command.eq_ignore_ascii_case("flush") {
+        return Ok(None);
+    }
+    let Some(seconds) = parts.next().and_then(|value| value.parse::<u64>().ok()) else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_logfile_required_hint(),
+        ));
+    };
+    if parts.next().is_some() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_logfile_required_hint(),
+        ));
+    }
+    Ok(Some(seconds))
 }
 
 pub(super) fn request_new_window_command(

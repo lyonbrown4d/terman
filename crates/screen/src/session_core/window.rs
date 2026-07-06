@@ -60,6 +60,10 @@ impl ScreenWindowState {
         self.output_log.set_path(path)
     }
 
+    pub(super) fn set_log_flush_interval(&mut self, seconds: u64) -> io::Result<()> {
+        self.output_log.set_flush_interval(seconds)
+    }
+
     pub(super) fn set_log_enabled(&mut self, enabled: bool) -> io::Result<()> {
         self.output_log.set_enabled(enabled)
     }
