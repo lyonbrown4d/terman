@@ -1,6 +1,10 @@
 use std::{error::Error, io::Read, sync::mpsc, thread};
 
-use crate::{ScreenArgs, pty_process::{ScreenPtyProcess, spawn_screen_pty}};
+use crate::{
+    ScreenArgs,
+    pty_process::{ScreenPtyProcess, spawn_screen_pty},
+    session_core::ScreenSessionBus,
+};
 
 pub(crate) struct ScreenWindowRuntime {
     pub(crate) index: usize,
@@ -10,6 +14,12 @@ pub(crate) struct ScreenWindowRuntime {
 pub(crate) struct ScreenWindowOutput {
     pub(crate) index: usize,
     pub(crate) bytes: Vec<u8>,
+}
+
+pub(crate) enum ScreenWindowSwitch {
+    Select(usize),
+    Next,
+    Previous,
 }
 
 pub(crate) fn spawn_screen_window_runtime(
@@ -44,6 +54,31 @@ pub(crate) fn spawn_screen_window_runtime(
     });
 
     Ok(ScreenWindowRuntime { index, pty })
+}
+
+pub(crate) fn switch_screen_window(
+    bus: &ScreenSessionBus,
+    windows: &[ScreenWindowRuntime],
+    active_window: &mut usize,
+    target: ScreenWindowSwitch,
+) -> Option<Vec<u8>> {
+    if windows.is_empty() {
+        return None;
+    }
+    let active_position = windows
+        .iter()
+        .position(|window| window.index == *active_window)
+        .unwrap_or(0);
+    let target_position = match target {
+        ScreenWindowSwitch::Select(index) => windows.iter().position(|window| window.index == index)?,
+        ScreenWindowSwitch::Next => (active_position + 1) % windows.len(),
+        ScreenWindowSwitch::Previous => {
+            if active_position == 0 { windows.len() - 1 } else { active_position - 1 }
+        }
+    };
+    let index = windows[target_position].index;
+    *active_window = index;
+    bus.select_window(index)
 }
 
 pub(crate) fn write_active_window_input(

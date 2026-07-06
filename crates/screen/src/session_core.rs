@@ -23,6 +23,9 @@ pub(crate) enum ScreenSessionEvent {
 pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
     NewWindow { command: Option<String> },
+    SelectWindow { index: usize },
+    NextWindow,
+    PreviousWindow,
     Resize { cols: u16, rows: u16 },
     Terminate,
 }
@@ -139,6 +142,12 @@ impl ScreenSessionBus {
         }
     }
 
+    pub(crate) fn select_window(&self, index: usize) -> Option<Vec<u8>> {
+        self.inner
+            .lock()
+            .ok()
+            .and_then(|mut state| state.select_window(index))
+    }
     pub(crate) fn clear_replay(&self) {
         if let Ok(mut state) = self.inner.lock() {
             if let Some(window) = state.active_window_mut() {

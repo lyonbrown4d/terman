@@ -99,7 +99,12 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Time) => print_attach_time()?,
                     Some(ScreenInputAction::Version) => print_attach_version()?,
                     Some(ScreenInputAction::Windows) => print_attach_windows(&endpoint)?,
-                    Some(ScreenInputAction::NextWindow) | Some(ScreenInputAction::PreviousWindow) => {},
+                    Some(ScreenInputAction::NextWindow) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::NextWindow)?;
+                    }
+                    Some(ScreenInputAction::PreviousWindow) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::PreviousWindow)?;
+                    },
                     Some(ScreenInputAction::Kill) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
                         running.store(false, Ordering::Release);

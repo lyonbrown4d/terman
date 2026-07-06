@@ -22,8 +22,8 @@ use crate::{
     sessions::register_builtin_screen_session,
     terminal_input::key_to_bytes,
     window_runtime::{
-        ScreenWindowOutput, ScreenWindowRuntime, kill_windows, resize_windows,
-        spawn_screen_window_runtime, write_active_window_input,
+        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_windows, resize_windows,
+        spawn_screen_window_runtime, switch_screen_window, write_active_window_input,
     },
 };
 
@@ -106,11 +106,47 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                     ) {
                         Ok(window) => {
                             session_bus.add_window(index, command);
-                            active_window = index;
                             windows.push(window);
-                            session_bus.publish_transient_output(b"\x1bc");
+                            if let Some(replay) = switch_screen_window(
+                                &session_bus,
+                                &windows,
+                                &mut active_window,
+                                ScreenWindowSwitch::Select(index),
+                            ) {
+                                publish_window_redraw(&session_bus, &replay);
+                            }
                         }
                         Err(err) => publish_error(&session_bus, err),
+                    }
+                }
+                ScreenControlEvent::SelectWindow { index } => {
+                    if let Some(replay) = switch_screen_window(
+                        &session_bus,
+                        &windows,
+                        &mut active_window,
+                        ScreenWindowSwitch::Select(index),
+                    ) {
+                        publish_window_redraw(&session_bus, &replay);
+                    }
+                }
+                ScreenControlEvent::NextWindow => {
+                    if let Some(replay) = switch_screen_window(
+                        &session_bus,
+                        &windows,
+                        &mut active_window,
+                        ScreenWindowSwitch::Next,
+                    ) {
+                        publish_window_redraw(&session_bus, &replay);
+                    }
+                }
+                ScreenControlEvent::PreviousWindow => {
+                    if let Some(replay) = switch_screen_window(
+                        &session_bus,
+                        &windows,
+                        &mut active_window,
+                        ScreenWindowSwitch::Previous,
+                    ) {
+                        publish_window_redraw(&session_bus, &replay);
                     }
                 }
                 ScreenControlEvent::Resize { cols, rows } => {
@@ -167,6 +203,18 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     }
 }
 
+fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
+    bus.publish_transient_output(b"\x1bc");
+    if !replay.is_empty() {
+        bus.publish_transient_output(replay);
+    }
+    let mut stdout = io::stdout();
+    let _ = stdout.write_all(b"\x1bc");
+    if !replay.is_empty() {
+        let _ = stdout.write_all(replay);
+    }
+    let _ = stdout.flush();
+}
 fn drain_window_output(
     bus: &ScreenSessionBus,
     rx: &mpsc::Receiver<ScreenWindowOutput>,

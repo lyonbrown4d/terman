@@ -9,10 +9,16 @@ type SessionRequester = fn(&ScreenArgs, ScreenIpcRequest) -> io::Result<ScreenIp
 
 pub(super) fn request_window_navigation_command(
     args: &ScreenArgs,
+    command: &str,
     request: SessionRequester,
 ) -> io::Result<()> {
-    match request(args, ScreenIpcRequest::Info)? {
-        ScreenIpcResponse::Info { .. } => Ok(()),
+    let request_kind = match command {
+        "next" => ScreenIpcRequest::NextWindow,
+        "prev" => ScreenIpcRequest::PreviousWindow,
+        _ => return Ok(()),
+    };
+    match request(args, request_kind)? {
+        ScreenIpcResponse::Accepted => Ok(()),
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }

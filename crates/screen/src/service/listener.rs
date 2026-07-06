@@ -171,6 +171,24 @@ fn handle_client(
                 .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SelectWindow { index }) => {
+            control_tx
+                .send(ScreenControlEvent::SelectWindow { index })
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::NextWindow) => {
+            control_tx
+                .send(ScreenControlEvent::NextWindow)
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::PreviousWindow) => {
+            control_tx
+                .send(ScreenControlEvent::PreviousWindow)
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Ping) => write_response(stream, &ScreenIpcResponse::Accepted),
         Ok(ScreenIpcRequest::Quit) => {
             control_tx

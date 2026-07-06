@@ -105,6 +105,11 @@ pub(crate) enum ScreenIpcRequest {
     NewWindow {
         command: Option<String>,
     },
+    SelectWindow {
+        index: usize,
+    },
+    NextWindow,
+    PreviousWindow,
     GetPasteBuffer,
     PasteBuffer,
     Ping,

@@ -66,7 +66,7 @@ builtin-screen-control-logfile-required = Specify a log file path as screen -X l
 builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, screen, paste, pastefile, readbuf, writebuf, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
-builtin-screen-control-select-unsupported = Built-in screen has one window; select supports only 0, ., #, or an empty selector. Got `{$selector}`.
+builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, ., #, or an empty selector.
 builtin-screen-control-scrollback-required = Specify scrollback as integer lines: screen -X defscrollback <lines>.
 builtin-screen-control-sleep-required = Specify sleep duration as integer seconds: screen -X sleep <seconds>.
 builtin-screen-control-time = screen time: unix_seconds={$unix_seconds}

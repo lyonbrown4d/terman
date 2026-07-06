@@ -16,41 +16,67 @@ pub(super) fn request_select_command(
 ) -> io::Result<()> {
     let selector = control_command_payload(inline_payload, extra_args);
     let selector = selector.trim();
-    if !is_current_window_selector(selector) {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_screen_control_select_unsupported_hint(selector),
-        ));
-    }
-
     match request(args, ScreenIpcRequest::Info)? {
-        ScreenIpcResponse::Info { .. } => Ok(()),
+        ScreenIpcResponse::Info {
+            active_window,
+            windows,
+            ..
+        } => {
+            let index = parse_window_selector(selector, active_window)?;
+            if !windows.iter().any(|window| window.index == index) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    terman_common::builtin_screen_control_select_unsupported_hint(selector),
+                ));
+            }
+            match request(args, ScreenIpcRequest::SelectWindow { index })? {
+                ScreenIpcResponse::Accepted => Ok(()),
+                ScreenIpcResponse::Rejected { reason } => {
+                    Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+                }
+                response => Err(unexpected_response_error(&response)),
+            }
+        }
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
         }
-        response => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            terman_common::builtin_screen_control_unexpected_response_hint(&format!(
-                "{response:?}"
-            )),
-        )),
+        response => Err(unexpected_response_error(&response)),
     }
 }
 
-fn is_current_window_selector(selector: &str) -> bool {
-    matches!(selector, "" | "0" | "." | "#")
+fn parse_window_selector(selector: &str, active_window: usize) -> io::Result<usize> {
+    match selector {
+        "" | "." | "#" => Ok(active_window),
+        value => value.parse::<usize>().map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                terman_common::builtin_screen_control_select_unsupported_hint(selector),
+            )
+        }),
+    }
+}
+
+fn unexpected_response_error(response: &ScreenIpcResponse) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        terman_common::builtin_screen_control_unexpected_response_hint(&format!("{response:?}")),
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::is_current_window_selector;
+    use super::parse_window_selector;
 
     #[test]
-    fn accepts_single_window_selectors() {
-        assert!(is_current_window_selector(""));
-        assert!(is_current_window_selector("0"));
-        assert!(is_current_window_selector("."));
-        assert!(is_current_window_selector("#"));
-        assert!(!is_current_window_selector("1"));
+    fn parses_current_window_selectors() {
+        assert_eq!(parse_window_selector("", 2).unwrap(), 2);
+        assert_eq!(parse_window_selector(".", 2).unwrap(), 2);
+        assert_eq!(parse_window_selector("#", 2).unwrap(), 2);
+    }
+
+    #[test]
+    fn parses_numeric_window_selector() {
+        assert_eq!(parse_window_selector("3", 0).unwrap(), 3);
+        assert!(parse_window_selector("name", 0).is_err());
     }
 }

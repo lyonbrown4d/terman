@@ -46,6 +46,12 @@ impl ScreenSessionState {
         self.windows.push(window);
         self.active_window = index;
     }
+
+    pub(super) fn select_window(&mut self, index: usize) -> Option<Vec<u8>> {
+        let window = self.windows.get(index)?;
+        self.active_window = index;
+        Some(window.replay_snapshot())
+    }
 }
 
 pub(super) fn session_status(state: &ScreenSessionState) -> ScreenSessionStatus {
