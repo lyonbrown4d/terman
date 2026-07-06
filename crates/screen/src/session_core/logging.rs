@@ -3,25 +3,38 @@ use std::{
     io::{self, Write},
 };
 
-const DEFAULT_LOG_PATH: &str = "screenlog.0";
+const DEFAULT_LOG_PATH: &str = "screenlog.%n";
 
 pub(super) struct ScreenOutputLog {
     path: String,
+    window_index: usize,
     enabled: bool,
     file: Option<File>,
 }
 
 impl Default for ScreenOutputLog {
     fn default() -> Self {
-        Self {
-            path: DEFAULT_LOG_PATH.to_string(),
-            enabled: false,
-            file: None,
-        }
+        Self::new(0)
     }
 }
 
 impl ScreenOutputLog {
+    pub(super) fn new(window_index: usize) -> Self {
+        Self {
+            path: DEFAULT_LOG_PATH.to_string(),
+            window_index,
+            enabled: false,
+            file: None,
+        }
+    }
+
+    pub(super) fn set_window_index(&mut self, window_index: usize) {
+        if self.window_index != window_index {
+            self.window_index = window_index;
+            self.file = None;
+        }
+    }
+
     pub(super) fn set_path(&mut self, path: String) -> io::Result<()> {
         self.path = path;
         self.file = None;
@@ -63,13 +76,13 @@ impl ScreenOutputLog {
     }
 
     fn open(&mut self) -> io::Result<()> {
-        self.file = Some(
-            OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&self.path)?,
-        );
+        let path = self.resolved_path();
+        self.file = Some(OpenOptions::new().create(true).append(true).open(path)?);
         Ok(())
+    }
+
+    fn resolved_path(&self) -> String {
+        self.path.replace("%n", &self.window_index.to_string())
     }
 }
 
@@ -81,5 +94,13 @@ mod tests {
     fn defaults_to_disabled_logging() {
         let mut log = ScreenOutputLog::default();
         log.append(b"ignored");
+    }
+
+    #[test]
+    fn expands_window_number_in_log_path() {
+        let mut log = ScreenOutputLog::new(3);
+        assert_eq!(log.resolved_path(), "screenlog.3");
+        log.set_window_index(12);
+        assert_eq!(log.resolved_path(), "screenlog.12");
     }
 }

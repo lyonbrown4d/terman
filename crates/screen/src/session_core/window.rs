@@ -15,7 +15,7 @@ impl ScreenWindowState {
             index,
             title: None,
             replay: ScreenReplayBuffer::default(),
-            output_log: ScreenOutputLog::default(),
+            output_log: ScreenOutputLog::new(index),
         }
     }
 
@@ -25,6 +25,7 @@ impl ScreenWindowState {
 
     pub(super) fn set_index(&mut self, index: usize) {
         self.index = index;
+        self.output_log.set_window_index(index);
     }
 
     pub(super) fn title(&self) -> Option<&str> {
