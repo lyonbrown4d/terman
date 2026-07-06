@@ -269,6 +269,10 @@ pub fn builtin_screen_control_writebuf_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlWritebufPathRequired, &[])
 }
 
+pub fn builtin_screen_control_buffer_encoding_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlBufferEncodingRequired, &[])
+}
+
 pub fn builtin_screen_control_source_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlSourcePathRequired, &[])
 }

@@ -53,6 +53,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X colon "info"
       - terman-screen -S dev -X source .screenrc
       - terman-screen -S dev -X readbuf input.txt
+      - terman-screen -S dev -X readbuf -e utf-8 input.txt
+      - terman-screen -S dev -X writebuf -e utf-8 output.txt
       - terman-screen -S dev -X readreg . input.txt
       - terman-screen -S dev -X removebuf
       - terman-screen -S dev -X paste
@@ -114,9 +116,10 @@ builtin-screen-control-hardcopy-path-required = 可按 screen -X hardcopy [-h] [
 builtin-screen-control-hardcopydir-required = 请按 screen -X hardcopydir <路径> 指定一个已存在的目录。
 builtin-screen-control-hardcopy-append-required = 请按 screen -X hardcopy_append <on|off> 指定 hardcopy 追加写入状态。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
-builtin-screen-control-readbuf-path-required = 可以用 screen -X readbuf [path] 指定可选输入路径；省略时使用 screen 交换文件。
+builtin-screen-control-readbuf-path-required = 可以用 screen -X readbuf [-e encoding] [path] 指定可选输入路径；省略路径时使用 screen 交换文件。
 builtin-screen-control-readreg-required = 请按 screen -X readreg <寄存器> <路径> 指定寄存器和输入文件路径。
-builtin-screen-control-writebuf-path-required = 可以用 screen -X writebuf [path] 指定可选输出路径；省略时使用 screen 交换文件。
+builtin-screen-control-writebuf-path-required = 可以用 screen -X writebuf [-e encoding] [path] 指定可选输出路径；省略路径时使用 screen 交换文件。
+builtin-screen-control-buffer-encoding-required = 请按 screen -X readbuf -e <encoding> [path] 或 screen -X writebuf -e <encoding> [path] 指定受支持的编码。
 builtin-screen-control-source-path-required = 请按 screen -X source <路径> 指定命令文件路径。
 builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
 builtin-screen-control-writebuf-complete = 已将 {$bytes} 字节 screen paste buffer 写入 {$path}。

@@ -1,6 +1,7 @@
 use std::{fs, io, path::PathBuf};
 
 use super::{
+    control_buffer_encoding::{decode_buffer_bytes, encode_buffer_bytes, parse_buffer_io_spec},
     control_parse::control_command_payload,
     control_session::{request_session_response, send_session_control_request},
 };
@@ -26,8 +27,9 @@ pub(super) fn request_readbuf_command(
     extra_args: &[String],
 ) -> io::Result<()> {
     let payload = control_command_payload(inline_payload, extra_args);
-    let path = buffer_path(args, &payload)?;
-    let bytes = fs::read(path)?;
+    let spec = parse_buffer_io_spec(&payload)?;
+    let path = buffer_path(args, spec.path.as_ref())?;
+    let bytes = decode_buffer_bytes(fs::read(path)?, spec.encoding);
     send_session_control_request(args, ScreenIpcRequest::SetPasteBuffer { bytes })
 }
 
@@ -47,16 +49,15 @@ pub(super) fn request_writebuf_command(
     extra_args: &[String],
 ) -> io::Result<()> {
     let payload = control_command_payload(inline_payload, extra_args);
-    let path = buffer_path(args, &payload)?;
-    request_session_writebuf(args, &path)
+    let spec = parse_buffer_io_spec(&payload)?;
+    let path = buffer_path(args, spec.path.as_ref())?;
+    request_session_writebuf(args, &path, spec.encoding)
 }
 
-fn buffer_path(args: &ScreenArgs, payload: &str) -> io::Result<PathBuf> {
-    let payload = payload.trim();
-    if payload.is_empty() {
-        current_buffer_file(args)
-    } else {
-        Ok(PathBuf::from(payload))
+fn buffer_path(args: &ScreenArgs, path: Option<&PathBuf>) -> io::Result<PathBuf> {
+    match path {
+        Some(path) => Ok(path.clone()),
+        None => current_buffer_file(args),
     }
 }
 
@@ -79,14 +80,20 @@ fn current_buffer_file(args: &ScreenArgs) -> io::Result<PathBuf> {
     }
 }
 
-fn request_session_writebuf(args: &ScreenArgs, path: &PathBuf) -> io::Result<()> {
+fn request_session_writebuf(
+    args: &ScreenArgs,
+    path: &PathBuf,
+    encoding: Option<&'static encoding_rs::Encoding>,
+) -> io::Result<()> {
     match request_session_response(args, ScreenIpcRequest::GetPasteBuffer)? {
         ScreenIpcResponse::PasteBuffer { bytes } => {
-            fs::write(path, &bytes)?;
+            let output = encode_buffer_bytes(&bytes, encoding);
+            fs::write(path, &output)?;
+            let bytes = output.len();
             let path = path.display().to_string();
             println!(
                 "{}",
-                terman_common::builtin_screen_control_writebuf_complete_hint(&path, bytes.len())
+                terman_common::builtin_screen_control_writebuf_complete_hint(&path, bytes)
             );
             Ok(())
         }

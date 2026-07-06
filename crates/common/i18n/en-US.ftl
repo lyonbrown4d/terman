@@ -53,6 +53,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X colon "info"
       - terman-screen -S dev -X source .screenrc
       - terman-screen -S dev -X readbuf input.txt
+      - terman-screen -S dev -X readbuf -e utf-8 input.txt
+      - terman-screen -S dev -X writebuf -e utf-8 output.txt
       - terman-screen -S dev -X readreg . input.txt
       - terman-screen -S dev -X removebuf
       - terman-screen -S dev -X paste
@@ -114,9 +116,10 @@ builtin-screen-control-hardcopy-path-required = Specify an optional output path 
 builtin-screen-control-hardcopydir-required = Specify an existing directory as screen -X hardcopydir <path>.
 builtin-screen-control-hardcopy-append-required = Specify hardcopy append state as screen -X hardcopy_append <on|off>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
-builtin-screen-control-readbuf-path-required = Specify an optional input path as screen -X readbuf [path]; omit it to use the screen exchange file.
+builtin-screen-control-readbuf-path-required = Specify an optional input path as screen -X readbuf [-e encoding] [path]; omit the path to use the screen exchange file.
 builtin-screen-control-readreg-required = Specify register and input path as screen -X readreg <register> <path>.
-builtin-screen-control-writebuf-path-required = Specify an optional output path as screen -X writebuf [path]; omit it to use the screen exchange file.
+builtin-screen-control-writebuf-path-required = Specify an optional output path as screen -X writebuf [-e encoding] [path]; omit the path to use the screen exchange file.
+builtin-screen-control-buffer-encoding-required = Specify a supported encoding as screen -X readbuf -e <encoding> [path] or screen -X writebuf -e <encoding> [path].
 builtin-screen-control-source-path-required = Specify a command file path as screen -X source <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-control-writebuf-complete = Wrote {$bytes} byte(s) of screen paste buffer to {$path}.

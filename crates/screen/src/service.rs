@@ -4,6 +4,7 @@ mod client;
 mod control;
 mod control_at;
 mod control_buffer;
+mod control_buffer_encoding;
 mod control_chdir;
 mod control_colon;
 mod control_displays;
