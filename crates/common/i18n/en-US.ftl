@@ -20,6 +20,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X select 0
       - terman-screen -S dev -X defscrollback 2000
+      - terman-screen -S dev -X logfile screen.log
+      - terman-screen -S dev -X log on
       - terman-screen -S dev -X next
       - terman-screen -S dev -X prev
       - terman-screen -X version
@@ -52,9 +54,11 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
-builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-log-required = Specify screen log state as screen -X log on or screen -X log off.
+builtin-screen-control-logfile-required = Specify a log file path as screen -X logfile <path>.
+builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Built-in screen has one window; select supports only 0, ., #, or an empty selector. Got `{$selector}`.

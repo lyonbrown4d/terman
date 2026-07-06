@@ -1,7 +1,9 @@
-use std::sync::{Arc, Mutex, mpsc};
+use std::{io, sync::{Arc, Mutex, mpsc}};
 
+mod logging;
 mod replay;
 
+use logging::ScreenOutputLog;
 use replay::{DEFAULT_SCROLLBACK_LINES, ScreenReplayBuffer};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,6 +43,7 @@ struct ScreenSessionSubscriber {
 #[derive(Default)]
 struct ScreenSessionState {
     replay: ScreenReplayBuffer,
+    output_log: ScreenOutputLog,
     subscribers: Vec<ScreenSessionSubscriber>,
     attach_clients: usize,
     cols: Option<u16>,
@@ -149,6 +152,22 @@ impl ScreenSessionBus {
         }
     }
 
+    pub(crate) fn set_log_path(&self, path: String) -> io::Result<()> {
+        self.inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?
+            .output_log
+            .set_path(path)
+    }
+
+    pub(crate) fn set_log_enabled(&self, enabled: bool) -> io::Result<()> {
+        self.inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?
+            .output_log
+            .set_enabled(enabled)
+    }
+
     pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {
         self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |_| {});
     }
@@ -156,6 +175,7 @@ impl ScreenSessionBus {
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
         self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |state| {
             state.replay.append(bytes, state.cols);
+            state.output_log.append(bytes);
         });
     }
 

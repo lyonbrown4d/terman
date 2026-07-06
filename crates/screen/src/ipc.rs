@@ -100,6 +100,12 @@ pub(crate) enum ScreenIpcRequest {
         name: String,
     },
     Reset,
+    SetLogEnabled {
+        enabled: bool,
+    },
+    SetLogFile {
+        path: String,
+    },
     SetScrollback {
         lines: usize,
     },

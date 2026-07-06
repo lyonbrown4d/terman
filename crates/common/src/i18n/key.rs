@@ -50,6 +50,8 @@ pub enum MessageKey {
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
     BuiltinScreenControlEchoRequired,
+    BuiltinScreenControlLogRequired,
+    BuiltinScreenControlLogfileRequired,
     BuiltinScreenControlStuffRequired,
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlHelp,
@@ -132,6 +134,10 @@ impl MessageKey {
                 "builtin-screen-control-command-unsupported"
             }
             Self::BuiltinScreenControlEchoRequired => "builtin-screen-control-echo-required",
+            Self::BuiltinScreenControlLogRequired => "builtin-screen-control-log-required",
+            Self::BuiltinScreenControlLogfileRequired => {
+                "builtin-screen-control-logfile-required"
+            }
             Self::BuiltinScreenControlStuffRequired => "builtin-screen-control-stuff-required",
             Self::BuiltinScreenControlResizeRequired => "builtin-screen-control-resize-required",
             Self::BuiltinScreenControlHelp => "builtin-screen-control-help",

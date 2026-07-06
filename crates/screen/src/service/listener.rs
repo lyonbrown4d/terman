@@ -96,6 +96,12 @@ fn handle_client(
             bus.publish_transient_output(&bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetLogEnabled { enabled }) => {
+            write_result_response(stream, bus.set_log_enabled(enabled))
+        }
+        Ok(ScreenIpcRequest::SetLogFile { path }) => {
+            write_result_response(stream, bus.set_log_path(path))
+        }
         Ok(ScreenIpcRequest::SetScrollback { lines }) => {
             bus.set_scrollback_lines(lines);
             write_response(stream, &ScreenIpcResponse::Accepted)
@@ -209,6 +215,18 @@ fn stream_attach(
     }
 
     Ok(())
+}
+
+fn write_result_response(stream: &mut LocalSocketStream, result: io::Result<()>) -> io::Result<()> {
+    match result {
+        Ok(()) => write_response(stream, &ScreenIpcResponse::Accepted),
+        Err(err) => write_response(
+            stream,
+            &ScreenIpcResponse::Rejected {
+                reason: err.to_string(),
+            },
+        ),
+    }
 }
 
 fn write_response(stream: &mut LocalSocketStream, response: &ScreenIpcResponse) -> io::Result<()> {

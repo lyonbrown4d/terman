@@ -40,6 +40,40 @@ pub(super) fn request_hardcopy_command(
     request_session_hardcopy(args, &path)
 }
 
+pub(super) fn request_log_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let payload = control_command_payload(inline_payload, extra_args);
+    let enabled = match payload.trim().to_ascii_lowercase().as_str() {
+        "on" | "1" | "true" => true,
+        "off" | "0" | "false" => false,
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                terman_common::builtin_screen_control_log_required_hint(),
+            ));
+        }
+    };
+    send_session_control_request(args, ScreenIpcRequest::SetLogEnabled { enabled })
+}
+
+pub(super) fn request_logfile_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let path = control_command_payload(inline_payload, extra_args);
+    if path.trim().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_logfile_required_hint(),
+        ));
+    }
+    send_session_control_request(args, ScreenIpcRequest::SetLogFile { path })
+}
+
 pub(super) fn request_pastefile_command(
     args: &ScreenArgs,
     inline_payload: &str,
