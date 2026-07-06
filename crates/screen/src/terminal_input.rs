@@ -16,6 +16,7 @@ pub(crate) enum ScreenInputAction {
     Info,
     Kill,
     License,
+    LogToggle,
     NewWindow,
     Paste,
     LastWindow,
@@ -110,6 +111,9 @@ impl ScreenInputDecoder {
                 if key.modifiers.contains(KeyModifiers::CONTROL) =>
             {
                 Some(ScreenInputAction::PreviousWindow)
+            }
+            KeyCode::Char('H') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::LogToggle)
             }
             KeyCode::Char('h') | KeyCode::Char('H') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Hardcopy)

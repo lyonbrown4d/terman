@@ -55,3 +55,13 @@ fn sends_xon_and_xoff_prefixes() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(xoff), Some(ScreenInputAction::Bytes(vec![0x13])));
 }
+
+#[test]
+fn detects_screen_log_toggle_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let log = KeyEvent::new(KeyCode::Char('H'), KeyModifiers::SHIFT);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(log), Some(ScreenInputAction::LogToggle));
+}
