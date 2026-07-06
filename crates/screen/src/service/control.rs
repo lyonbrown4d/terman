@@ -69,6 +69,10 @@ fn execute_control_command(
         "paste" => request_paste_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
         "readbuf" => request_readbuf_command(args, inline_payload, extra_args),
+        "removebuf" => send_session_control_request(
+            args,
+            ScreenIpcRequest::SetPasteBuffer { bytes: Vec::new() },
+        ),
         "writebuf" => request_writebuf_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
