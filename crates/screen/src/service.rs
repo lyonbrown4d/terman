@@ -1,4 +1,5 @@
 mod attach;
+mod attach_number;
 mod attach_output;
 mod attach_size;
 mod attach_termcap;

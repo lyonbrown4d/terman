@@ -159,3 +159,12 @@ fn detects_screen_quit_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(quit), Some(ScreenInputAction::Quit));
 }
+#[test]
+fn detects_screen_number_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let number = KeyEvent::new(KeyCode::Char('N'), KeyModifiers::SHIFT);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(number), Some(ScreenInputAction::Number));
+}

@@ -19,6 +19,7 @@ pub(crate) enum ScreenInputAction {
     LastMessage,
     LogToggle,
     NewWindow,
+    Number,
     Paste,
     Quit,
     LastWindow,
@@ -113,6 +114,9 @@ impl ScreenInputDecoder {
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
             {
                 Some(ScreenInputAction::Kill)
+            }
+            KeyCode::Char('N') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::Number)
             }
             KeyCode::Char('n') | KeyCode::Char('N')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>

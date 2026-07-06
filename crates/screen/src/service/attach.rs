@@ -15,6 +15,7 @@ use crossterm::{
 use interprocess::local_socket::prelude::*;
 
 use super::{
+    attach_number::print_attach_number,
     attach_output::{
         print_attach_displays, print_attach_hardcopy, print_attach_help, print_attach_info,
         print_attach_license, print_attach_time, print_attach_version, print_attach_windows,
@@ -105,6 +106,7 @@ pub(super) fn attach_interactive(
                             ScreenIpcRequest::NewWindow { command: None },
                         )?;
                     }
+                    Some(ScreenInputAction::Number) => print_attach_number(&endpoint)?,
                     Some(ScreenInputAction::Paste) => {
                         send_control_request(&endpoint, ScreenIpcRequest::PasteBuffer)?;
                     }
