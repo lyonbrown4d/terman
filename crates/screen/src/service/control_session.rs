@@ -2,6 +2,7 @@ use std::{fs, io};
 
 use super::{
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
+    control_target::request_with_window_target,
     ipc_client::request_endpoint_response,
 };
 use crate::{
@@ -89,7 +90,7 @@ pub(super) fn request_paste_command(
     _inline_payload: &str,
     _extra_args: &[String],
 ) -> io::Result<()> {
-    send_session_control_request(args, ScreenIpcRequest::PasteBuffer)
+    send_targeted_session_control_request(args, ScreenIpcRequest::PasteBuffer)
 }
 
 pub(super) fn request_pastefile_command(
@@ -176,7 +177,7 @@ pub(super) fn request_title_command(
             terman_common::builtin_screen_control_title_required_hint(),
         ));
     }
-    send_session_control_request(args, ScreenIpcRequest::SetWindowTitle { title })
+    send_targeted_session_control_request(args, ScreenIpcRequest::SetWindowTitle { title })
 }
 
 pub(super) fn request_stuff_command(
@@ -191,7 +192,7 @@ pub(super) fn request_stuff_command(
             terman_common::builtin_screen_control_stuff_required_hint(),
         ));
     }
-    send_session_control_request(
+    send_targeted_session_control_request(
         args,
         ScreenIpcRequest::Input {
             bytes: decode_stuff_payload(&payload),
@@ -212,6 +213,18 @@ pub(super) fn send_session_control_request(
     }
 }
 
+fn send_targeted_session_control_request(
+    args: &ScreenArgs,
+    request: ScreenIpcRequest,
+) -> io::Result<()> {
+    match request_with_window_target(args, request, request_session_response)? {
+        ScreenIpcResponse::Accepted => Ok(()),
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        response => Err(unexpected_response_error(&response)),
+    }
+}
 pub(super) fn request_session_response(
     args: &ScreenArgs,
     request: ScreenIpcRequest,
@@ -226,7 +239,7 @@ pub(super) fn request_session_response(
 }
 
 fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
-    match request_session_response(args, ScreenIpcRequest::Hardcopy)? {
+    match request_with_window_target(args, ScreenIpcRequest::Hardcopy, request_session_response)? {
         ScreenIpcResponse::Hardcopy { bytes } => {
             fs::write(path, &bytes)?;
             println!(
@@ -244,7 +257,7 @@ fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
 
 fn request_session_pastefile(args: &ScreenArgs, path: &str) -> io::Result<()> {
     let bytes = fs::read(path)?;
-    send_session_control_request(args, ScreenIpcRequest::Input { bytes })
+    send_targeted_session_control_request(args, ScreenIpcRequest::Input { bytes })
 }
 
 fn request_session_writebuf(args: &ScreenArgs, path: &str) -> io::Result<()> {

@@ -48,7 +48,7 @@ pub struct ScreenArgs {
     )]
     pub wipe: bool,
 
-    /// Select a screen window for a control command; single-window built-in sessions currently accept this as a compatibility selector.
+    /// Select a screen window for a control command.
     #[arg(
         short = 'p',
         long = "window",
