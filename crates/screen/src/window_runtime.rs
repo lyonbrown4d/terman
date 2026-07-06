@@ -61,6 +61,20 @@ pub(crate) fn spawn_screen_window_runtime(
     Ok(ScreenWindowRuntime { index, pty })
 }
 
+pub(crate) fn next_screen_window_index(windows: &[ScreenWindowRuntime]) -> usize {
+    windows
+        .iter()
+        .map(|window| window.index)
+        .max()
+        .map(|index| index + 1)
+        .unwrap_or(0)
+}
+
+pub(crate) fn kill_active_window(windows: &mut [ScreenWindowRuntime], active_window: usize) {
+    if let Some(window) = windows.iter_mut().find(|window| window.index == active_window) {
+        let _ = window.pty.kill();
+    }
+}
 pub(crate) fn take_exited_window(windows: &mut Vec<ScreenWindowRuntime>) -> Option<ScreenWindowExit> {
     for position in 0..windows.len() {
         let code = match windows[position].pty.try_wait_code() {

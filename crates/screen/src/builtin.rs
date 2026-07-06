@@ -22,7 +22,7 @@ use crate::{
     sessions::register_builtin_screen_session,
     terminal_input::key_to_bytes,
     window_runtime::{
-        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_windows, resize_windows,
+        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_active_window, kill_windows, next_screen_window_index, resize_windows,
         spawn_screen_window_runtime, switch_screen_window, take_exited_window, write_active_window_input,
     },
 };
@@ -99,7 +99,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                     write_active_window_input(&mut windows, active_window, &bytes);
                 }
                 ScreenControlEvent::NewWindow { command } => {
-                    let index = windows.len();
+                    let index = next_screen_window_index(&windows);
                     match spawn_screen_window_runtime(
                         &args,
                         index,
@@ -152,6 +152,9 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                     ) {
                         publish_window_redraw(&session_bus, &replay);
                     }
+                }
+                ScreenControlEvent::KillWindow => {
+                    kill_active_window(&mut windows, active_window);
                 }
                 ScreenControlEvent::Resize { cols, rows } => {
                     resize_windows(&windows, cols, rows);

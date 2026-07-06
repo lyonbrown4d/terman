@@ -48,7 +48,8 @@ fn execute_control_command(
     }
 
     match command.as_str() {
-        "quit" | "kill" => send_session_control_request(args, ScreenIpcRequest::Quit),
+        "quit" => send_session_control_request(args, ScreenIpcRequest::Quit),
+        "kill" => send_session_control_request(args, ScreenIpcRequest::KillWindow),
         "detach" | "pow_detach" => send_session_control_request(args, ScreenIpcRequest::DetachAll),
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),

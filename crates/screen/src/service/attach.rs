@@ -112,9 +112,7 @@ pub(super) fn attach_interactive(
                         send_control_request(&endpoint, ScreenIpcRequest::PreviousWindow)?;
                     },
                     Some(ScreenInputAction::Kill) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
-                        running.store(false, Ordering::Release);
-                        return Ok(());
+                        send_control_request(&endpoint, ScreenIpcRequest::KillWindow)?;
                     }
                     None => {}
                 },

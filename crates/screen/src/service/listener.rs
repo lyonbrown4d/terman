@@ -189,6 +189,12 @@ fn handle_client(
                 .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::KillWindow) => {
+            control_tx
+                .send(ScreenControlEvent::KillWindow)
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Ping) => write_response(stream, &ScreenIpcResponse::Accepted),
         Ok(ScreenIpcRequest::Quit) => {
             control_tx

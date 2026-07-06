@@ -26,6 +26,7 @@ pub(crate) enum ScreenControlEvent {
     SelectWindow { index: usize },
     NextWindow,
     PreviousWindow,
+    KillWindow,
     Resize { cols: u16, rows: u16 },
     Terminate,
 }
