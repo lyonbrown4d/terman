@@ -10,6 +10,7 @@ mod control_info;
 mod control_local;
 mod control_parse;
 mod control_select;
+mod control_session;
 mod control_sleep;
 mod control_source;
 mod control_time;
