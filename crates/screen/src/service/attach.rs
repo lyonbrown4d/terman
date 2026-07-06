@@ -108,6 +108,12 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::NextWindow) => {
                         send_control_request(&endpoint, ScreenIpcRequest::NextWindow)?;
                     }
+                    Some(ScreenInputAction::SelectWindow(index)) => {
+                        send_control_request(
+                            &endpoint,
+                            ScreenIpcRequest::SelectWindow { index },
+                        )?;
+                    }
                     Some(ScreenInputAction::PreviousWindow) => {
                         send_control_request(&endpoint, ScreenIpcRequest::PreviousWindow)?;
                     },

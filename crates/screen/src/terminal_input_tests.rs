@@ -100,6 +100,15 @@ fn detects_screen_hardcopy_prefix() {
 }
 
 #[test]
+fn detects_screen_numeric_window_select_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let select = KeyEvent::new(KeyCode::Char('3'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(select), Some(ScreenInputAction::SelectWindow(3)));
+}
+#[test]
 fn detects_screen_next_window_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);

@@ -17,6 +17,7 @@ pub(crate) enum ScreenInputAction {
     Paste,
     NextWindow,
     PreviousWindow,
+    SelectWindow(usize),
     Time,
     Version,
     Windows,
@@ -97,6 +98,9 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('w') | KeyCode::Char('W') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Windows)
+            }
+            KeyCode::Char(c) if key.modifiers.is_empty() && c.is_ascii_digit() => {
+                Some(ScreenInputAction::SelectWindow(c.to_digit(10).unwrap_or(0) as usize))
             }
             KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
