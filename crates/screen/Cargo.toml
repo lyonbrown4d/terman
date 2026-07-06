@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = { workspace = true }
+chrono = { workspace = true }
 crossterm = { workspace = true }
 directories = { workspace = true }
 interprocess = { workspace = true }

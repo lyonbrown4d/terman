@@ -60,6 +60,7 @@ pub enum MessageKey {
     BuiltinScreenControlShelltitleRequired,
     BuiltinScreenControlLogRequired,
     BuiltinScreenControlLogfileRequired,
+    BuiltinScreenControlLogtstampRequired,
     BuiltinScreenControlStuffRequired,
     BuiltinScreenControlResizeRequired,
     BuiltinScreenControlHelp,
@@ -163,6 +164,9 @@ impl MessageKey {
             Self::BuiltinScreenControlShellRequired => "builtin-screen-control-shell-required",
             Self::BuiltinScreenControlShelltitleRequired => "builtin-screen-control-shelltitle-required",
             Self::BuiltinScreenControlLogRequired => "builtin-screen-control-log-required",
+            Self::BuiltinScreenControlLogtstampRequired => {
+                "builtin-screen-control-logtstamp-required"
+            }
             Self::BuiltinScreenControlLogfileRequired => {
                 "builtin-screen-control-logfile-required"
             }

@@ -108,6 +108,18 @@ fn handle_client(
         Ok(ScreenIpcRequest::SetLogFlush { seconds }) => {
             write_result_response(stream, bus.set_log_flush_interval(seconds))
         }
+        Ok(ScreenIpcRequest::SetLogTimestampEnabled { enabled }) => {
+            write_result_response(stream, bus.set_log_timestamp_enabled(enabled))
+        }
+        Ok(ScreenIpcRequest::ToggleLogTimestamp) => {
+            write_result_response(stream, bus.toggle_log_timestamp_enabled())
+        }
+        Ok(ScreenIpcRequest::SetLogTimestampAfter { seconds }) => {
+            write_result_response(stream, bus.set_log_timestamp_after(seconds))
+        }
+        Ok(ScreenIpcRequest::SetLogTimestampString { value }) => {
+            write_result_response(stream, bus.set_log_timestamp_format(value))
+        }
         Ok(ScreenIpcRequest::SetPasteBuffer { bytes }) => {
             bus.set_paste_buffer(bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)

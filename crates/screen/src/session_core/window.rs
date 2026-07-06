@@ -64,6 +64,22 @@ impl ScreenWindowState {
         self.output_log.set_flush_interval(seconds)
     }
 
+    pub(super) fn set_log_timestamp_enabled(&mut self, enabled: bool) {
+        self.output_log.set_timestamp_enabled(enabled);
+    }
+
+    pub(super) fn toggle_log_timestamp_enabled(&mut self) {
+        self.output_log.toggle_timestamp_enabled();
+    }
+
+    pub(super) fn set_log_timestamp_after(&mut self, seconds: u64) {
+        self.output_log.set_timestamp_after(seconds);
+    }
+
+    pub(super) fn set_log_timestamp_format(&mut self, value: String) {
+        self.output_log.set_timestamp_format(value);
+    }
+
     pub(super) fn set_log_enabled(&mut self, enabled: bool) -> io::Result<()> {
         self.output_log.set_enabled(enabled)
     }
@@ -74,7 +90,7 @@ impl ScreenWindowState {
 
     pub(super) fn append_output(&mut self, bytes: &[u8], cols: Option<u16>) {
         self.replay.append(bytes, cols);
-        self.output_log.append(bytes);
+        self.output_log.append(bytes, self.title.as_deref());
     }
 
     pub(super) fn trim_to_cols(&mut self, cols: Option<u16>) {

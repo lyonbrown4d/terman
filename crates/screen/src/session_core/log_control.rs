@@ -25,6 +25,50 @@ impl ScreenSessionBus {
         }
     }
 
+
+    pub(crate) fn set_log_timestamp_enabled(&self, enabled: bool) -> io::Result<()> {
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+        if let Some(window) = state.active_window_mut() {
+            window.set_log_timestamp_enabled(enabled);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn toggle_log_timestamp_enabled(&self) -> io::Result<()> {
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+        if let Some(window) = state.active_window_mut() {
+            window.toggle_log_timestamp_enabled();
+        }
+        Ok(())
+    }
+
+    pub(crate) fn set_log_timestamp_after(&self, seconds: u64) -> io::Result<()> {
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+        if let Some(window) = state.active_window_mut() {
+            window.set_log_timestamp_after(seconds);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn set_log_timestamp_format(&self, value: String) -> io::Result<()> {
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
+        if let Some(window) = state.active_window_mut() {
+            window.set_log_timestamp_format(value);
+        }
+        Ok(())
+    }
     pub(crate) fn set_log_enabled(&self, enabled: bool) -> io::Result<()> {
         let mut state = self
             .inner

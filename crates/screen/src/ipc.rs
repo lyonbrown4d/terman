@@ -145,6 +145,16 @@ pub(crate) enum ScreenIpcRequest {
     SetLogFlush {
         seconds: u64,
     },
+    SetLogTimestampEnabled {
+        enabled: bool,
+    },
+    ToggleLogTimestamp,
+    SetLogTimestampAfter {
+        seconds: u64,
+    },
+    SetLogTimestampString {
+        value: String,
+    },
     SetPasteBuffer {
         bytes: Vec<u8>,
     },

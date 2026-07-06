@@ -4,13 +4,21 @@ use std::{
     time::{Duration, Instant},
 };
 
+use chrono::{Datelike, Local, Timelike};
+
 const DEFAULT_LOG_PATH: &str = "screenlog.%n";
 const DEFAULT_FLUSH_SECONDS: u64 = 10;
+const DEFAULT_TIMESTAMP_SECONDS: u64 = 120;
+const DEFAULT_TIMESTAMP_FORMAT: &str = "-- %n:%t -- time-stamp -- %M/%d/%y %c:%s --\n";
 
 pub(super) struct ScreenOutputLog {
     path: String,
     window_index: usize,
     flush_interval: Duration,
+    timestamp_enabled: bool,
+    timestamp_after: Duration,
+    timestamp_format: String,
+    last_output: Option<Instant>,
     last_flush: Instant,
     dirty: bool,
     enabled: bool,
@@ -35,6 +43,10 @@ impl ScreenOutputLog {
             path: DEFAULT_LOG_PATH.to_string(),
             window_index,
             flush_interval: Duration::from_secs(DEFAULT_FLUSH_SECONDS),
+            timestamp_enabled: false,
+            timestamp_after: Duration::from_secs(DEFAULT_TIMESTAMP_SECONDS),
+            timestamp_format: DEFAULT_TIMESTAMP_FORMAT.to_string(),
+            last_output: None,
             last_flush: Instant::now(),
             dirty: false,
             enabled: false,
@@ -66,6 +78,22 @@ impl ScreenOutputLog {
         Ok(())
     }
 
+    pub(super) fn set_timestamp_enabled(&mut self, enabled: bool) {
+        self.timestamp_enabled = enabled;
+    }
+
+    pub(super) fn toggle_timestamp_enabled(&mut self) {
+        self.timestamp_enabled = !self.timestamp_enabled;
+    }
+
+    pub(super) fn set_timestamp_after(&mut self, seconds: u64) {
+        self.timestamp_after = Duration::from_secs(seconds);
+    }
+
+    pub(super) fn set_timestamp_format(&mut self, value: String) {
+        self.timestamp_format = value;
+    }
+
     pub(super) fn set_enabled(&mut self, enabled: bool) -> io::Result<()> {
         self.enabled = enabled;
         if enabled {
@@ -73,6 +101,7 @@ impl ScreenOutputLog {
         } else {
             self.flush_pending()?;
             self.file = None;
+            self.last_output = None;
         }
         Ok(())
     }
@@ -81,7 +110,7 @@ impl ScreenOutputLog {
         self.set_enabled(!self.enabled)
     }
 
-    pub(super) fn append(&mut self, bytes: &[u8]) {
+    pub(super) fn append(&mut self, bytes: &[u8], title: Option<&str>) {
         if !self.enabled {
             return;
         }
@@ -89,18 +118,54 @@ impl ScreenOutputLog {
             self.enabled = false;
             return;
         }
-        if let Some(file) = self.file.as_mut() {
-            if file.write_all(bytes).is_err() {
-                self.enabled = false;
-                self.file = None;
+        if self.timestamp_due() {
+            let stamp = self.timestamp_text(title);
+            if self.write_bytes(stamp.as_bytes()).is_err() {
                 return;
             }
-            self.dirty = true;
-            if self.should_flush() && self.flush_pending().is_err() {
-                self.enabled = false;
-                self.file = None;
-            }
         }
+        if self.write_bytes(bytes).is_ok() {
+            self.last_output = Some(Instant::now());
+        }
+    }
+
+    fn write_bytes(&mut self, bytes: &[u8]) -> io::Result<()> {
+        let Some(file) = self.file.as_mut() else {
+            return Ok(());
+        };
+        if file.write_all(bytes).is_err() {
+            self.enabled = false;
+            self.file = None;
+            return Err(io::Error::new(io::ErrorKind::Other, "screen log write failed"));
+        }
+        self.dirty = true;
+        if self.should_flush() && self.flush_pending().is_err() {
+            self.enabled = false;
+            self.file = None;
+            return Err(io::Error::new(io::ErrorKind::Other, "screen log flush failed"));
+        }
+        Ok(())
+    }
+
+    fn timestamp_due(&self) -> bool {
+        self.timestamp_enabled
+            && self
+                .last_output
+                .map(|last| last.elapsed() >= self.timestamp_after)
+                .unwrap_or(false)
+    }
+
+    fn timestamp_text(&self, title: Option<&str>) -> String {
+        let now = Local::now();
+        self.timestamp_format
+            .replace("%n", &self.window_index.to_string())
+            .replace("%t", title.unwrap_or(""))
+            .replace("%M", &format!("{:02}", now.month()))
+            .replace("%d", &format!("{:02}", now.day()))
+            .replace("%y", &format!("{:02}", now.year().rem_euclid(100)))
+            .replace("%c", &format!("{:02}", now.hour()))
+            .replace("%s", &format!("{:02}", now.second()))
+            .replace("\\n", "\n")
     }
 
     fn should_flush(&self) -> bool {
@@ -137,7 +202,7 @@ mod tests {
     #[test]
     fn defaults_to_disabled_logging() {
         let mut log = ScreenOutputLog::default();
-        log.append(b"ignored");
+        log.append(b"ignored", None);
     }
 
     #[test]
@@ -153,5 +218,12 @@ mod tests {
         let mut log = ScreenOutputLog::new(0);
         log.set_flush_interval(0).unwrap();
         assert!(log.flush_interval.is_zero());
+    }
+
+    #[test]
+    fn expands_timestamp_tokens() {
+        let log = ScreenOutputLog::new(7);
+        let stamp = log.timestamp_text(Some("editor"));
+        assert!(stamp.contains("7:editor"));
     }
 }
