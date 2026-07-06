@@ -10,12 +10,7 @@ use crate::{
 
 pub(super) fn request_dumptermcap_command(args: &ScreenArgs) -> io::Result<()> {
     let (session_name, cols, rows) = session_termcap_size(args)?;
-    let path = screen_termcap_path();
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let entry = termcap_entry(&session_name, cols, rows);
-    fs::write(&path, entry)?;
+    let path = write_screen_termcap(&session_name, cols, rows)?;
     println!(
         "{}",
         terman_common::builtin_screen_control_dumptermcap_complete_hint(
@@ -23,6 +18,20 @@ pub(super) fn request_dumptermcap_command(args: &ScreenArgs) -> io::Result<()> {
         )
     );
     Ok(())
+}
+
+pub(super) fn write_screen_termcap(
+    session_name: &str,
+    cols: u16,
+    rows: u16,
+) -> io::Result<PathBuf> {
+    let path = screen_termcap_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let entry = termcap_entry(session_name, cols, rows);
+    fs::write(&path, entry)?;
+    Ok(path)
 }
 
 fn session_termcap_size(args: &ScreenArgs) -> io::Result<(String, u16, u16)> {

@@ -1,5 +1,6 @@
 mod attach;
 mod attach_output;
+mod attach_termcap;
 mod client;
 mod control;
 mod control_at;

@@ -19,6 +19,7 @@ use super::{
         print_attach_displays, print_attach_hardcopy, print_attach_help, print_attach_info,
         print_attach_license, print_attach_time, print_attach_version, print_attach_windows,
     },
+    attach_termcap::print_attach_dumptermcap,
     ipc_client::send_control_request,
 };
 use crate::{
@@ -90,6 +91,7 @@ pub(super) fn attach_interactive(
                         return Ok(());
                     }
                     Some(ScreenInputAction::Displays) => print_attach_displays(&endpoint)?,
+                    Some(ScreenInputAction::DumpTermcap) => print_attach_dumptermcap(&endpoint)?,
                     Some(ScreenInputAction::Help) => print_attach_help()?,
                     Some(ScreenInputAction::Hardcopy) => print_attach_hardcopy(&endpoint)?,
                     Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,

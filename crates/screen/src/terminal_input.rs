@@ -8,6 +8,7 @@ pub(crate) enum ScreenInputAction {
     Clear,
     Detach,
     DetachAll,
+    DumpTermcap,
     Displays,
     Help,
     Hardcopy,
@@ -113,6 +114,7 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
+            KeyCode::Char('.') if key.modifiers.is_empty() => Some(ScreenInputAction::DumpTermcap),
             KeyCode::Char(',') if key.modifiers.is_empty() => Some(ScreenInputAction::License),
             KeyCode::Char('"') if key.modifiers.is_empty() => Some(ScreenInputAction::Windows),
             KeyCode::Char(']') if key.modifiers.is_empty() => Some(ScreenInputAction::Paste),

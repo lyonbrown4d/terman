@@ -256,3 +256,15 @@ fn detects_screen_license_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(license), Some(ScreenInputAction::License));
 }
+#[test]
+fn detects_screen_dumptermcap_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let dumptermcap = KeyEvent::new(KeyCode::Char('.'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(
+        decoder.decode_key(dumptermcap),
+        Some(ScreenInputAction::DumpTermcap)
+    );
+}

@@ -51,6 +51,7 @@ pub(super) fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<
     }
 }
 
+
 pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
