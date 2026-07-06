@@ -14,6 +14,11 @@ struct SizeSpec {
     secondary: Option<u16>,
 }
 
+pub(super) fn request_fit_command(args: &ScreenArgs) -> io::Result<()> {
+    let (cols, rows) = crossterm::terminal::size()?;
+    send_session_control_request(args, ScreenIpcRequest::Resize { cols, rows })
+}
+
 pub(super) fn request_size_command(
     args: &ScreenArgs,
     command: &str,
