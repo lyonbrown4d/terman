@@ -73,7 +73,7 @@ builtin-screen-control-title-required = Specify a current window title as screen
 builtin-screen-control-version = terman-screen {$version} built-in cross-platform backend
 builtin-screen-control-info = screen info: session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows} scrollback_lines={$scrollback_lines}
 builtin-screen-control-displays-entry = displays: session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
-builtin-screen-control-windows-entry = 0* {$session_name} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
+builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
 builtin-screen-control-hardcopy-path-required = Specify an output path as screen -X hardcopy <path>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.

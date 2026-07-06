@@ -7,7 +7,7 @@ use std::{
 use interprocess::local_socket::prelude::*;
 
 use crate::{
-    ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
+    ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo},
     session_core::{ScreenControlEvent, ScreenSessionBus, ScreenSessionEvent},
 };
 
@@ -133,16 +133,29 @@ fn handle_client(
         ),
         Ok(ScreenIpcRequest::Info) => {
             let status = bus.status_snapshot();
+            let session_name = current_session_name(session_name)?;
+            let windows = status
+                .windows
+                .into_iter()
+                .map(|window| ScreenWindowInfo {
+                    index: window.index,
+                    title: window.title.unwrap_or_else(|| session_name.clone()),
+                    active: window.active,
+                    replay_bytes: window.replay_bytes,
+                })
+                .collect();
             write_response(
                 stream,
                 &ScreenIpcResponse::Info {
-                    session_name: current_session_name(session_name)?,
+                    session_name,
                     replay_bytes: status.replay_bytes,
                     attach_clients: status.attach_clients,
                     cols: status.cols,
                     rows: status.rows,
                     scrollback_lines: status.scrollback_lines,
                     window_title: status.window_title,
+                    active_window: status.active_window,
+                    windows,
                 },
             )
         }

@@ -121,12 +121,16 @@ pub fn builtin_screen_control_displays_entry_hint(
 }
 
 pub fn builtin_screen_control_windows_entry_hint(
-    session_name: &str,
+    index: usize,
+    active: bool,
+    title: &str,
     replay_bytes: usize,
     attach_clients: usize,
     cols: Option<u16>,
     rows: Option<u16>,
 ) -> String {
+    let index = index.to_string();
+    let active_marker = if active { "*" } else { " " };
     let replay_bytes = replay_bytes.to_string();
     let attach_clients = attach_clients.to_string();
     let cols = cols
@@ -138,7 +142,9 @@ pub fn builtin_screen_control_windows_entry_hint(
     localized_message(
         MessageKey::BuiltinScreenControlWindowsEntry,
         &[
-            ("session_name", session_name),
+            ("index", &index),
+            ("active_marker", active_marker),
+            ("title", title),
             ("replay_bytes", &replay_bytes),
             ("attach_clients", &attach_clients),
             ("cols", &cols),

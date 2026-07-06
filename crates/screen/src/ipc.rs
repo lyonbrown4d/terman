@@ -75,6 +75,14 @@ pub(crate) enum ScreenAttachMode {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub(crate) struct ScreenWindowInfo {
+    pub(crate) index: usize,
+    pub(crate) title: String,
+    pub(crate) active: bool,
+    pub(crate) replay_bytes: usize,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub(crate) enum ScreenIpcRequest {
     Attach {
         mode: ScreenAttachMode,
@@ -140,6 +148,8 @@ pub(crate) enum ScreenIpcResponse {
         rows: Option<u16>,
         scrollback_lines: usize,
         window_title: Option<String>,
+        active_window: usize,
+        windows: Vec<ScreenWindowInfo>,
     },
     Output { bytes: Vec<u8> },
     PasteBuffer { bytes: Vec<u8> },

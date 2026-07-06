@@ -5,7 +5,7 @@ use std::{
 };
 
 use super::{control_time::screen_time_message, ipc_client::request_endpoint_response};
-use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse};
+use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo};
 
 const ATTACH_HARDCOPY_PREFIX_ENV: &str = "TERMAN_SCREEN_HARDCOPY_PREFIX";
 const DEFAULT_ATTACH_HARDCOPY_PREFIX: &str = "hardcopy";
@@ -124,28 +124,17 @@ pub(super) fn print_attach_displays(endpoint: &ScreenIpcEndpoint) -> io::Result<
 pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
-            session_name,
-            replay_bytes,
             attach_clients,
             cols,
             rows,
-            window_title,
+            windows,
             ..
         } => {
-            let title = window_title.as_deref().unwrap_or(&session_name);
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;
-            stdout.write_all(
-                terman_common::builtin_screen_control_windows_entry_hint(
-                    title,
-                    replay_bytes,
-                    attach_clients,
-                    cols,
-                    rows,
-                )
-                .as_bytes(),
-            )?;
-            stdout.write_all(b"\r\n")?;
+            for window in windows {
+                write_attach_window_entry(&mut stdout, &window, attach_clients, cols, rows)?;
+            }
             stdout.flush()
         }
         ScreenIpcResponse::Rejected { reason } => {
@@ -153,6 +142,28 @@ pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<(
         }
         response => Err(unexpected_response_error(&response)),
     }
+}
+
+fn write_attach_window_entry(
+    stdout: &mut impl Write,
+    window: &ScreenWindowInfo,
+    attach_clients: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
+) -> io::Result<()> {
+    stdout.write_all(
+        terman_common::builtin_screen_control_windows_entry_hint(
+            window.index,
+            window.active,
+            &window.title,
+            window.replay_bytes,
+            attach_clients,
+            cols,
+            rows,
+        )
+        .as_bytes(),
+    )?;
+    stdout.write_all(b"\r\n")
 }
 
 fn write_numbered_hardcopy(bytes: &[u8]) -> io::Result<String> {

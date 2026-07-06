@@ -25,6 +25,14 @@ pub(crate) enum ScreenControlEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ScreenWindowStatus {
+    pub(crate) index: usize,
+    pub(crate) title: Option<String>,
+    pub(crate) active: bool,
+    pub(crate) replay_bytes: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ScreenSessionStatus {
     pub(crate) replay_bytes: usize,
     pub(crate) attach_clients: usize,
@@ -32,6 +40,8 @@ pub(crate) struct ScreenSessionStatus {
     pub(crate) rows: Option<u16>,
     pub(crate) scrollback_lines: usize,
     pub(crate) window_title: Option<String>,
+    pub(crate) active_window: usize,
+    pub(crate) windows: Vec<ScreenWindowStatus>,
 }
 
 #[derive(Clone, Default)]
@@ -129,13 +139,24 @@ impl ScreenSessionBus {
     pub(crate) fn status_snapshot(&self) -> ScreenSessionStatus {
         self.inner
             .lock()
-            .map(|state| ScreenSessionStatus {
-                replay_bytes: state.replay.len(),
-                attach_clients: state.attach_clients,
-                cols: state.cols,
-                rows: state.rows,
-                scrollback_lines: state.replay.scrollback_lines(),
-                window_title: state.window_title.clone(),
+            .map(|state| {
+                let replay_bytes = state.replay.len();
+                let window_title = state.window_title.clone();
+                ScreenSessionStatus {
+                    replay_bytes,
+                    attach_clients: state.attach_clients,
+                    cols: state.cols,
+                    rows: state.rows,
+                    scrollback_lines: state.replay.scrollback_lines(),
+                    window_title: window_title.clone(),
+                    active_window: 0,
+                    windows: vec![ScreenWindowStatus {
+                        index: 0,
+                        title: window_title,
+                        active: true,
+                        replay_bytes,
+                    }],
+                }
             })
             .unwrap_or(ScreenSessionStatus {
                 replay_bytes: 0,
@@ -144,6 +165,13 @@ impl ScreenSessionBus {
                 rows: None,
                 scrollback_lines: DEFAULT_SCROLLBACK_LINES,
                 window_title: None,
+                active_window: 0,
+                windows: vec![ScreenWindowStatus {
+                    index: 0,
+                    title: None,
+                    active: true,
+                    replay_bytes: 0,
+                }],
             })
     }
 
