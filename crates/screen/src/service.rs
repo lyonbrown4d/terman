@@ -22,6 +22,7 @@ mod control_window_nav;
 mod control_windows;
 mod ipc_client;
 mod listener;
+mod listener_io;
 mod sessionname;
 
 pub(crate) use self::client::{request_screen_attach, request_screen_server_ready};
