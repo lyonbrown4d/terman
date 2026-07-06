@@ -30,7 +30,7 @@ pub(super) fn control_command_payload(inline_payload: &str, args: &[String]) -> 
 
 pub(super) fn decode_stuff_payload(payload: &str) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(payload.len());
-    let mut chars = payload.chars();
+    let mut chars = payload.chars().peekable();
 
     while let Some(ch) = chars.next() {
         if ch != '\\' {
@@ -43,6 +43,7 @@ pub(super) fn decode_stuff_payload(payload: &str) -> Vec<u8> {
             Some('r') => bytes.push(b'\r'),
             Some('t') => bytes.push(b'\t'),
             Some('\\') => bytes.push(b'\\'),
+            Some(first @ '0'..='7') => bytes.push(decode_octal_escape(first, &mut chars)),
             Some(other) => {
                 bytes.push(b'\\');
                 push_utf8(&mut bytes, other);
@@ -52,6 +53,21 @@ pub(super) fn decode_stuff_payload(payload: &str) -> Vec<u8> {
     }
 
     bytes
+}
+
+fn decode_octal_escape(first: char, chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> u8 {
+    let mut value = first.to_digit(8).unwrap_or_default();
+    for _ in 0..2 {
+        let Some(next) = chars.peek().copied() else {
+            break;
+        };
+        let Some(digit) = next.to_digit(8) else {
+            break;
+        };
+        chars.next();
+        value = value * 8 + digit;
+    }
+    value.min(0xff) as u8
 }
 
 fn invalid_resize_payload() -> io::Error {
@@ -87,6 +103,8 @@ mod tests {
     #[test]
     fn decodes_stuff_escape_sequences() {
         assert_eq!(decode_stuff_payload("a\\n\\t"), b"a\n\t".to_vec());
+        assert_eq!(decode_stuff_payload("run\\015"), b"run\r".to_vec());
+        assert_eq!(decode_stuff_payload("\\033[A"), vec![0x1b, b'[', b'A']);
         assert_eq!(decode_stuff_payload("a\\x"), b"a\\x".to_vec());
     }
 }
