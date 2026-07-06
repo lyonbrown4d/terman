@@ -107,3 +107,18 @@ fn detects_screen_ctrl_next_previous_prefixes() {
         Some(ScreenInputAction::PreviousWindow)
     );
 }
+#[test]
+fn detects_screen_ctrl_window_lifecycle_prefixes() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let new_window = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    let detach = KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL);
+    let kill = KeyEvent::new(KeyCode::Char('k'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(new_window), Some(ScreenInputAction::NewWindow));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(detach), Some(ScreenInputAction::Detach));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(kill), Some(ScreenInputAction::Kill));
+}

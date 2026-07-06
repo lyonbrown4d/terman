@@ -84,14 +84,22 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::Clear)
             }
-            KeyCode::Char('c') if key.modifiers.is_empty() => Some(ScreenInputAction::NewWindow),
+            KeyCode::Char('c') | KeyCode::Char('C')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                Some(ScreenInputAction::NewWindow)
+            }
             KeyCode::Char('D') if key.modifiers == KeyModifiers::SHIFT => {
                 Some(ScreenInputAction::DetachAll)
             }
-            KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.is_empty() => {
+            KeyCode::Char('d') | KeyCode::Char('D')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 Some(ScreenInputAction::Detach)
             }
-            KeyCode::Char('k') | KeyCode::Char('K') if key.modifiers.is_empty() => {
+            KeyCode::Char('k') | KeyCode::Char('K')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 Some(ScreenInputAction::Kill)
             }
             KeyCode::Char('n') | KeyCode::Char('N')
