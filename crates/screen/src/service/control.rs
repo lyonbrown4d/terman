@@ -116,6 +116,7 @@ fn execute_control_command(
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
         "title" | "aka" => request_title_command(args, inline_payload, extra_args),
         "stuff" => request_stuff_command(args, inline_payload, extra_args),
+        "meta" => send_targeted_session_control_request(args, ScreenIpcRequest::Input { bytes: vec![0x01] }),
         "xon" => send_targeted_session_control_request(args, ScreenIpcRequest::Input { bytes: vec![0x11] }),
         "xoff" => send_targeted_session_control_request(args, ScreenIpcRequest::Input { bytes: vec![0x13] }),
         _ => Err(io::Error::new(

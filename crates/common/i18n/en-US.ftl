@@ -68,6 +68,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X process .
       - terman-screen -S dev -X register . "hello\015"
       - terman-screen -S dev -X stuff "echo hi\n"
+      - terman-screen -S dev -X meta
       - terman-screen -S dev -X xon
       - terman-screen -S dev -X xoff
       - terman-screen -S dev -p 0 -X stuff "echo hi\n"
@@ -92,7 +93,7 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, xon, xoff, screen, shell, defshell, shelltitle, term, chdir, setenv, unsetenv, paste, pastefile, bufferfile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, fit, width, height, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, redisplay, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, meta, xon, xoff, screen, shell, defshell, shelltitle, term, chdir, setenv, unsetenv, paste, pastefile, bufferfile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, fit, width, height, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, redisplay, eval, at, colon, sessionname.
 builtin-screen-control-chdir-directory-required = Specify an existing directory as screen -X chdir <path>.
 builtin-screen-control-chdir-home-required = HOME or USERPROFILE is not available for screen -X chdir.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
@@ -106,7 +107,7 @@ builtin-screen-control-term-required = Specify a terminal type as screen -X term
 builtin-screen-control-log-required = Specify screen log state as screen -X log [on|off], or omit the state to toggle logging.
 builtin-screen-control-logfile-required = Specify a log file path as screen -X logfile <path>, or a flush interval as screen -X logfile flush <seconds>.
 builtin-screen-control-logtstamp-required = Specify screen log timestamp as logtstamp [on|off], logtstamp after <seconds>, or logtstamp string <text>.
-builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, xon, xoff, screen, shell, defshell, shelltitle, term, chdir, setenv, unsetenv, paste, pastefile, bufferfile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, fit, width, height, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, redisplay, eval, at, colon, sessionname.
+builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, meta, xon, xoff, screen, shell, defshell, shelltitle, term, chdir, setenv, unsetenv, paste, pastefile, bufferfile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, fit, width, height, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, redisplay, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, title, -, ., #, or an empty selector.
