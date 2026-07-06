@@ -15,20 +15,12 @@ use crossterm::{
 use interprocess::local_socket::prelude::*;
 
 use super::{
-    attach_buffer::{read_attach_buffer, remove_attach_buffer, write_attach_buffer},
-    attach_number::print_attach_number,
-    attach_output::{
-        print_attach_displays, print_attach_hardcopy, print_attach_help, print_attach_info,
-        print_attach_license, print_attach_time, print_attach_version, print_attach_windows,
-    },
-    attach_size::{fit_attach_window, toggle_attach_width},
-    attach_termcap::print_attach_dumptermcap,
-    attach_title::prompt_attach_title,
+    attach_actions::{AttachActionResult, handle_attach_action, sync_attach_terminal_size},
     ipc_client::send_control_request,
 };
 use crate::{
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
-    terminal_input::{ScreenInputAction, ScreenInputDecoder},
+    terminal_input::ScreenInputDecoder,
 };
 
 struct AttachRawMode;
@@ -66,92 +58,17 @@ pub(super) fn attach_interactive(
     while running.load(Ordering::Acquire) {
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
-                Ok(Event::Key(key)) => match input_decoder.decode_key(key) {
-                    Some(ScreenInputAction::Bytes(bytes)) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Input { bytes })?;
+                Ok(Event::Key(key)) => {
+                    if let Some(action) = input_decoder.decode_key(key) {
+                        match handle_attach_action(&endpoint, &client_id, action)? {
+                            AttachActionResult::Continue => {}
+                            AttachActionResult::Stop => {
+                                running.store(false, Ordering::Release);
+                                return Ok(());
+                            }
+                        }
                     }
-                    Some(ScreenInputAction::Clear) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Clear)?;
-                    }
-                    Some(ScreenInputAction::Reset) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Reset)?;
-                    }                    Some(ScreenInputAction::Redisplay) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Redisplay)?;
-                    }
-                    Some(ScreenInputAction::Resize) => {
-                        sync_attach_terminal_size(&endpoint)?;
-                    }
-                    Some(ScreenInputAction::Detach) => {
-                        send_control_request(
-                            &endpoint,
-                            ScreenIpcRequest::DetachClient {
-                                client_id: client_id.clone(),
-                            },
-                        )?;
-                        running.store(false, Ordering::Release);
-                        return Ok(());
-                    }
-                    Some(ScreenInputAction::DetachAll) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::DetachAll)?;
-                        running.store(false, Ordering::Release);
-                        return Ok(());
-                    }
-                    Some(ScreenInputAction::Displays) => print_attach_displays(&endpoint)?,
-                    Some(ScreenInputAction::Fit) => fit_attach_window(&endpoint)?,
-                    Some(ScreenInputAction::DumpTermcap) => print_attach_dumptermcap(&endpoint)?,
-                    Some(ScreenInputAction::Help) => print_attach_help()?,
-                    Some(ScreenInputAction::Hardcopy) => print_attach_hardcopy(&endpoint)?,
-                    Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,
-                    Some(ScreenInputAction::NewWindow) => {
-                        send_control_request(
-                            &endpoint,
-                            ScreenIpcRequest::NewWindow { command: None },
-                        )?;
-                    }
-                    Some(ScreenInputAction::Number) => print_attach_number(&endpoint)?,
-                    Some(ScreenInputAction::Paste) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::PasteBuffer)?;
-                    }
-                    Some(ScreenInputAction::ReadBuffer) => read_attach_buffer(&endpoint)?,
-                    Some(ScreenInputAction::RemoveBuffer) => remove_attach_buffer(&endpoint)?,
-                    Some(ScreenInputAction::Quit) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::Quit)?;
-                        running.store(false, Ordering::Release);
-                        return Ok(());
-                    }
-                    Some(ScreenInputAction::Time) => print_attach_time()?,
-                    Some(ScreenInputAction::Title) => prompt_attach_title(&endpoint)?,
-                    Some(ScreenInputAction::Version) => print_attach_version()?,
-                    Some(ScreenInputAction::Windows) => print_attach_windows(&endpoint)?,
-                    Some(ScreenInputAction::WriteBuffer) => write_attach_buffer(&endpoint)?,
-                    Some(ScreenInputAction::WidthToggle) => toggle_attach_width(&endpoint)?,
-                    Some(ScreenInputAction::LastWindow) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::LastWindow)?;
-                    }
-                    Some(ScreenInputAction::NextWindow) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::NextWindow)?;
-                    }
-                    Some(ScreenInputAction::SelectWindow(index)) => {
-                        send_control_request(
-                            &endpoint,
-                            ScreenIpcRequest::SelectWindow { index },
-                        )?;
-                    }
-                    Some(ScreenInputAction::PreviousWindow) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::PreviousWindow)?;
-                    },
-                    Some(ScreenInputAction::License) => print_attach_license()?,
-                    Some(ScreenInputAction::LastMessage) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::LastMessage)?;
-                    }
-                    Some(ScreenInputAction::LogToggle) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::ToggleLog)?;
-                    }
-                    Some(ScreenInputAction::Kill) => {
-                        send_control_request(&endpoint, ScreenIpcRequest::KillWindow)?;
-                    }
-                    None => {}
-                },
+                }
                 Ok(Event::Resize(cols, rows)) => {
                     send_control_request(&endpoint, ScreenIpcRequest::Resize { cols, rows })?;
                 }
@@ -170,11 +87,6 @@ pub(super) fn attach_interactive(
             terman_common::builtin_screen_attach_output_thread_panicked_hint(),
         )),
     }
-}
-
-fn sync_attach_terminal_size(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
-    let (cols, rows) = terminal::size()?;
-    send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
 }
 
 fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
