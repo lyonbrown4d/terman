@@ -15,6 +15,7 @@ pub(super) fn request_window_navigation_command(
     let request_kind = match command {
         "next" => ScreenIpcRequest::NextWindow,
         "prev" => ScreenIpcRequest::PreviousWindow,
+        "other" => ScreenIpcRequest::LastWindow,
         _ => return Ok(()),
     };
     match request(args, request_kind)? {

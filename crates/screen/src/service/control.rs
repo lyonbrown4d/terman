@@ -75,7 +75,7 @@ fn execute_control_command(
         "scrollback" | "defscrollback" => {
             request_scrollback_command(args, inline_payload, extra_args)
         }
-        "next" | "prev" => {
+        "next" | "prev" | "other" => {
             request_window_navigation_command(args, &command, request_session_response)
         },
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
