@@ -34,6 +34,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X title editor
       - terman-screen -S dev -X select 0
       - terman-screen -S dev -X select -
+      - terman-screen -S dev -X number
+      - terman-screen -S dev -X number +1
       - terman-screen -S dev -X defscrollback 2000
       - terman-screen -S dev -X logfile screen.log
       - terman-screen -S dev -X logfile flush 10
@@ -102,6 +104,8 @@ builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, he
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, title, -, ., #, or an empty selector.
+builtin-screen-control-number = screen window number: {$index} {$title}
+builtin-screen-control-number-invalid = Specify a screen window number as screen -X number [index|+delta|-delta].
 builtin-screen-control-scrollback-required = Specify scrollback as integer lines: screen -X defscrollback <lines>.
 builtin-screen-control-sleep-required = Specify sleep duration as integer seconds: screen -X sleep <seconds>.
 builtin-screen-control-time = screen time: unix_seconds={$unix_seconds}

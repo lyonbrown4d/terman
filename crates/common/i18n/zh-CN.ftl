@@ -34,6 +34,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X title editor
       - terman-screen -S dev -X select 0
       - terman-screen -S dev -X select -
+      - terman-screen -S dev -X number
+      - terman-screen -S dev -X number +1
       - terman-screen -S dev -X defscrollback 2000
       - terman-screen -S dev -X logfile screen.log
       - terman-screen -S dev -X logfile flush 10
@@ -102,6 +104,8 @@ builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 不支持的 screen 窗口 selector `{$selector}`。请使用可见的数字窗口索引、标题、-、.、# 或空 selector。
+builtin-screen-control-number = screen 窗口编号：{$index} {$title}
+builtin-screen-control-number-invalid = 请按 screen -X number [index|+delta|-delta] 指定 screen 窗口编号。
 builtin-screen-control-scrollback-required = 请按整数行数指定 scrollback：screen -X defscrollback <行数>。
 builtin-screen-control-sleep-required = 请按整数秒数指定 sleep 时长：screen -X sleep <秒数>。
 builtin-screen-control-time = screen 时间：unix_seconds={$unix_seconds}
