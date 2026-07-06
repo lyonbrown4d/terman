@@ -28,6 +28,7 @@ mod control_window_nav;
 mod control_windows;
 mod ipc_client;
 mod listener;
+mod listener_dispatch;
 mod listener_io;
 mod sessionname;
 
