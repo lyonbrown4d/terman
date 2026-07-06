@@ -100,6 +100,21 @@ pub(crate) fn new_screen_window_title(
             .map(str::to_string)
     })
 }
+
+pub(crate) fn apply_default_window_log(
+    bus: &ScreenSessionBus,
+    env_overrides: &BTreeMap<String, Option<String>>,
+) -> Result<(), Box<dyn Error>> {
+    let enabled = env_overrides
+        .get("TERMAN_SCREEN_DEFAULT_LOG")
+        .and_then(Option::as_ref)
+        .map(|state| matches!(state.as_str(), "on" | "1" | "true"))
+        .unwrap_or(false);
+    if enabled {
+        bus.set_log_enabled(true)?;
+    }
+    Ok(())
+}
 pub(crate) fn next_screen_window_index(windows: &[ScreenWindowRuntime]) -> usize {
     windows
         .iter()

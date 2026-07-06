@@ -44,25 +44,6 @@ pub(super) fn request_hardcopy_command(
 pub(super) fn request_kill_command(args: &ScreenArgs) -> io::Result<()> {
     send_targeted_session_control_request(args, ScreenIpcRequest::KillWindow)
 }
-pub(super) fn request_log_command(
-    args: &ScreenArgs,
-    inline_payload: &str,
-    extra_args: &[String],
-) -> io::Result<()> {
-    let payload = control_command_payload(inline_payload, extra_args);
-    let enabled = match payload.trim().to_ascii_lowercase().as_str() {
-        "on" | "1" | "true" => true,
-        "off" | "0" | "false" => false,
-        _ => {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                terman_common::builtin_screen_control_log_required_hint(),
-            ));
-        }
-    };
-    send_targeted_session_control_request(args, ScreenIpcRequest::SetLogEnabled { enabled })
-}
-
 pub(super) fn request_logfile_command(
     args: &ScreenArgs,
     inline_payload: &str,

@@ -10,6 +10,7 @@ mod control_env;
 mod control_help;
 mod control_info;
 mod control_local;
+mod control_log;
 mod control_number;
 mod control_parse;
 mod control_register;
