@@ -60,7 +60,7 @@ pub(super) fn request_log_command(
             ));
         }
     };
-    send_session_control_request(args, ScreenIpcRequest::SetLogEnabled { enabled })
+    send_targeted_session_control_request(args, ScreenIpcRequest::SetLogEnabled { enabled })
 }
 
 pub(super) fn request_logfile_command(
@@ -75,7 +75,7 @@ pub(super) fn request_logfile_command(
             terman_common::builtin_screen_control_logfile_required_hint(),
         ));
     }
-    send_session_control_request(args, ScreenIpcRequest::SetLogFile { path })
+    send_targeted_session_control_request(args, ScreenIpcRequest::SetLogFile { path })
 }
 
 pub(super) fn request_new_window_command(
@@ -164,7 +164,7 @@ pub(super) fn request_scrollback_command(
             terman_common::builtin_screen_control_scrollback_required_hint(),
         )
     })?;
-    send_session_control_request(args, ScreenIpcRequest::SetScrollback { lines })
+    send_targeted_session_control_request(args, ScreenIpcRequest::SetScrollback { lines })
 }
 
 pub(super) fn request_title_command(
