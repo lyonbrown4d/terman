@@ -25,6 +25,7 @@ mod control_shell;
 mod control_size;
 mod control_target;
 mod control_sleep;
+mod control_termcap;
 mod control_source;
 mod control_time;
 mod control_version;

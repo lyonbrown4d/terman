@@ -77,6 +77,7 @@ pub enum MessageKey {
     BuiltinScreenControlLicense,
     BuiltinScreenControlInfo,
     BuiltinScreenControlDinfo,
+    BuiltinScreenControlDumptermcapComplete,
     BuiltinScreenControlDisplaysEntry,
     BuiltinScreenControlWindowsEntry,
     BuiltinScreenControlUnexpectedResponse,
@@ -194,6 +195,9 @@ impl MessageKey {
             Self::BuiltinScreenControlLicense => "builtin-screen-control-license",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
             Self::BuiltinScreenControlDinfo => "builtin-screen-control-dinfo",
+            Self::BuiltinScreenControlDumptermcapComplete => {
+                "builtin-screen-control-dumptermcap-complete"
+            },
             Self::BuiltinScreenControlDisplaysEntry => "builtin-screen-control-displays-entry",
             Self::BuiltinScreenControlWindowsEntry => "builtin-screen-control-windows-entry",
             Self::BuiltinScreenControlUnexpectedResponse => {

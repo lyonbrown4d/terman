@@ -44,6 +44,13 @@ pub fn builtin_screen_control_hardcopy_complete_hint(path: &str, bytes: usize) -
     )
 }
 
+pub fn builtin_screen_control_dumptermcap_complete_hint(path: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinScreenControlDumptermcapComplete,
+        &[("path", path)],
+    )
+}
+
 pub fn builtin_screen_control_writebuf_complete_hint(path: &str, bytes: usize) -> String {
     let bytes = bytes.to_string();
     localized_message(
