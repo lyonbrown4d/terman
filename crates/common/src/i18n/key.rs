@@ -64,6 +64,7 @@ pub enum MessageKey {
     BuiltinScreenControlTitleRequired,
     BuiltinScreenControlVersion,
     BuiltinScreenControlInfo,
+    BuiltinScreenControlDinfo,
     BuiltinScreenControlDisplaysEntry,
     BuiltinScreenControlWindowsEntry,
     BuiltinScreenControlUnexpectedResponse,
@@ -159,6 +160,7 @@ impl MessageKey {
             Self::BuiltinScreenControlTitleRequired => "builtin-screen-control-title-required",
             Self::BuiltinScreenControlVersion => "builtin-screen-control-version",
             Self::BuiltinScreenControlInfo => "builtin-screen-control-info",
+            Self::BuiltinScreenControlDinfo => "builtin-screen-control-dinfo",
             Self::BuiltinScreenControlDisplaysEntry => "builtin-screen-control-displays-entry",
             Self::BuiltinScreenControlWindowsEntry => "builtin-screen-control-windows-entry",
             Self::BuiltinScreenControlUnexpectedResponse => {

@@ -16,6 +16,7 @@ builtin-screen-cli-examples =
       - terman-screen -wipe
       - terman-screen -S dev -X quit
       - terman-screen -S dev -Q info
+      - terman-screen -S dev -X dinfo
       - terman-screen -S dev -X displays
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X windowlist
@@ -39,6 +40,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X colon "info"
       - terman-screen -S dev -X source .screenrc
       - terman-screen -S dev -X readbuf input.txt
+      - terman-screen -S dev -X readreg . input.txt
       - terman-screen -S dev -X removebuf
       - terman-screen -S dev -X paste
       - terman-screen -S dev -X paste .
@@ -67,11 +69,11 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-log-required = 请按 screen -X log on 或 screen -X log off 指定日志状态。
 builtin-screen-control-logfile-required = 请按 screen -X logfile <路径> 指定日志文件路径。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 不支持的 screen 窗口 selector `{$selector}`。请使用可见的数字窗口索引、标题、-、.、# 或空 selector。
@@ -81,12 +83,14 @@ builtin-screen-control-time = screen 时间：unix_seconds={$unix_seconds}
 builtin-screen-control-title-required = 请按 screen -X title <标题> 指定当前窗口标题。
 builtin-screen-control-version = terman-screen {$version} 内置跨平台后端
 builtin-screen-control-info = screen 信息：session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows} scrollback_lines={$scrollback_lines}
+builtin-screen-control-dinfo = screen 显示信息：session={$session_name} size={$cols}x{$rows} active_window={$active_window} attached_clients={$attach_clients} term={$term}
 builtin-screen-control-displays-entry = displays：session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。
 builtin-screen-control-hardcopy-path-required = 请按 screen -X hardcopy <路径> 指定输出路径。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
 builtin-screen-control-readbuf-path-required = 请按 screen -X readbuf <路径> 指定输入文件路径。
+builtin-screen-control-readreg-required = 请按 screen -X readreg <寄存器> <路径> 指定寄存器和输入文件路径。
 builtin-screen-control-writebuf-path-required = 请按 screen -X writebuf <路径> 指定输出文件路径。
 builtin-screen-control-source-path-required = 请按 screen -X source <路径> 指定命令文件路径。
 builtin-screen-control-hardcopy-complete = 已将 {$bytes} 字节 screen hardcopy 写入 {$path}。
