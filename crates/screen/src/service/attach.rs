@@ -93,6 +93,12 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Help) => print_attach_help()?,
                     Some(ScreenInputAction::Hardcopy) => print_attach_hardcopy(&endpoint)?,
                     Some(ScreenInputAction::Info) => print_attach_info(&endpoint)?,
+                    Some(ScreenInputAction::NewWindow) => {
+                        send_control_request(
+                            &endpoint,
+                            ScreenIpcRequest::NewWindow { command: None },
+                        )?;
+                    }
                     Some(ScreenInputAction::Paste) => {
                         send_control_request(&endpoint, ScreenIpcRequest::PasteBuffer)?;
                     }

@@ -68,6 +68,15 @@ fn detects_screen_detach_prefix() {
 }
 
 #[test]
+fn detects_screen_new_window_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let new_window = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(new_window), Some(ScreenInputAction::NewWindow));
+}
+#[test]
 fn detects_screen_kill_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);

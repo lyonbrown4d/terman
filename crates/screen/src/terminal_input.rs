@@ -13,6 +13,7 @@ pub(crate) enum ScreenInputAction {
     Hardcopy,
     Info,
     Kill,
+    NewWindow,
     Paste,
     NextWindow,
     PreviousWindow,
@@ -66,6 +67,7 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::Clear)
             }
+            KeyCode::Char('c') if key.modifiers.is_empty() => Some(ScreenInputAction::NewWindow),
             KeyCode::Char('D') if key.modifiers == KeyModifiers::SHIFT => {
                 Some(ScreenInputAction::DetachAll)
             }
