@@ -19,6 +19,10 @@ impl ScreenWindowState {
         }
     }
 
+    pub(super) fn index(&self) -> usize {
+        self.index
+    }
+
     pub(super) fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }

@@ -102,6 +102,9 @@ pub(crate) enum ScreenIpcRequest {
     },
     Hardcopy,
     Info,
+    NewWindow {
+        command: Option<String>,
+    },
     GetPasteBuffer,
     PasteBuffer,
     Ping,

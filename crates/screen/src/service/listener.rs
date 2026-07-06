@@ -125,6 +125,12 @@ fn handle_client(
                 bytes: bus.replay_snapshot(),
             },
         ),
+        Ok(ScreenIpcRequest::NewWindow { command }) => {
+            control_tx
+                .send(ScreenControlEvent::NewWindow { command })
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
             stream,
             &ScreenIpcResponse::PasteBuffer {

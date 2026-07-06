@@ -5,9 +5,10 @@ use std::{
 
 mod logging;
 mod replay;
+mod state;
 mod window;
 
-use replay::DEFAULT_SCROLLBACK_LINES;
+use state::{ScreenSessionState, ScreenSessionSubscriber, fallback_status, session_status};
 use window::ScreenWindowState;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -21,6 +22,7 @@ pub(crate) enum ScreenSessionEvent {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
+    NewWindow { command: Option<String> },
     Resize { cols: u16, rows: u16 },
     Terminate,
 }
@@ -48,45 +50,6 @@ pub(crate) struct ScreenSessionStatus {
 #[derive(Clone, Default)]
 pub(crate) struct ScreenSessionBus {
     inner: Arc<Mutex<ScreenSessionState>>,
-}
-
-struct ScreenSessionSubscriber {
-    client_id: Option<String>,
-    sender: mpsc::Sender<ScreenSessionEvent>,
-}
-
-struct ScreenSessionState {
-    windows: Vec<ScreenWindowState>,
-    active_window: usize,
-    paste_buffer: Vec<u8>,
-    subscribers: Vec<ScreenSessionSubscriber>,
-    attach_clients: usize,
-    cols: Option<u16>,
-    rows: Option<u16>,
-}
-
-impl Default for ScreenSessionState {
-    fn default() -> Self {
-        Self {
-            windows: vec![ScreenWindowState::new(0)],
-            active_window: 0,
-            paste_buffer: Vec::new(),
-            subscribers: Vec::new(),
-            attach_clients: 0,
-            cols: None,
-            rows: None,
-        }
-    }
-}
-
-impl ScreenSessionState {
-    fn active_window(&self) -> Option<&ScreenWindowState> {
-        self.windows.get(self.active_window)
-    }
-
-    fn active_window_mut(&mut self) -> Option<&mut ScreenWindowState> {
-        self.windows.get_mut(self.active_window)
-    }
 }
 
 pub(crate) struct ScreenSessionSubscription {
@@ -170,6 +133,12 @@ impl ScreenSessionBus {
             .unwrap_or_else(|_| fallback_status())
     }
 
+    pub(crate) fn add_window(&self, index: usize, title: Option<String>) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.add_window(index, title);
+        }
+    }
+
     pub(crate) fn clear_replay(&self) {
         if let Ok(mut state) = self.inner.lock() {
             if let Some(window) = state.active_window_mut() {
@@ -231,16 +200,34 @@ impl ScreenSessionBus {
     }
 
     pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {
-        self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |_| {});
+        self.broadcast(ScreenSessionEvent::Output(bytes.to_vec()));
     }
 
+    #[cfg(test)]
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
-        self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |state| {
-            let cols = state.cols;
-            if let Some(window) = state.active_window_mut() {
-                window.append_output(bytes, cols);
-            }
-        });
+        let active_window = self.inner.lock().map(|state| state.active_window).ok();
+        if let Some(active_window) = active_window {
+            self.publish_window_output(active_window, bytes);
+        }
+    }
+
+    pub(crate) fn publish_window_output(&self, index: usize, bytes: &[u8]) {
+        let Ok(mut state) = self.inner.lock() else {
+            return;
+        };
+        let cols = state.cols;
+        let active = state.active_window == index;
+        if let Some(window) = state.windows.get_mut(index) {
+            window.append_output(bytes, cols);
+        }
+        if active {
+            state.subscribers.retain(|subscriber| {
+                subscriber
+                    .sender
+                    .send(ScreenSessionEvent::Output(bytes.to_vec()))
+                    .is_ok()
+            });
+        }
     }
 
     pub(crate) fn publish_resize(&self, cols: u16, rows: u16) {
@@ -262,11 +249,11 @@ impl ScreenSessionBus {
     }
 
     pub(crate) fn publish_detach(&self) {
-        self.publish(ScreenSessionEvent::Detach, |_| {});
+        self.broadcast(ScreenSessionEvent::Detach);
     }
 
     pub(crate) fn publish_exit(&self, code: i32) {
-        self.publish(ScreenSessionEvent::Exit(code), |_| {});
+        self.broadcast(ScreenSessionEvent::Exit(code));
     }
 
     fn publish(&self, event: ScreenSessionEvent, update: impl FnOnce(&mut ScreenSessionState)) {
@@ -278,47 +265,9 @@ impl ScreenSessionBus {
             .subscribers
             .retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
     }
-}
 
-fn session_status(state: &ScreenSessionState) -> ScreenSessionStatus {
-    let active = state.active_window();
-    let replay_bytes = active.map(ScreenWindowState::replay_len).unwrap_or_default();
-    let window_title = active.and_then(ScreenWindowState::title).map(str::to_string);
-    let scrollback_lines = active
-        .map(ScreenWindowState::scrollback_lines)
-        .unwrap_or(DEFAULT_SCROLLBACK_LINES);
-    ScreenSessionStatus {
-        replay_bytes,
-        attach_clients: state.attach_clients,
-        cols: state.cols,
-        rows: state.rows,
-        scrollback_lines,
-        window_title,
-        active_window: state.active_window,
-        windows: state
-            .windows
-            .iter()
-            .enumerate()
-            .map(|(index, window)| window.status(index == state.active_window))
-            .collect(),
-    }
-}
-
-fn fallback_status() -> ScreenSessionStatus {
-    ScreenSessionStatus {
-        replay_bytes: 0,
-        attach_clients: 0,
-        cols: None,
-        rows: None,
-        scrollback_lines: DEFAULT_SCROLLBACK_LINES,
-        window_title: None,
-        active_window: 0,
-        windows: vec![ScreenWindowStatus {
-            index: 0,
-            title: None,
-            active: true,
-            replay_bytes: 0,
-        }],
+    fn broadcast(&self, event: ScreenSessionEvent) {
+        self.publish(event, |_| {});
     }
 }
 

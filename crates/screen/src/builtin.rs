@@ -1,9 +1,8 @@
 use std::{
     error::Error,
-    io::{self, Read, Write},
+    io::{self, Write},
     sync::{
         Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
         mpsc,
     },
     thread,
@@ -18,11 +17,14 @@ use crossterm::{
 use crate::{
     ScreenArgs,
     ipc::ScreenIpcEndpoint,
-    pty_process::spawn_screen_pty,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
     terminal_input::key_to_bytes,
+    window_runtime::{
+        ScreenWindowOutput, ScreenWindowRuntime, kill_windows, resize_windows,
+        spawn_screen_window_runtime, write_active_window_input,
+    },
 };
 
 struct RawMode;
@@ -66,63 +68,57 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let _raw = RawMode::enter()?;
     let (cols, rows) = resolve_size(args.cols, args.rows);
 
-    let mut pty = spawn_screen_pty(&args, cols, rows)?;
-    let mut reader = pty.take_reader()?;
-
-    let should_run = Arc::new(AtomicBool::new(true));
-    let mut stdout = io::stdout();
-
-    let output_running = Arc::clone(&should_run);
-    let output_bus = session_bus.clone();
-    let output_thread = thread::spawn(move || {
-        let mut buf = [0u8; 8192];
-        while output_running.load(Ordering::Acquire) {
-            match reader.read(&mut buf) {
-                Ok(0) => break,
-                Ok(n) => {
-                    output_bus.publish_output(&buf[..n]);
-                    if stdout.write_all(&buf[..n]).is_err() {
-                        break;
-                    }
-                    if stdout.flush().is_err() {
-                        break;
-                    }
-                }
-                Err(_) => break,
-            }
-        }
-    });
-
+    let (output_tx, output_rx) = mpsc::channel::<ScreenWindowOutput>();
+    let mut windows = vec![spawn_screen_window_runtime(
+        &args,
+        0,
+        args.command.clone(),
+        cols,
+        rows,
+        output_tx.clone(),
+    )?];
+    let mut active_window = 0;
     let mut exit_code: Option<i32> = None;
 
     loop {
-        match pty.try_wait_code() {
-            Ok(Some(code)) => {
-                session_bus.publish_exit(code);
-                exit_code = Some(code);
-                break;
-            }
-            Ok(None) => {}
-            Err(_) => {
-                exit_code = Some(-1);
-                break;
-            }
+        drain_window_output(&session_bus, &output_rx, active_window);
+        if let Some(code) = first_exited_window_code(&mut windows) {
+            session_bus.publish_exit(code);
+            exit_code = Some(code);
+            break;
         }
 
         let mut terminate_requested = false;
         while let Ok(control) = control_rx.try_recv() {
             match control {
                 ScreenControlEvent::Input(bytes) => {
-                    if pty.write_input(&bytes).is_err() {
-                        break;
+                    write_active_window_input(&mut windows, active_window, &bytes);
+                }
+                ScreenControlEvent::NewWindow { command } => {
+                    let index = windows.len();
+                    match spawn_screen_window_runtime(
+                        &args,
+                        index,
+                        command.clone(),
+                        cols,
+                        rows,
+                        output_tx.clone(),
+                    ) {
+                        Ok(window) => {
+                            session_bus.add_window(index, command);
+                            active_window = index;
+                            windows.push(window);
+                            session_bus.publish_transient_output(b"\x1bc");
+                        }
+                        Err(err) => publish_error(&session_bus, err),
                     }
                 }
                 ScreenControlEvent::Resize { cols, rows } => {
-                    pty.resize(cols, rows);
+                    resize_windows(&windows, cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }
                 ScreenControlEvent::Terminate => {
-                    let _ = pty.kill();
+                    kill_windows(&mut windows);
                     terminate_requested = true;
                     break;
                 }
@@ -137,13 +133,11 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             Ok(true) => match event::read() {
                 Ok(Event::Key(key)) => {
                     if let Some(bytes) = key_to_bytes(key) {
-                        if pty.write_input(&bytes).is_err() {
-                            break;
-                        }
+                        write_active_window_input(&mut windows, active_window, &bytes);
                     }
                 }
                 Ok(Event::Resize(cols, rows)) => {
-                    pty.resize(cols, rows);
+                    resize_windows(&windows, cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }
                 Ok(_) => {}
@@ -155,14 +149,13 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     }
 
     if exit_code.is_none() {
-        let _ = pty.kill();
-        if let Ok(code) = pty.wait_code() {
-            exit_code = Some(code);
+        kill_windows(&mut windows);
+        if let Some(window) = windows.first_mut() {
+            if let Ok(code) = window.pty.wait_code() {
+                exit_code = Some(code);
+            }
         }
     }
-    should_run.store(false, Ordering::Release);
-    let _ = output_thread.join();
-
     let exit_code = exit_code.unwrap_or(-1);
     if exit_code == 0 {
         Ok(())
@@ -172,6 +165,32 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             terman_common::builtin_screen_failure_hint(exit_code),
         )))
     }
+}
+
+fn drain_window_output(
+    bus: &ScreenSessionBus,
+    rx: &mpsc::Receiver<ScreenWindowOutput>,
+    active_window: usize,
+) {
+    let mut stdout = io::stdout();
+    while let Ok(output) = rx.try_recv() {
+        bus.publish_window_output(output.index, &output.bytes);
+        if output.index == active_window {
+            let _ = stdout.write_all(&output.bytes);
+            let _ = stdout.flush();
+        }
+    }
+}
+
+fn first_exited_window_code(windows: &mut [ScreenWindowRuntime]) -> Option<i32> {
+    windows
+        .iter_mut()
+        .find_map(|window| window.pty.try_wait_code().ok().flatten())
+}
+
+fn publish_error(bus: &ScreenSessionBus, err: Box<dyn Error>) {
+    let message = format!("\r\nscreen window failed: {err}\r\n");
+    bus.publish_transient_output(message.as_bytes());
 }
 
 fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16, u16) {

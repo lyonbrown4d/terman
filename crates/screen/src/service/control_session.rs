@@ -74,6 +74,16 @@ pub(super) fn request_logfile_command(
     send_session_control_request(args, ScreenIpcRequest::SetLogFile { path })
 }
 
+pub(super) fn request_new_window_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let command = control_command_payload(inline_payload, extra_args);
+    let command = command.trim().to_string();
+    let command = if command.is_empty() { None } else { Some(command) };
+    send_session_control_request(args, ScreenIpcRequest::NewWindow { command })
+}
 pub(super) fn request_paste_command(
     args: &ScreenArgs,
     _inline_payload: &str,

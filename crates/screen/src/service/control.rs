@@ -8,7 +8,7 @@ use super::{
     control_local::request_local_control_command,
     control_select::request_select_command,
     control_session::{
-        request_echo_command, request_hardcopy_command, request_log_command, request_logfile_command,
+        request_echo_command, request_hardcopy_command, request_log_command, request_logfile_command, request_new_window_command,
         request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
         send_session_control_request,
     },
@@ -58,6 +58,7 @@ fn execute_control_command(
         "at" => request_at_command(args, inline_payload, extra_args, execute_control_command),
         "colon" => request_colon_command(args, inline_payload, extra_args, execute_control_command),
         "source" => request_source_command(args, inline_payload, extra_args, execute_control_command),
+        "screen" => request_new_window_command(args, inline_payload, extra_args),
         "displays" => request_displays_command(args, request_session_response),
         "windows" => request_windows_command(args, request_session_response),
         "info" => request_info_command(args, request_session_response),
