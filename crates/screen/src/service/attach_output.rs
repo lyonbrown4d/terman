@@ -129,13 +129,15 @@ pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<(
             attach_clients,
             cols,
             rows,
+            window_title,
             ..
         } => {
+            let title = window_title.as_deref().unwrap_or(&session_name);
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;
             stdout.write_all(
                 terman_common::builtin_screen_control_windows_entry_hint(
-                    &session_name,
+                    title,
                     replay_bytes,
                     attach_clients,
                     cols,
