@@ -19,6 +19,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X displays
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X select 0
+      - terman-screen -S dev -X next
+      - terman-screen -S dev -X prev
       - terman-screen -X version
       - terman-screen -X help
       - terman-screen -X time
@@ -37,7 +39,7 @@ builtin-screen-session-name-empty = Screen session name cannot be empty.
 builtin-screen-session-record-invalid = Built-in screen session record is invalid.
 builtin-screen-unexpected-response = Unexpected screen response: {$response}.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
-builtin-screen-attach-help = screen keys: Ctrl-A d detach | Ctrl-A D detach all | Ctrl-A k kill session | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A h hardcopy | Ctrl-A i info | Ctrl-A * displays | Ctrl-A t time | Ctrl-A v version | Ctrl-A w windows | Ctrl-A ? help | Ctrl-A Ctrl-A send literal Ctrl-A
+builtin-screen-attach-help = screen keys: Ctrl-A d detach | Ctrl-A D detach all | Ctrl-A k kill session | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A h hardcopy | Ctrl-A i info | Ctrl-A n next | Ctrl-A p previous | Ctrl-A * displays | Ctrl-A t time | Ctrl-A v version | Ctrl-A w windows | Ctrl-A ? help | Ctrl-A Ctrl-A send literal Ctrl-A
 builtin-screen-attach-hardcopy-path-unavailable = No available screen attach hardcopy path.
 builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
 builtin-screen-attach-output-thread-panicked = Screen attach output thread panicked.
@@ -49,9 +51,9 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
-builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, sleep, version, info, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Built-in screen has one window; select supports only 0, ., #, or an empty selector. Got `{$selector}`.

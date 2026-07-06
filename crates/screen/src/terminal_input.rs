@@ -13,6 +13,8 @@ pub(crate) enum ScreenInputAction {
     Hardcopy,
     Info,
     Kill,
+    NextWindow,
+    PreviousWindow,
     Time,
     Version,
     Windows,
@@ -71,6 +73,12 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('k') | KeyCode::Char('K') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Kill)
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::NextWindow)
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::PreviousWindow)
             }
             KeyCode::Char('h') | KeyCode::Char('H') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Hardcopy)

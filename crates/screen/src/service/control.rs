@@ -9,6 +9,7 @@ use super::{
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     control_select::request_select_command,
     control_source::request_source_command,
+    control_window_nav::request_window_navigation_command,
     control_windows::request_windows_command,
     ipc_client::request_endpoint_response,
     sessionname::request_sessionname_command,
@@ -65,6 +66,7 @@ fn execute_control_command(
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
+        "next" | "prev" => request_window_navigation_command(args, request_session_response),
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
         "stuff" => request_stuff_command(args, inline_payload, extra_args),
         _ => Err(io::Error::new(

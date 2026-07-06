@@ -14,6 +14,7 @@ mod control_sleep;
 mod control_source;
 mod control_time;
 mod control_version;
+mod control_window_nav;
 mod control_windows;
 mod ipc_client;
 mod listener;

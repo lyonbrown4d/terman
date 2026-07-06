@@ -91,6 +91,28 @@ fn detects_screen_hardcopy_prefix() {
 }
 
 #[test]
+fn detects_screen_next_window_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let next = KeyEvent::new(KeyCode::Char('n'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(next), Some(ScreenInputAction::NextWindow));
+}
+
+#[test]
+fn detects_screen_previous_window_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let previous = KeyEvent::new(KeyCode::Char('p'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(
+        decoder.decode_key(previous),
+        Some(ScreenInputAction::PreviousWindow)
+    );
+}
+#[test]
 fn detects_screen_time_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
