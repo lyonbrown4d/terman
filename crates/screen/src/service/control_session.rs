@@ -90,10 +90,21 @@ pub(super) fn request_new_window_command(
 }
 pub(super) fn request_paste_command(
     args: &ScreenArgs,
-    _inline_payload: &str,
-    _extra_args: &[String],
+    inline_payload: &str,
+    extra_args: &[String],
 ) -> io::Result<()> {
-    send_targeted_session_control_request(args, ScreenIpcRequest::PasteBuffer)
+    let payload = control_command_payload(inline_payload, extra_args);
+    let register = payload.trim();
+    if register.is_empty() {
+        send_targeted_session_control_request(args, ScreenIpcRequest::PasteBuffer)
+    } else {
+        send_targeted_session_control_request(
+            args,
+            ScreenIpcRequest::PasteRegister {
+                name: register.to_string(),
+            },
+        )
+    }
 }
 
 pub(super) fn request_pastefile_command(

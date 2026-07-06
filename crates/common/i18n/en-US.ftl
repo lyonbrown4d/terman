@@ -41,6 +41,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X readbuf input.txt
       - terman-screen -S dev -X removebuf
       - terman-screen -S dev -X paste
+      - terman-screen -S dev -X paste .
       - terman-screen -S dev -X process .
       - terman-screen -S dev -X register . "hello\015"
       - terman-screen -S dev -X stuff "echo hi\n"
