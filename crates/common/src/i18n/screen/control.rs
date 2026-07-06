@@ -172,6 +172,10 @@ pub fn builtin_screen_control_readbuf_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlReadbufPathRequired, &[])
 }
 
+pub fn builtin_screen_control_readreg_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlReadregRequired, &[])
+}
+
 pub fn builtin_screen_control_writebuf_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlWritebufPathRequired, &[])
 }
