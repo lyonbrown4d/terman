@@ -216,7 +216,7 @@ pub(super) fn send_session_control_request(
     }
 }
 
-fn send_targeted_session_control_request(
+pub(super) fn send_targeted_session_control_request(
     args: &ScreenArgs,
     request: ScreenIpcRequest,
 ) -> io::Result<()> {

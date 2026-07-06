@@ -2,7 +2,7 @@ use std::io;
 
 use super::{
     control_parse::{control_command_payload, decode_stuff_payload},
-    control_session::send_session_control_request,
+    control_session::{send_session_control_request, send_targeted_session_control_request},
 };
 use crate::{
     ScreenArgs,
@@ -36,7 +36,7 @@ pub(super) fn request_process_command(
     let Some(name) = register_key(&payload) else {
         return Err(invalid_register_payload());
     };
-    send_session_control_request(
+    send_targeted_session_control_request(
         args,
         ScreenIpcRequest::PasteRegister {
             name: name.to_string(),
