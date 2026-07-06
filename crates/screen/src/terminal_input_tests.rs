@@ -286,3 +286,15 @@ fn detects_screen_fit_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(fit), Some(ScreenInputAction::Fit));
 }
+#[test]
+fn sends_xon_and_xoff_prefixes() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let xon = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::empty());
+    let xoff = KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(xon), Some(ScreenInputAction::Bytes(vec![0x11])));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(xoff), Some(ScreenInputAction::Bytes(vec![0x13])));
+}
