@@ -6,6 +6,7 @@ mod control_at;
 mod control_chdir;
 mod control_colon;
 mod control_displays;
+mod control_env;
 mod control_help;
 mod control_info;
 mod control_local;

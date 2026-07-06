@@ -109,6 +109,13 @@ pub(crate) enum ScreenIpcRequest {
     SetDefaultCwd {
         path: PathBuf,
     },
+    SetEnv {
+        name: String,
+        value: String,
+    },
+    UnsetEnv {
+        name: String,
+    },
     SelectWindow {
         index: usize,
     },

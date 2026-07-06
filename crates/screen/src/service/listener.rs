@@ -137,7 +137,14 @@ fn handle_client(
             send_control_event(control_tx, ScreenControlEvent::SetDefaultCwd { path })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
-        Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
+        Ok(ScreenIpcRequest::SetEnv { name, value }) => {
+            send_control_event(control_tx, ScreenControlEvent::SetEnv { name, value })?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::UnsetEnv { name }) => {
+            send_control_event(control_tx, ScreenControlEvent::UnsetEnv { name })?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }        Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
             stream,
             &ScreenIpcResponse::PasteBuffer {
                 bytes: bus.paste_buffer_snapshot(),

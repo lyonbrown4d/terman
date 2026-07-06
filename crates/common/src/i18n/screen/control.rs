@@ -27,6 +27,18 @@ pub fn builtin_screen_control_echo_required_hint() -> String {
 pub fn builtin_screen_control_lastmsg_empty_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlLastmsgEmpty, &[])
 }
+
+pub fn builtin_screen_control_setenv_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlSetenvRequired, &[])
+}
+
+pub fn builtin_screen_control_unsetenv_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlUnsetenvRequired, &[])
+}
+
+pub fn builtin_screen_control_env_name_invalid_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlEnvNameInvalid, &[])
+}
 pub fn builtin_screen_control_log_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlLogRequired, &[])
 }

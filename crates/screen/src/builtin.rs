@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     error::Error,
     io::{self, Write},
     sync::{
@@ -69,12 +70,14 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let (cols, rows) = resolve_size(args.cols, args.rows);
 
     let mut default_cwd = std::env::current_dir().ok();
+    let mut default_env = BTreeMap::<String, Option<String>>::new();
     let (output_tx, output_rx) = mpsc::channel::<ScreenWindowOutput>();
     let mut windows = vec![spawn_screen_window_runtime(
         &args,
         0,
         args.command.clone(),
         default_cwd.as_deref(),
+        &default_env,
         cols,
         rows,
         output_tx.clone(),
@@ -103,6 +106,12 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                 ScreenControlEvent::SetDefaultCwd { path } => {
                     default_cwd = Some(path);
                 }
+                ScreenControlEvent::SetEnv { name, value } => {
+                    default_env.insert(name, Some(value));
+                }
+                ScreenControlEvent::UnsetEnv { name } => {
+                    default_env.insert(name, None);
+                }
                 ScreenControlEvent::NewWindow { command } => {
                     let index = next_screen_window_index(&windows);
                     match spawn_screen_window_runtime(
@@ -110,6 +119,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                         index,
                         command.clone(),
                         default_cwd.as_deref(),
+                        &default_env,
                         cols,
                         rows,
                         output_tx.clone(),

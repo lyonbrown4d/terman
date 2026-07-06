@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     error::Error,
     io::Read,
     path::Path,
@@ -53,13 +54,14 @@ pub(crate) fn spawn_screen_window_runtime(
     index: usize,
     command: Option<String>,
     cwd: Option<&Path>,
+    env_overrides: &BTreeMap<String, Option<String>>,
     cols: u16,
     rows: u16,
     output_tx: mpsc::Sender<ScreenWindowOutput>,
 ) -> Result<ScreenWindowRuntime, Box<dyn Error>> {
     let mut window_args = args.clone();
     window_args.command = command;
-    let mut pty = spawn_screen_pty(&window_args, cols, rows, cwd)?;
+    let mut pty = spawn_screen_pty(&window_args, cols, rows, cwd, env_overrides)?;
     let mut reader = pty.take_reader()?;
     let window_index = Arc::new(AtomicUsize::new(index));
     let output_index = window_index.clone();

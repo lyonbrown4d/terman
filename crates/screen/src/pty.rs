@@ -1,4 +1,4 @@
-use std::{io, path::Path};
+use std::{collections::BTreeMap, io, path::Path};
 
 use portable_pty::CommandBuilder;
 
@@ -10,6 +10,7 @@ use crate::{
 pub(crate) fn build_command(
     args: &ScreenArgs,
     cwd: Option<&Path>,
+    env_overrides: &BTreeMap<String, Option<String>>,
 ) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
 
@@ -37,6 +38,12 @@ pub(crate) fn build_command(
         builder.cwd(path.as_os_str());
     }
 
+    for (name, value) in env_overrides {
+        match value {
+            Some(value) => builder.env(name, value),
+            None => builder.env_remove(name),
+        }
+    }
     apply_screen_environment(&mut builder, args);
     Ok(builder)
 }

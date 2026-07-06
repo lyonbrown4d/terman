@@ -25,6 +25,8 @@ pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
     NewWindow { command: Option<String> },
     SetDefaultCwd { path: PathBuf },
+    SetEnv { name: String, value: String },
+    UnsetEnv { name: String },
     SelectWindow { index: usize },
     NumberWindow { source: usize, index: usize },
     NextWindow,

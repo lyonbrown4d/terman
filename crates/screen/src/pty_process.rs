@@ -1,4 +1,4 @@
-use std::{error::Error, io::{self, Read, Write}, path::Path};
+use std::{collections::BTreeMap, error::Error, io::{self, Read, Write}, path::Path};
 
 use portable_pty::{Child, MasterPty, PtySize, native_pty_system};
 
@@ -45,10 +45,11 @@ pub(crate) fn spawn_screen_pty(
     cols: u16,
     rows: u16,
     cwd: Option<&Path>,
+    env_overrides: &BTreeMap<String, Option<String>>,
 ) -> Result<ScreenPtyProcess, Box<dyn Error>> {
     let pty_system = native_pty_system();
     let pair = pty_system.openpty(pty_size(cols, rows))?;
-    let command = build_command(args, cwd)?;
+    let command = build_command(args, cwd, env_overrides)?;
     let child = pair.slave.spawn_command(command)?;
     let master = pair.master;
     let reader = master.try_clone_reader()?;
