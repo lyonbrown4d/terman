@@ -8,7 +8,7 @@ mod replay;
 mod state;
 mod window;
 
-use state::{ScreenSessionState, ScreenSessionSubscriber, fallback_status, session_status};
+use state::{ScreenRemovedWindow, ScreenSessionState, ScreenSessionSubscriber, fallback_status, session_status};
 use window::ScreenWindowState;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -148,6 +148,12 @@ impl ScreenSessionBus {
             .ok()
             .and_then(|mut state| state.select_window(index))
     }
+    pub(crate) fn remove_window(&self, index: usize) -> Option<ScreenRemovedWindow> {
+        self.inner
+            .lock()
+            .ok()
+            .and_then(|mut state| state.remove_window(index))
+    }
     pub(crate) fn clear_replay(&self) {
         if let Ok(mut state) = self.inner.lock() {
             if let Some(window) = state.active_window_mut() {
@@ -226,7 +232,7 @@ impl ScreenSessionBus {
         };
         let cols = state.cols;
         let active = state.active_window == index;
-        if let Some(window) = state.windows.get_mut(index) {
+        if let Some(window) = state.window_mut(index) {
             window.append_output(bytes, cols);
         }
         if active {

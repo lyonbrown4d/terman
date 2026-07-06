@@ -16,6 +16,11 @@ pub(crate) struct ScreenWindowOutput {
     pub(crate) bytes: Vec<u8>,
 }
 
+pub(crate) struct ScreenWindowExit {
+    pub(crate) index: usize,
+    pub(crate) code: i32,
+}
+
 pub(crate) enum ScreenWindowSwitch {
     Select(usize),
     Next,
@@ -54,6 +59,23 @@ pub(crate) fn spawn_screen_window_runtime(
     });
 
     Ok(ScreenWindowRuntime { index, pty })
+}
+
+pub(crate) fn take_exited_window(windows: &mut Vec<ScreenWindowRuntime>) -> Option<ScreenWindowExit> {
+    for position in 0..windows.len() {
+        let code = match windows[position].pty.try_wait_code() {
+            Ok(Some(code)) => Some(code),
+            _ => None,
+        };
+        if let Some(code) = code {
+            let window = windows.remove(position);
+            return Some(ScreenWindowExit {
+                index: window.index,
+                code,
+            });
+        }
+    }
+    None
 }
 
 pub(crate) fn switch_screen_window(

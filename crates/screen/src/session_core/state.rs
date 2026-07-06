@@ -1,5 +1,12 @@
 use super::{ScreenSessionStatus, ScreenWindowStatus, replay::DEFAULT_SCROLLBACK_LINES, window::ScreenWindowState};
 
+pub(crate) struct ScreenRemovedWindow {
+    pub(crate) active_window: Option<usize>,
+    pub(crate) replay: Vec<u8>,
+    pub(crate) last_window: bool,
+    pub(crate) redraw: bool,
+}
+
 pub(super) struct ScreenSessionSubscriber {
     pub(super) client_id: Option<String>,
     pub(super) sender: std::sync::mpsc::Sender<super::ScreenSessionEvent>,
@@ -31,11 +38,15 @@ impl Default for ScreenSessionState {
 
 impl ScreenSessionState {
     pub(super) fn active_window(&self) -> Option<&ScreenWindowState> {
-        self.windows.get(self.active_window)
+        self.window(self.active_window)
     }
 
     pub(super) fn active_window_mut(&mut self) -> Option<&mut ScreenWindowState> {
-        self.windows.get_mut(self.active_window)
+        self.window_mut(self.active_window)
+    }
+
+    pub(super) fn window_mut(&mut self, index: usize) -> Option<&mut ScreenWindowState> {
+        self.windows.iter_mut().find(|window| window.index() == index)
     }
 
     pub(super) fn add_window(&mut self, index: usize, title: Option<String>) {
@@ -48,9 +59,43 @@ impl ScreenSessionState {
     }
 
     pub(super) fn select_window(&mut self, index: usize) -> Option<Vec<u8>> {
-        let window = self.windows.get(index)?;
+        let replay = self.window(index)?.replay_snapshot();
         self.active_window = index;
-        Some(window.replay_snapshot())
+        Some(replay)
+    }
+
+    pub(super) fn remove_window(&mut self, index: usize) -> Option<ScreenRemovedWindow> {
+        let position = self.windows.iter().position(|window| window.index() == index)?;
+        let was_active = self.active_window == index;
+        self.windows.remove(position);
+        if self.windows.is_empty() {
+            return Some(ScreenRemovedWindow {
+                active_window: None,
+                replay: Vec::new(),
+                last_window: true,
+                redraw: false,
+            });
+        }
+
+        let active_missing = self.window(self.active_window).is_none();
+        if was_active || active_missing {
+            let next_position = position.min(self.windows.len() - 1);
+            self.active_window = self.windows[next_position].index();
+        }
+        let replay = self
+            .active_window()
+            .map(ScreenWindowState::replay_snapshot)
+            .unwrap_or_default();
+        Some(ScreenRemovedWindow {
+            active_window: Some(self.active_window),
+            replay,
+            last_window: false,
+            redraw: was_active,
+        })
+    }
+
+    fn window(&self, index: usize) -> Option<&ScreenWindowState> {
+        self.windows.iter().find(|window| window.index() == index)
     }
 }
 

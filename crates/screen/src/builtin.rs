@@ -23,7 +23,7 @@ use crate::{
     terminal_input::key_to_bytes,
     window_runtime::{
         ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, kill_windows, resize_windows,
-        spawn_screen_window_runtime, switch_screen_window, write_active_window_input,
+        spawn_screen_window_runtime, switch_screen_window, take_exited_window, write_active_window_input,
     },
 };
 
@@ -82,7 +82,11 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
 
     loop {
         drain_window_output(&session_bus, &output_rx, active_window);
-        if let Some(code) = first_exited_window_code(&mut windows) {
+        if let Some(code) = handle_window_exit(
+            &session_bus,
+            &mut windows,
+            &mut active_window,
+        ) {
             session_bus.publish_exit(code);
             exit_code = Some(code);
             break;
@@ -230,10 +234,23 @@ fn drain_window_output(
     }
 }
 
-fn first_exited_window_code(windows: &mut [ScreenWindowRuntime]) -> Option<i32> {
-    windows
-        .iter_mut()
-        .find_map(|window| window.pty.try_wait_code().ok().flatten())
+fn handle_window_exit(
+    bus: &ScreenSessionBus,
+    windows: &mut Vec<ScreenWindowRuntime>,
+    active_window: &mut usize,
+) -> Option<i32> {
+    let exit = take_exited_window(windows)?;
+    let removal = bus.remove_window(exit.index)?;
+    if removal.last_window {
+        return Some(exit.code);
+    }
+    if let Some(index) = removal.active_window {
+        *active_window = index;
+    }
+    if removal.redraw {
+        publish_window_redraw(bus, &removal.replay);
+    }
+    None
 }
 
 fn publish_error(bus: &ScreenSessionBus, err: Box<dyn Error>) {
