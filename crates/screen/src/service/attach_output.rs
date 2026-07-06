@@ -70,6 +70,36 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
     }
 }
 
+pub(super) fn print_attach_displays(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
+        ScreenIpcResponse::Info {
+            session_name,
+            attach_clients,
+            cols,
+            rows,
+            ..
+        } => {
+            let mut stdout = io::stdout();
+            stdout.write_all(b"\r\n")?;
+            stdout.write_all(
+                terman_common::builtin_screen_control_displays_entry_hint(
+                    &session_name,
+                    attach_clients,
+                    cols,
+                    rows,
+                )
+                .as_bytes(),
+            )?;
+            stdout.write_all(b"\r\n")?;
+            stdout.flush()
+        }
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        response => Err(unexpected_response_error(&response)),
+    }
+}
+
 pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {

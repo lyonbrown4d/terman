@@ -8,6 +8,7 @@ pub(crate) enum ScreenInputAction {
     Clear,
     Detach,
     DetachAll,
+    Displays,
     Help,
     Hardcopy,
     Info,
@@ -78,6 +79,7 @@ impl ScreenInputDecoder {
             KeyCode::Char('w') | KeyCode::Char('W') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Windows)
             }
+            KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             _ if is_screen_prefix_key(key) => {
                 Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
