@@ -32,6 +32,8 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X at 0 info
       - terman-screen -S dev -X colon "info"
       - terman-screen -S dev -X source .screenrc
+      - terman-screen -S dev -X readbuf input.txt
+      - terman-screen -S dev -X paste
       - terman-screen -S dev -X stuff "echo hi\n"
       - terman-screen -S dev -p 0 -X stuff "echo hi\n"
       - terman-screen -r dev
@@ -55,11 +57,11 @@ builtin-screen-internal-server-session-required = Internal screen server require
 builtin-screen-internal-server-exited = Internal screen server exited with code {$code}.
 builtin-screen-failure = Built-in screen failed with exit code {$code}.
 builtin-screen-control-command-required = Specify a screen control command.
-builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-command-unsupported = Unsupported screen control command `{$command}`. Currently supported: quit, kill, bell, help, echo, wall, stuff, paste, pastefile, readbuf, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-echo-required = Specify text for screen -X echo or screen -X wall.
 builtin-screen-control-log-required = Specify screen log state as screen -X log on or screen -X log off.
 builtin-screen-control-logfile-required = Specify a log file path as screen -X logfile <path>.
-builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, pastefile, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
+builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, echo, wall, stuff, paste, pastefile, readbuf, source, detach, pow_detach, resize, select, next, prev, scrollback, defscrollback, logfile, log, title, aka, sleep, time, version, info, displays, windows, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Built-in screen has one window; select supports only 0, ., #, or an empty selector. Got `{$selector}`.
@@ -74,6 +76,7 @@ builtin-screen-control-windows-entry = 0* {$session_name} size={$cols}x{$rows} a
 builtin-screen-control-unexpected-response = Unexpected screen control response: {$response}.
 builtin-screen-control-hardcopy-path-required = Specify an output path as screen -X hardcopy <path>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
+builtin-screen-control-readbuf-path-required = Specify an input path as screen -X readbuf <path>.
 builtin-screen-control-source-path-required = Specify a command file path as screen -X source <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-wipe-complete = Removed {$count} stale built-in screen session record(s).

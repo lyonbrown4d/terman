@@ -162,6 +162,10 @@ pub fn builtin_screen_control_pastefile_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlPastefilePathRequired, &[])
 }
 
+pub fn builtin_screen_control_readbuf_path_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlReadbufPathRequired, &[])
+}
+
 pub fn builtin_screen_control_source_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlSourcePathRequired, &[])
 }

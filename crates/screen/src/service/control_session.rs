@@ -74,6 +74,14 @@ pub(super) fn request_logfile_command(
     send_session_control_request(args, ScreenIpcRequest::SetLogFile { path })
 }
 
+pub(super) fn request_paste_command(
+    args: &ScreenArgs,
+    _inline_payload: &str,
+    _extra_args: &[String],
+) -> io::Result<()> {
+    send_session_control_request(args, ScreenIpcRequest::PasteBuffer)
+}
+
 pub(super) fn request_pastefile_command(
     args: &ScreenArgs,
     inline_payload: &str,
@@ -87,6 +95,22 @@ pub(super) fn request_pastefile_command(
         ));
     }
     request_session_pastefile(args, &path)
+}
+
+pub(super) fn request_readbuf_command(
+    args: &ScreenArgs,
+    inline_payload: &str,
+    extra_args: &[String],
+) -> io::Result<()> {
+    let path = control_command_payload(inline_payload, extra_args);
+    if path.trim().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_readbuf_path_required_hint(),
+        ));
+    }
+    let bytes = fs::read(path)?;
+    send_session_control_request(args, ScreenIpcRequest::SetPasteBuffer { bytes })
 }
 
 pub(super) fn request_resize_command(

@@ -102,6 +102,10 @@ fn handle_client(
         Ok(ScreenIpcRequest::SetLogFile { path }) => {
             write_result_response(stream, bus.set_log_path(path))
         }
+        Ok(ScreenIpcRequest::SetPasteBuffer { bytes }) => {
+            bus.set_paste_buffer(bytes);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::SetScrollback { lines }) => {
             bus.set_scrollback_lines(lines);
             write_response(stream, &ScreenIpcResponse::Accepted)
@@ -135,6 +139,12 @@ fn handle_client(
                     window_title: status.window_title,
                 },
             )
+        }
+        Ok(ScreenIpcRequest::PasteBuffer) => {
+            control_tx
+                .send(ScreenControlEvent::Input(bus.paste_buffer_snapshot()))
+                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Ping) => write_response(stream, &ScreenIpcResponse::Accepted),
         Ok(ScreenIpcRequest::Quit) => {

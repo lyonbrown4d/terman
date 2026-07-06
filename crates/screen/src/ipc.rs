@@ -94,6 +94,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     Hardcopy,
     Info,
+    PasteBuffer,
     Ping,
     Quit,
     RenameSession {
@@ -105,6 +106,9 @@ pub(crate) enum ScreenIpcRequest {
     },
     SetLogFile {
         path: String,
+    },
+    SetPasteBuffer {
+        bytes: Vec<u8>,
     },
     SetScrollback {
         lines: usize,

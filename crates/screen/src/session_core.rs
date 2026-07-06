@@ -48,6 +48,7 @@ struct ScreenSessionSubscriber {
 struct ScreenSessionState {
     replay: ScreenReplayBuffer,
     output_log: ScreenOutputLog,
+    paste_buffer: Vec<u8>,
     subscribers: Vec<ScreenSessionSubscriber>,
     attach_clients: usize,
     cols: Option<u16>,
@@ -163,6 +164,19 @@ impl ScreenSessionBus {
         if let Ok(mut state) = self.inner.lock() {
             state.window_title = Some(title);
         }
+    }
+
+    pub(crate) fn set_paste_buffer(&self, bytes: Vec<u8>) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.paste_buffer = bytes;
+        }
+    }
+
+    pub(crate) fn paste_buffer_snapshot(&self) -> Vec<u8> {
+        self.inner
+            .lock()
+            .map(|state| state.paste_buffer.clone())
+            .unwrap_or_default()
     }
 
     pub(crate) fn set_log_path(&self, path: String) -> io::Result<()> {
