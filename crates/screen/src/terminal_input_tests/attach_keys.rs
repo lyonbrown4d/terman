@@ -150,3 +150,12 @@ fn detects_screen_last_message_prefixes() {
         Some(ScreenInputAction::LastMessage)
     );
 }
+#[test]
+fn detects_screen_quit_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let quit = KeyEvent::new(KeyCode::Char('\\'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(quit), Some(ScreenInputAction::Quit));
+}

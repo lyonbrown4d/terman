@@ -20,6 +20,7 @@ pub(crate) enum ScreenInputAction {
     LogToggle,
     NewWindow,
     Paste,
+    Quit,
     LastWindow,
     NextWindow,
     PreviousWindow,
@@ -174,6 +175,7 @@ impl ScreenInputDecoder {
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             KeyCode::Char('.') if key.modifiers.is_empty() => Some(ScreenInputAction::DumpTermcap),
             KeyCode::Char(',') if key.modifiers.is_empty() => Some(ScreenInputAction::License),
+            KeyCode::Char('\\') if key.modifiers.is_empty() => Some(ScreenInputAction::Quit),
             KeyCode::Char('"') if key.modifiers.is_empty() => Some(ScreenInputAction::Windows),
             KeyCode::Char(']')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
