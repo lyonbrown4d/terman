@@ -135,10 +135,14 @@ impl ScreenInputDecoder {
             KeyCode::Char('h') | KeyCode::Char('H') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Hardcopy)
             }
-            KeyCode::Char('i') | KeyCode::Char('I') if key.modifiers.is_empty() => {
+            KeyCode::Char('i') | KeyCode::Char('I')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::CONTROL =>
+            {
                 Some(ScreenInputAction::Info)
             }
-            KeyCode::Char('t') | KeyCode::Char('T') if key.modifiers.is_empty() => {
+            KeyCode::Char('t') | KeyCode::Char('T')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::CONTROL =>
+            {
                 Some(ScreenInputAction::Time)
             }
             KeyCode::Char('v') | KeyCode::Char('V') if key.modifiers.is_empty() => {

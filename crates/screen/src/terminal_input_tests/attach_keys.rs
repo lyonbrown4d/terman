@@ -122,3 +122,16 @@ fn detects_screen_ctrl_window_lifecycle_prefixes() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(kill), Some(ScreenInputAction::Kill));
 }
+#[test]
+fn detects_screen_ctrl_info_time_prefixes() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let info = KeyEvent::new(KeyCode::Char('i'), KeyModifiers::CONTROL);
+    let time = KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(info), Some(ScreenInputAction::Info));
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(time), Some(ScreenInputAction::Time));
+}
