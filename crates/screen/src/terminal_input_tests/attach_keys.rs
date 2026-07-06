@@ -92,3 +92,18 @@ fn detects_screen_ctrl_windows_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(windows), Some(ScreenInputAction::Windows));
 }
+#[test]
+fn detects_screen_ctrl_next_previous_prefixes() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let next = KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL);
+    let previous = KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(next), Some(ScreenInputAction::NextWindow));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(
+        decoder.decode_key(previous),
+        Some(ScreenInputAction::PreviousWindow)
+    );
+}

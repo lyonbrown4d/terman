@@ -94,11 +94,15 @@ impl ScreenInputDecoder {
             KeyCode::Char('k') | KeyCode::Char('K') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Kill)
             }
-            KeyCode::Char('n') | KeyCode::Char('N') if key.modifiers.is_empty() => {
+            KeyCode::Char('n') | KeyCode::Char('N')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 Some(ScreenInputAction::NextWindow)
             }
             KeyCode::Char(' ') if key.modifiers.is_empty() => Some(ScreenInputAction::NextWindow),
-            KeyCode::Char('p') | KeyCode::Char('P') if key.modifiers.is_empty() => {
+            KeyCode::Char('p') | KeyCode::Char('P')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 Some(ScreenInputAction::PreviousWindow)
             }
             KeyCode::Char('q') | KeyCode::Char('Q')
