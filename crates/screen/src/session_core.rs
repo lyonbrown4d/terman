@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex, mpsc};
 
-const DEFAULT_SCROLLBACK_LINES: usize = 1_000;
-const DEFAULT_SCROLLBACK_COLS: usize = 80;
-const MIN_SCROLLBACK_BYTES: usize = 4 * 1024;
+mod replay;
+
+use replay::{DEFAULT_SCROLLBACK_LINES, ScreenReplayBuffer};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenSessionEvent {
@@ -38,26 +38,13 @@ struct ScreenSessionSubscriber {
     sender: mpsc::Sender<ScreenSessionEvent>,
 }
 
+#[derive(Default)]
 struct ScreenSessionState {
-    replay: Vec<u8>,
+    replay: ScreenReplayBuffer,
     subscribers: Vec<ScreenSessionSubscriber>,
     attach_clients: usize,
     cols: Option<u16>,
     rows: Option<u16>,
-    scrollback_lines: usize,
-}
-
-impl Default for ScreenSessionState {
-    fn default() -> Self {
-        Self {
-            replay: Vec::new(),
-            subscribers: Vec::new(),
-            attach_clients: 0,
-            cols: None,
-            rows: None,
-            scrollback_lines: DEFAULT_SCROLLBACK_LINES,
-        }
-    }
 }
 
 pub(crate) struct ScreenSessionSubscription {
@@ -101,7 +88,7 @@ impl ScreenSessionBus {
         let (tx, rx) = mpsc::channel();
         let mut active = false;
         let replay = if let Ok(mut state) = self.inner.lock() {
-            let replay = state.replay.clone();
+            let replay = state.replay.snapshot();
             state.subscribers.push(ScreenSessionSubscriber {
                 client_id,
                 sender: tx,
@@ -126,7 +113,7 @@ impl ScreenSessionBus {
     pub(crate) fn replay_snapshot(&self) -> Vec<u8> {
         self.inner
             .lock()
-            .map(|state| state.replay.clone())
+            .map(|state| state.replay.snapshot())
             .unwrap_or_default()
     }
 
@@ -138,7 +125,7 @@ impl ScreenSessionBus {
                 attach_clients: state.attach_clients,
                 cols: state.cols,
                 rows: state.rows,
-                scrollback_lines: state.scrollback_lines,
+                scrollback_lines: state.replay.scrollback_lines(),
             })
             .unwrap_or(ScreenSessionStatus {
                 replay_bytes: 0,
@@ -157,8 +144,8 @@ impl ScreenSessionBus {
 
     pub(crate) fn set_scrollback_lines(&self, lines: usize) {
         if let Ok(mut state) = self.inner.lock() {
-            state.scrollback_lines = lines;
-            trim_replay(&mut state);
+            let cols = state.cols;
+            state.replay.set_scrollback_lines(lines, cols);
         }
     }
 
@@ -168,8 +155,7 @@ impl ScreenSessionBus {
 
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
         self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |state| {
-            state.replay.extend_from_slice(bytes);
-            trim_replay(state);
+            state.replay.append(bytes, state.cols);
         });
     }
 
@@ -177,7 +163,7 @@ impl ScreenSessionBus {
         self.publish(ScreenSessionEvent::Resize { cols, rows }, |state| {
             state.cols = Some(cols);
             state.rows = Some(rows);
-            trim_replay(state);
+            state.replay.trim_to_cols(state.cols);
         });
     }
 
@@ -206,24 +192,6 @@ impl ScreenSessionBus {
             .subscribers
             .retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
     }
-}
-
-fn trim_replay(state: &mut ScreenSessionState) {
-    let max_bytes = max_replay_bytes(state.scrollback_lines, state.cols);
-    if state.replay.len() > max_bytes {
-        let overflow = state.replay.len() - max_bytes;
-        state.replay.drain(..overflow);
-    }
-}
-
-fn max_replay_bytes(scrollback_lines: usize, cols: Option<u16>) -> usize {
-    if scrollback_lines == 0 {
-        return 0;
-    }
-    let cols = cols.map(usize::from).unwrap_or(DEFAULT_SCROLLBACK_COLS);
-    scrollback_lines
-        .saturating_mul(cols)
-        .max(MIN_SCROLLBACK_BYTES)
 }
 
 #[cfg(test)]
