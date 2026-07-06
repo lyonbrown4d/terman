@@ -23,7 +23,7 @@ use super::{
     control_session::{
         request_echo_command, request_kill_command, request_logfile_command, request_new_window_command,
         request_paste_command, request_pastefile_command, request_resize_command, request_session_response, request_stuff_command, request_title_command, 
-        send_session_control_request,
+        send_session_control_request, send_targeted_session_control_request,
     },
     control_shell::{request_shell_command, request_shelltitle_command, request_term_command},
     control_size::request_size_command,
@@ -115,6 +115,8 @@ fn execute_control_command(
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),
         "title" | "aka" => request_title_command(args, inline_payload, extra_args),
         "stuff" => request_stuff_command(args, inline_payload, extra_args),
+        "xon" => send_targeted_session_control_request(args, ScreenIpcRequest::Input { bytes: vec![0x11] }),
+        "xoff" => send_targeted_session_control_request(args, ScreenIpcRequest::Input { bytes: vec![0x13] }),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             terman_common::builtin_screen_control_command_unsupported_hint(&command),
