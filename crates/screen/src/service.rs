@@ -13,6 +13,7 @@ mod control_local;
 mod control_number;
 mod control_parse;
 mod control_register;
+mod control_scrollback;
 mod control_select;
 mod control_session;
 mod control_target;

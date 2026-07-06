@@ -71,6 +71,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
 
     let mut default_cwd = std::env::current_dir().ok();
     let mut default_env = BTreeMap::<String, Option<String>>::new();
+    let mut default_scrollback_lines = session_bus.status_snapshot().scrollback_lines;
     let (output_tx, output_rx) = mpsc::channel::<ScreenWindowOutput>();
     let mut windows = vec![spawn_screen_window_runtime(
         &args,
@@ -112,6 +113,9 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                 ScreenControlEvent::UnsetEnv { name } => {
                     default_env.insert(name, None);
                 }
+                ScreenControlEvent::SetDefaultScrollback { lines } => {
+                    default_scrollback_lines = lines;
+                }
                 ScreenControlEvent::NewWindow { command } => {
                     let index = next_screen_window_index(&windows);
                     match spawn_screen_window_runtime(
@@ -125,7 +129,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                         output_tx.clone(),
                     ) {
                         Ok(window) => {
-                            session_bus.add_window(index, command);
+                            session_bus.add_window_with_scrollback(index, command, default_scrollback_lines);
                             windows.push(window);
                             if let Some(replay) = switch_screen_window(
                                 &session_bus,

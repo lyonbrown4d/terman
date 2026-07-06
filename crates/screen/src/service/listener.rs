@@ -114,6 +114,10 @@ fn handle_client(
             bus.set_scrollback_lines(lines);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetDefaultScrollback { lines }) => {
+            send_control_event(control_tx, ScreenControlEvent::SetDefaultScrollback { lines })?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::SetWindowTitle { title }) => {
             bus.set_window_title(title);
             write_response(stream, &ScreenIpcResponse::Accepted)
@@ -144,7 +148,8 @@ fn handle_client(
         Ok(ScreenIpcRequest::UnsetEnv { name }) => {
             send_control_event(control_tx, ScreenControlEvent::UnsetEnv { name })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
-        }        Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
+        }
+        Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
             stream,
             &ScreenIpcResponse::PasteBuffer {
                 bytes: bus.paste_buffer_snapshot(),

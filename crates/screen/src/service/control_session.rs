@@ -163,21 +163,6 @@ pub(super) fn request_resize_command(
     send_session_control_request(args, ScreenIpcRequest::Resize { cols, rows })
 }
 
-pub(super) fn request_scrollback_command(
-    args: &ScreenArgs,
-    inline_payload: &str,
-    extra_args: &[String],
-) -> io::Result<()> {
-    let payload = control_command_payload(inline_payload, extra_args);
-    let lines = payload.trim().parse::<usize>().map_err(|_| {
-        io::Error::new(
-            io::ErrorKind::InvalidInput,
-            terman_common::builtin_screen_control_scrollback_required_hint(),
-        )
-    })?;
-    send_targeted_session_control_request(args, ScreenIpcRequest::SetScrollback { lines })
-}
-
 pub(super) fn request_title_command(
     args: &ScreenArgs,
     inline_payload: &str,

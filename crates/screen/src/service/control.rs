@@ -10,10 +10,11 @@ use super::{
     control_local::request_local_control_command,
     control_number::request_number_command,
     control_register::{request_process_command, request_readreg_command, request_register_command},
+    control_scrollback::{request_defscrollback_command, request_scrollback_command},
     control_select::request_select_command,
     control_session::{
         request_echo_command, request_hardcopy_command, request_kill_command, request_log_command, request_logfile_command, request_new_window_command,
-        request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_scrollback_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
+        request_paste_command, request_pastefile_command, request_readbuf_command, request_resize_command, request_session_response, request_stuff_command, request_title_command, request_writebuf_command,
         send_session_control_request,
     },
     control_source::request_source_command,
@@ -89,9 +90,8 @@ fn execute_control_command(
         "resize" => request_resize_command(args, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),
         "number" => request_number_command(args, inline_payload, extra_args),
-        "scrollback" | "defscrollback" => {
-            request_scrollback_command(args, inline_payload, extra_args)
-        }
+        "scrollback" => request_scrollback_command(args, inline_payload, extra_args),
+        "defscrollback" => request_defscrollback_command(args, inline_payload, extra_args),
         "next" | "prev" | "previous" | "other" => {
             request_window_navigation_command(args, &command, request_session_response)
         },

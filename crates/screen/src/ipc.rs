@@ -154,6 +154,9 @@ pub(crate) enum ScreenIpcRequest {
     SetScrollback {
         lines: usize,
     },
+    SetDefaultScrollback {
+        lines: usize,
+    },
     SetWindowTitle {
         title: String,
     },

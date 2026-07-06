@@ -57,8 +57,9 @@ impl ScreenSessionState {
         self.windows.iter_mut().find(|window| window.index() == index)
     }
 
-    pub(super) fn add_window(&mut self, index: usize, title: Option<String>) {
+    pub(super) fn add_window(&mut self, index: usize, title: Option<String>, scrollback_lines: usize) {
         let mut window = ScreenWindowState::new(index);
+        window.set_scrollback_lines(scrollback_lines, self.cols);
         if let Some(title) = title {
             window.set_title(title);
         }

@@ -27,6 +27,7 @@ pub(crate) enum ScreenControlEvent {
     SetDefaultCwd { path: PathBuf },
     SetEnv { name: String, value: String },
     UnsetEnv { name: String },
+    SetDefaultScrollback { lines: usize },
     SelectWindow { index: usize },
     NumberWindow { source: usize, index: usize },
     NextWindow,
@@ -143,9 +144,19 @@ impl ScreenSessionBus {
             .unwrap_or_else(|_| fallback_status())
     }
 
+    #[cfg(test)]
     pub(crate) fn add_window(&self, index: usize, title: Option<String>) {
+        self.add_window_with_scrollback(index, title, replay::DEFAULT_SCROLLBACK_LINES);
+    }
+
+    pub(crate) fn add_window_with_scrollback(
+        &self,
+        index: usize,
+        title: Option<String>,
+        scrollback_lines: usize,
+    ) {
         if let Ok(mut state) = self.inner.lock() {
-            state.add_window(index, title);
+            state.add_window(index, title, scrollback_lines);
         }
     }
 
