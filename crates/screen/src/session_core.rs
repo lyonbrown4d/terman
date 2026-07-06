@@ -1,64 +1,17 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex, mpsc},
-};
+use std::sync::{Arc, Mutex, mpsc};
 
+mod events;
 mod logging;
 mod log_control;
 mod replay;
 mod registers; mod state;
+mod status;
 mod window;
 
+pub(crate) use events::{ScreenControlEvent, ScreenSessionEvent};
+pub(crate) use status::{ScreenSessionStatus, ScreenWindowStatus};
 use state::{ScreenRemovedWindow, ScreenSessionState, ScreenSessionSubscriber, fallback_status, session_status};
 use window::ScreenWindowState;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum ScreenSessionEvent {
-    Output(Vec<u8>),
-    Resize { cols: u16, rows: u16 },
-    Detach,
-    Exit(i32),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum ScreenControlEvent {
-    Input(Vec<u8>),
-    NewWindow { command: Option<String> },
-    SetDefaultCwd { path: PathBuf },
-    SetEnv { name: String, value: String },
-    UnsetEnv { name: String },
-    SetDefaultScrollback { lines: usize },
-    SelectWindow { index: usize },
-    NumberWindow { source: usize, index: usize },
-    NextWindow,
-    PreviousWindow,
-    LastWindow,
-    KillWindow,
-    Resize { cols: u16, rows: u16 },
-    Terminate,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ScreenWindowStatus {
-    pub(crate) index: usize,
-    pub(crate) title: Option<String>,
-    pub(crate) active: bool,
-    pub(crate) replay_bytes: usize,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ScreenSessionStatus {
-    pub(crate) replay_bytes: usize,
-    pub(crate) attach_clients: usize,
-    pub(crate) cols: Option<u16>,
-    pub(crate) rows: Option<u16>,
-    pub(crate) scrollback_lines: usize,
-    pub(crate) hardcopy_dir: Option<PathBuf>,
-    pub(crate) hardcopy_append: bool,
-    pub(crate) window_title: Option<String>,
-    pub(crate) active_window: usize,
-    pub(crate) windows: Vec<ScreenWindowStatus>,
-}
 
 #[derive(Clone, Default)]
 pub(crate) struct ScreenSessionBus {
@@ -146,7 +99,7 @@ impl ScreenSessionBus {
             .unwrap_or_else(|_| fallback_status())
     }
 
-    pub(crate) fn set_hardcopy_dir(&self, path: PathBuf) {
+    pub(crate) fn set_hardcopy_dir(&self, path: std::path::PathBuf) {
         if let Ok(mut state) = self.inner.lock() {
             state.hardcopy_dir = Some(path);
         }

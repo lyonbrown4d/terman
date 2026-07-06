@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     error::Error,
-    io::{self, Write},
+    io,
     sync::{
         Arc, Mutex,
         mpsc,
@@ -17,14 +17,15 @@ use crossterm::{
 
 use crate::{
     ScreenArgs,
+    builtin_output::{drain_window_output, handle_window_exit, publish_error, publish_window_redraw},
     ipc::ScreenIpcEndpoint,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
     sessions::register_builtin_screen_session,
     terminal_input::key_to_bytes,
     window_runtime::{
-        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, apply_default_window_log, kill_active_window, kill_windows, new_screen_window_title, next_screen_window_index, renumber_screen_window, resize_windows,
-        spawn_screen_window_runtime, switch_screen_window, take_exited_window, write_active_window_input,
+        ScreenWindowOutput, ScreenWindowSwitch, apply_default_window_log, kill_active_window, kill_windows, new_screen_window_title, next_screen_window_index, renumber_screen_window, resize_windows,
+        spawn_screen_window_runtime, switch_screen_window, write_active_window_input,
     },
 };
 
@@ -245,57 +246,6 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             terman_common::builtin_screen_failure_hint(exit_code),
         )))
     }
-}
-
-fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
-    bus.publish_transient_output(b"\x1bc");
-    if !replay.is_empty() {
-        bus.publish_transient_output(replay);
-    }
-    let mut stdout = io::stdout();
-    let _ = stdout.write_all(b"\x1bc");
-    if !replay.is_empty() {
-        let _ = stdout.write_all(replay);
-    }
-    let _ = stdout.flush();
-}
-fn drain_window_output(
-    bus: &ScreenSessionBus,
-    rx: &mpsc::Receiver<ScreenWindowOutput>,
-    active_window: usize,
-) {
-    let mut stdout = io::stdout();
-    while let Ok(output) = rx.try_recv() {
-        bus.publish_window_output(output.index, &output.bytes);
-        if output.index == active_window {
-            let _ = stdout.write_all(&output.bytes);
-            let _ = stdout.flush();
-        }
-    }
-}
-
-fn handle_window_exit(
-    bus: &ScreenSessionBus,
-    windows: &mut Vec<ScreenWindowRuntime>,
-    active_window: &mut usize,
-) -> Option<i32> {
-    let exit = take_exited_window(windows)?;
-    let removal = bus.remove_window(exit.index)?;
-    if removal.last_window {
-        return Some(exit.code);
-    }
-    if let Some(index) = removal.active_window {
-        *active_window = index;
-    }
-    if removal.redraw {
-        publish_window_redraw(bus, &removal.replay);
-    }
-    None
-}
-
-fn publish_error(bus: &ScreenSessionBus, err: Box<dyn Error>) {
-    let message = format!("\r\nscreen window failed: {err}\r\n");
-    bus.publish_transient_output(message.as_bytes());
 }
 
 fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16, u16) {

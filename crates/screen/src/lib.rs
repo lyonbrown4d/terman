@@ -1,6 +1,7 @@
 use std::error::Error;
 
 mod builtin;
+mod builtin_output;
 mod cli;
 mod ipc;
 mod launcher;
