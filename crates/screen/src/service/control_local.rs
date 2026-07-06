@@ -2,6 +2,7 @@ use std::io;
 
 use super::{
     control_help::request_help_command,
+    control_license::request_license_command,
     control_sleep::request_sleep_command,
     control_time::request_time_command,
     control_version::request_version_command,
@@ -17,6 +18,7 @@ pub(super) fn request_local_control_command(
         "sleep" => Some(request_sleep_command(inline_payload, extra_args)),
         "time" => Some(request_time()),
         "version" => Some(request_version()),
+        "license" => Some(request_license_command()),
         _ => None,
     }
 }

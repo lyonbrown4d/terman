@@ -121,3 +121,7 @@ pub fn builtin_screen_control_title_required_hint() -> String {
 pub fn builtin_screen_control_version_hint(version: &str) -> String {
     localized_message(MessageKey::BuiltinScreenControlVersion, &[("version", version)])
 }
+
+pub fn builtin_screen_control_license_hint(version: &str) -> String {
+    localized_message(MessageKey::BuiltinScreenControlLicense, &[("version", version)])
+}

@@ -12,6 +12,7 @@ mod control_env;
 mod control_hardcopy;
 mod control_help;
 mod control_info;
+mod control_license;
 mod control_local;
 mod control_log;
 mod control_number;
