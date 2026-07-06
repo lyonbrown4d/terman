@@ -9,6 +9,7 @@ mod control_help;
 mod control_info;
 mod control_local;
 mod control_parse;
+mod control_register;
 mod control_select;
 mod control_session;
 mod control_target;

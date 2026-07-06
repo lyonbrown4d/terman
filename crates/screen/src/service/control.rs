@@ -6,6 +6,7 @@ use super::{
     control_displays::request_displays_command,
     control_info::request_info_command,
     control_local::request_local_control_command,
+    control_register::request_register_command,
     control_select::request_select_command,
     control_session::{
         request_echo_command, request_hardcopy_command, request_kill_command, request_log_command, request_logfile_command, request_new_window_command,
@@ -68,6 +69,7 @@ fn execute_control_command(
         "logfile" => request_logfile_command(args, inline_payload, extra_args),
         "paste" => request_paste_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
+        "register" => request_register_command(args, inline_payload, extra_args),
         "readbuf" => request_readbuf_command(args, inline_payload, extra_args),
         "removebuf" => send_session_control_request(
             args,

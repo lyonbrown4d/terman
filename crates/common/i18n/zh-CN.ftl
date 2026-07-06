@@ -41,7 +41,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X readbuf input.txt
       - terman-screen -S dev -X removebuf
       - terman-screen -S dev -X paste
-      - terman-screen -S dev -X writebuf output.txt
+      - terman-screen -S dev -X register . \
       - terman-screen -S dev -X stuff "echo hi\n"
       - terman-screen -S dev -p 0 -X stuff "echo hi\n"
       - terman-screen -r dev
@@ -65,11 +65,11 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、register、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-log-required = 请按 screen -X log on 或 screen -X log off 指定日志状态。
 builtin-screen-control-logfile-required = 请按 screen -X logfile <路径> 指定日志文件路径。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、stuff、screen、paste、pastefile、register、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、next、prev、previous、other、scrollback、defscrollback、logfile、log、title、aka、sleep、time、version、info、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 不支持的 screen 窗口 selector `{$selector}`。请使用可见的数字窗口索引、标题、-、.、# 或空 selector。
