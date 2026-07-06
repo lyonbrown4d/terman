@@ -65,3 +65,12 @@ fn detects_screen_log_toggle_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(log), Some(ScreenInputAction::LogToggle));
 }
+#[test]
+fn detects_screen_ctrl_paste_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let paste = KeyEvent::new(KeyCode::Char(']'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(paste), Some(ScreenInputAction::Paste));
+}
