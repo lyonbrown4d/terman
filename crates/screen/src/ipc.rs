@@ -80,6 +80,7 @@ pub(crate) enum ScreenIpcRequest {
         name: String,
     },
     Reset,
+    Redisplay,
     SetLogEnabled {
         enabled: bool,
     },

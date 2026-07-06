@@ -68,6 +68,7 @@ fn execute_control_command(
         "bell" => send_session_control_request(args, ScreenIpcRequest::Bell),
         "clear" => send_session_control_request(args, ScreenIpcRequest::Clear),
         "reset" => send_session_control_request(args, ScreenIpcRequest::Reset),
+        "redisplay" => send_session_control_request(args, ScreenIpcRequest::Redisplay),
         "echo" | "wall" => request_echo_command(args, inline_payload, extra_args),
         "eval" => request_eval_command(args, inline_payload, extra_args),
         "at" => request_at_command(args, inline_payload, extra_args, execute_control_command),

@@ -115,7 +115,11 @@ pub(super) fn handle_client(
             bus.set_window_title(title);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
-        Ok(ScreenIpcRequest::Reset) => {
+        Ok(ScreenIpcRequest::Redisplay) => {
+            let bytes = bus.hardcopy_snapshot(false);
+            bus.publish_transient_output(&bytes);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }        Ok(ScreenIpcRequest::Reset) => {
             bus.clear_replay();
             bus.publish_transient_output(b"\x1bc");
             write_response(stream, &ScreenIpcResponse::Accepted)
