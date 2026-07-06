@@ -18,6 +18,7 @@ pub(super) fn request_info_command(
             attach_clients,
             cols,
             rows,
+            scrollback_lines,
         } => {
             println!(
                 "{}",
@@ -27,6 +28,7 @@ pub(super) fn request_info_command(
                     attach_clients,
                     cols,
                     rows,
+                    scrollback_lines,
                 )
             );
             Ok(())

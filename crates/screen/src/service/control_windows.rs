@@ -18,6 +18,7 @@ pub(super) fn request_windows_command(
             attach_clients,
             cols,
             rows,
+            ..
         } => {
             println!(
                 "{}",

@@ -96,6 +96,10 @@ fn handle_client(
             bus.publish_transient_output(&bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetScrollback { lines }) => {
+            bus.set_scrollback_lines(lines);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Reset) => {
             bus.clear_replay();
             bus.publish_transient_output(b"\x1bc");
@@ -117,6 +121,7 @@ fn handle_client(
                     attach_clients: status.attach_clients,
                     cols: status.cols,
                     rows: status.rows,
+                    scrollback_lines: status.scrollback_lines,
                 },
             )
         }

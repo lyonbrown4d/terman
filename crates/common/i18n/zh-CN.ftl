@@ -19,6 +19,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X displays
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X select 0
+      - terman-screen -S dev -X defscrollback 2000
       - terman-screen -S dev -X next
       - terman-screen -S dev -X prev
       - terman-screen -X version
@@ -51,16 +52,17 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、next、prev、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、next、prev、scrollback、defscrollback、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、next、prev、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、next、prev、scrollback、defscrollback、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 内置 screen 当前只有一个窗口；select 仅支持 0、.、# 或空 selector。收到 `{$selector}`。
+builtin-screen-control-scrollback-required = 请按整数行数指定 scrollback：screen -X defscrollback <行数>。
 builtin-screen-control-sleep-required = 请按整数秒数指定 sleep 时长：screen -X sleep <秒数>。
 builtin-screen-control-time = screen 时间：unix_seconds={$unix_seconds}
 builtin-screen-control-version = terman-screen {$version} 内置跨平台后端
-builtin-screen-control-info = screen 信息：session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
+builtin-screen-control-info = screen 信息：session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows} scrollback_lines={$scrollback_lines}
 builtin-screen-control-displays-entry = displays：session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-windows-entry = 0* {$session_name} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。

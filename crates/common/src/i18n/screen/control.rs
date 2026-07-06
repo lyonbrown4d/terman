@@ -34,6 +34,10 @@ pub fn builtin_screen_control_select_unsupported_hint(selector: &str) -> String 
     )
 }
 
+pub fn builtin_screen_control_scrollback_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlScrollbackRequired, &[])
+}
+
 pub fn builtin_screen_control_sleep_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlSleepRequired, &[])
 }
@@ -56,9 +60,11 @@ pub fn builtin_screen_control_info_hint(
     attach_clients: usize,
     cols: Option<u16>,
     rows: Option<u16>,
+    scrollback_lines: usize,
 ) -> String {
     let replay_bytes = replay_bytes.to_string();
     let attach_clients = attach_clients.to_string();
+    let scrollback_lines = scrollback_lines.to_string();
     let cols = cols
         .map(|value| value.to_string())
         .unwrap_or_else(|| String::from("?"));
@@ -73,6 +79,7 @@ pub fn builtin_screen_control_info_hint(
             ("attach_clients", &attach_clients),
             ("cols", &cols),
             ("rows", &rows),
+            ("scrollback_lines", &scrollback_lines),
         ],
     )
 }

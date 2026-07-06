@@ -47,6 +47,7 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
             attach_clients,
             cols,
             rows,
+            scrollback_lines,
         } => {
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;
@@ -57,6 +58,7 @@ pub(super) fn print_attach_info(endpoint: &ScreenIpcEndpoint) -> io::Result<()> 
                     attach_clients,
                     cols,
                     rows,
+                    scrollback_lines,
                 )
                 .as_bytes(),
             )?;
@@ -126,6 +128,7 @@ pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<(
             attach_clients,
             cols,
             rows,
+            ..
         } => {
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;

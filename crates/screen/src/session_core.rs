@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex, mpsc};
 
-const MAX_REPLAY_BYTES: usize = 64 * 1024;
+const DEFAULT_SCROLLBACK_LINES: usize = 1_000;
+const DEFAULT_SCROLLBACK_COLS: usize = 80;
+const MIN_SCROLLBACK_BYTES: usize = 4 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenSessionEvent {
@@ -23,6 +25,7 @@ pub(crate) struct ScreenSessionStatus {
     pub(crate) attach_clients: usize,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
+    pub(crate) scrollback_lines: usize,
 }
 
 #[derive(Clone, Default)]
@@ -35,13 +38,26 @@ struct ScreenSessionSubscriber {
     sender: mpsc::Sender<ScreenSessionEvent>,
 }
 
-#[derive(Default)]
 struct ScreenSessionState {
     replay: Vec<u8>,
     subscribers: Vec<ScreenSessionSubscriber>,
     attach_clients: usize,
     cols: Option<u16>,
     rows: Option<u16>,
+    scrollback_lines: usize,
+}
+
+impl Default for ScreenSessionState {
+    fn default() -> Self {
+        Self {
+            replay: Vec::new(),
+            subscribers: Vec::new(),
+            attach_clients: 0,
+            cols: None,
+            rows: None,
+            scrollback_lines: DEFAULT_SCROLLBACK_LINES,
+        }
+    }
 }
 
 pub(crate) struct ScreenSessionSubscription {
@@ -122,18 +138,27 @@ impl ScreenSessionBus {
                 attach_clients: state.attach_clients,
                 cols: state.cols,
                 rows: state.rows,
+                scrollback_lines: state.scrollback_lines,
             })
             .unwrap_or(ScreenSessionStatus {
                 replay_bytes: 0,
                 attach_clients: 0,
                 cols: None,
                 rows: None,
+                scrollback_lines: DEFAULT_SCROLLBACK_LINES,
             })
     }
 
     pub(crate) fn clear_replay(&self) {
         if let Ok(mut state) = self.inner.lock() {
             state.replay.clear();
+        }
+    }
+
+    pub(crate) fn set_scrollback_lines(&self, lines: usize) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.scrollback_lines = lines;
+            trim_replay(&mut state);
         }
     }
 
@@ -144,10 +169,7 @@ impl ScreenSessionBus {
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
         self.publish(ScreenSessionEvent::Output(bytes.to_vec()), |state| {
             state.replay.extend_from_slice(bytes);
-            if state.replay.len() > MAX_REPLAY_BYTES {
-                let overflow = state.replay.len() - MAX_REPLAY_BYTES;
-                state.replay.drain(..overflow);
-            }
+            trim_replay(state);
         });
     }
 
@@ -155,6 +177,7 @@ impl ScreenSessionBus {
         self.publish(ScreenSessionEvent::Resize { cols, rows }, |state| {
             state.cols = Some(cols);
             state.rows = Some(rows);
+            trim_replay(state);
         });
     }
 
@@ -183,6 +206,24 @@ impl ScreenSessionBus {
             .subscribers
             .retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
     }
+}
+
+fn trim_replay(state: &mut ScreenSessionState) {
+    let max_bytes = max_replay_bytes(state.scrollback_lines, state.cols);
+    if state.replay.len() > max_bytes {
+        let overflow = state.replay.len() - max_bytes;
+        state.replay.drain(..overflow);
+    }
+}
+
+fn max_replay_bytes(scrollback_lines: usize, cols: Option<u16>) -> usize {
+    if scrollback_lines == 0 {
+        return 0;
+    }
+    let cols = cols.map(usize::from).unwrap_or(DEFAULT_SCROLLBACK_COLS);
+    scrollback_lines
+        .saturating_mul(cols)
+        .max(MIN_SCROLLBACK_BYTES)
 }
 
 #[cfg(test)]
@@ -234,6 +275,16 @@ mod tests {
     }
 
     #[test]
+    fn updates_scrollback_limit() {
+        let bus = ScreenSessionBus::new();
+        bus.set_scrollback_lines(0);
+        bus.publish_output(b"hello");
+
+        assert_eq!(bus.status_snapshot().scrollback_lines, 0);
+        assert!(bus.replay_snapshot().is_empty());
+    }
+
+    #[test]
     fn models_attach_control_events() {
         assert_eq!(
             ScreenControlEvent::Input(b"x".to_vec()),
@@ -241,6 +292,3 @@ mod tests {
         );
     }
 }
-
-
-
