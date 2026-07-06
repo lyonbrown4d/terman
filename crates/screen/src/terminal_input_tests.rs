@@ -268,3 +268,12 @@ fn detects_screen_dumptermcap_prefix() {
         Some(ScreenInputAction::DumpTermcap)
     );
 }
+#[test]
+fn detects_screen_width_toggle_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let width = KeyEvent::new(KeyCode::Char('W'), KeyModifiers::SHIFT);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(width), Some(ScreenInputAction::WidthToggle));
+}

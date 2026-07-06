@@ -24,6 +24,7 @@ pub(crate) enum ScreenInputAction {
     Time,
     Version,
     Windows,
+    WidthToggle,
     Resize,
     Reset,
 }
@@ -105,6 +106,9 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('v') | KeyCode::Char('V') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Version)
+            }
+            KeyCode::Char('W') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::WidthToggle)
             }
             KeyCode::Char('w') | KeyCode::Char('W') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Windows)

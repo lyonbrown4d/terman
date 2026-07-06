@@ -19,6 +19,7 @@ use super::{
         print_attach_displays, print_attach_hardcopy, print_attach_help, print_attach_info,
         print_attach_license, print_attach_time, print_attach_version, print_attach_windows,
     },
+    attach_size::toggle_attach_width,
     attach_termcap::print_attach_dumptermcap,
     ipc_client::send_control_request,
 };
@@ -107,6 +108,7 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::Time) => print_attach_time()?,
                     Some(ScreenInputAction::Version) => print_attach_version()?,
                     Some(ScreenInputAction::Windows) => print_attach_windows(&endpoint)?,
+                    Some(ScreenInputAction::WidthToggle) => toggle_attach_width(&endpoint)?,
                     Some(ScreenInputAction::LastWindow) => {
                         send_control_request(&endpoint, ScreenIpcRequest::LastWindow)?;
                     }
