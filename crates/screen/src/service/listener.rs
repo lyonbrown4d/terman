@@ -133,6 +133,10 @@ fn handle_client(
             send_control_event(control_tx, ScreenControlEvent::NewWindow { command })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetDefaultCwd { path }) => {
+            send_control_event(control_tx, ScreenControlEvent::SetDefaultCwd { path })?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
             stream,
             &ScreenIpcResponse::PasteBuffer {

@@ -1,7 +1,7 @@
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
-    io, process,
+    io, path::PathBuf, process,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -105,6 +105,9 @@ pub(crate) enum ScreenIpcRequest {
     LastMessage,
     NewWindow {
         command: Option<String>,
+    },
+    SetDefaultCwd {
+        path: PathBuf,
     },
     SelectWindow {
         index: usize,

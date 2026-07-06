@@ -1,6 +1,7 @@
 use std::{
     error::Error,
     io::Read,
+    path::Path,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
@@ -51,13 +52,14 @@ pub(crate) fn spawn_screen_window_runtime(
     args: &ScreenArgs,
     index: usize,
     command: Option<String>,
+    cwd: Option<&Path>,
     cols: u16,
     rows: u16,
     output_tx: mpsc::Sender<ScreenWindowOutput>,
 ) -> Result<ScreenWindowRuntime, Box<dyn Error>> {
     let mut window_args = args.clone();
     window_args.command = command;
-    let mut pty = spawn_screen_pty(&window_args, cols, rows)?;
+    let mut pty = spawn_screen_pty(&window_args, cols, rows, cwd)?;
     let mut reader = pty.take_reader()?;
     let window_index = Arc::new(AtomicUsize::new(index));
     let output_index = window_index.clone();

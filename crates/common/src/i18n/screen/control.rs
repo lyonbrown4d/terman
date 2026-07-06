@@ -11,6 +11,14 @@ pub fn builtin_screen_control_command_unsupported_hint(command: &str) -> String 
     )
 }
 
+
+pub fn builtin_screen_control_chdir_directory_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlChdirDirectoryRequired, &[])
+}
+
+pub fn builtin_screen_control_chdir_home_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlChdirHomeRequired, &[])
+}
 pub fn builtin_screen_control_echo_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlEchoRequired, &[])
 }

@@ -1,4 +1,4 @@
-use std::{error::Error, io::{self, Read, Write}};
+use std::{error::Error, io::{self, Read, Write}, path::Path};
 
 use portable_pty::{Child, MasterPty, PtySize, native_pty_system};
 
@@ -44,10 +44,11 @@ pub(crate) fn spawn_screen_pty(
     args: &ScreenArgs,
     cols: u16,
     rows: u16,
+    cwd: Option<&Path>,
 ) -> Result<ScreenPtyProcess, Box<dyn Error>> {
     let pty_system = native_pty_system();
     let pair = pty_system.openpty(pty_size(cols, rows))?;
-    let command = build_command(args)?;
+    let command = build_command(args, cwd)?;
     let child = pair.slave.spawn_command(command)?;
     let master = pair.master;
     let reader = master.try_clone_reader()?;

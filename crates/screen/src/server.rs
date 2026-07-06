@@ -46,11 +46,13 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
     let rows = args.rows.unwrap_or(32);
     session_bus.publish_resize(cols, rows);
 
+    let mut default_cwd = std::env::current_dir().ok();
     let (output_tx, output_rx) = mpsc::channel::<ScreenWindowOutput>();
     let mut windows = vec![spawn_screen_window_runtime(
         &args,
         0,
         args.command.clone(),
+        default_cwd.as_deref(),
         cols,
         rows,
         output_tx.clone(),
@@ -74,12 +76,16 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
                 ScreenControlEvent::Input(bytes) => {
                     write_active_window_input(&mut windows, active_window, &bytes);
                 }
+                ScreenControlEvent::SetDefaultCwd { path } => {
+                    default_cwd = Some(path);
+                }
                 ScreenControlEvent::NewWindow { command } => {
                     let index = next_screen_window_index(&windows);
                     match spawn_screen_window_runtime(
                         &args,
                         index,
                         command.clone(),
+                        default_cwd.as_deref(),
                         cols,
                         rows,
                         output_tx.clone(),
@@ -146,7 +152,8 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
                     if renumber_screen_window(&mut windows, source, index, &mut active_window) {
                         session_bus.renumber_window(source, index);
                     }
-                }                ScreenControlEvent::Resize { cols, rows } => {
+                }
+                ScreenControlEvent::Resize { cols, rows } => {
                     resize_windows(&windows, cols, rows);
                     session_bus.publish_resize(cols, rows);
                 }

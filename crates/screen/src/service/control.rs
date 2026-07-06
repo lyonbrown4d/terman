@@ -2,6 +2,7 @@ use std::io;
 
 use super::{
     control_at::request_at_command,
+    control_chdir::request_chdir_command,
     control_colon::request_colon_command,
     control_displays::request_displays_command,
     control_info::{request_dinfo_command, request_info_command},
@@ -62,6 +63,7 @@ fn execute_control_command(
         "colon" => request_colon_command(args, inline_payload, extra_args, execute_control_command),
         "source" => request_source_command(args, inline_payload, extra_args, execute_control_command),
         "screen" => request_new_window_command(args, inline_payload, extra_args),
+        "chdir" => request_chdir_command(args, inline_payload, extra_args),
         "displays" => request_displays_command(args, request_session_response),
         "windows" | "windowlist" => request_windows_command(args, request_session_response),
         "info" => request_info_command(args, request_session_response),

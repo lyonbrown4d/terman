@@ -1,5 +1,6 @@
 use std::{
     io,
+    path::PathBuf,
     sync::{Arc, Mutex, mpsc},
 };
 
@@ -23,6 +24,7 @@ pub(crate) enum ScreenSessionEvent {
 pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
     NewWindow { command: Option<String> },
+    SetDefaultCwd { path: PathBuf },
     SelectWindow { index: usize },
     NumberWindow { source: usize, index: usize },
     NextWindow,

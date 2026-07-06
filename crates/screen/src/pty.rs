@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, path::Path};
 
 use portable_pty::CommandBuilder;
 
@@ -7,7 +7,10 @@ use crate::{
     shell::{default_shell, shell_command_args},
 };
 
-pub(crate) fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Error> {
+pub(crate) fn build_command(
+    args: &ScreenArgs,
+    cwd: Option<&Path>,
+) -> Result<CommandBuilder, io::Error> {
     let shell = default_shell();
 
     let mut builder = match args.command.clone() {
@@ -29,6 +32,10 @@ pub(crate) fn build_command(args: &ScreenArgs) -> Result<CommandBuilder, io::Err
             }
         }
     };
+
+    if let Some(path) = cwd {
+        builder.cwd(path.as_os_str());
+    }
 
     apply_screen_environment(&mut builder, args);
     Ok(builder)

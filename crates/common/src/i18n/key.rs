@@ -49,6 +49,8 @@ pub enum MessageKey {
     BuiltinScreenFailure,
     BuiltinScreenControlCommandRequired,
     BuiltinScreenControlCommandUnsupported,
+    BuiltinScreenControlChdirDirectoryRequired,
+    BuiltinScreenControlChdirHomeRequired,
     BuiltinScreenControlEchoRequired,
     BuiltinScreenControlLastmsgEmpty,
     BuiltinScreenControlLogRequired,
@@ -141,6 +143,12 @@ impl MessageKey {
             Self::BuiltinScreenControlCommandRequired => "builtin-screen-control-command-required",
             Self::BuiltinScreenControlCommandUnsupported => {
                 "builtin-screen-control-command-unsupported"
+            }
+            Self::BuiltinScreenControlChdirDirectoryRequired => {
+                "builtin-screen-control-chdir-directory-required"
+            }
+            Self::BuiltinScreenControlChdirHomeRequired => {
+                "builtin-screen-control-chdir-home-required"
             }
             Self::BuiltinScreenControlEchoRequired => "builtin-screen-control-echo-required",
             Self::BuiltinScreenControlLastmsgEmpty => "builtin-screen-control-lastmsg-empty",
