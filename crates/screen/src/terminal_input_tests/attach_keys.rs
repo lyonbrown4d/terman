@@ -135,3 +135,18 @@ fn detects_screen_ctrl_info_time_prefixes() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(time), Some(ScreenInputAction::Time));
 }
+#[test]
+fn detects_screen_last_message_prefixes() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let last_message = KeyEvent::new(KeyCode::Char('m'), KeyModifiers::empty());
+    let ctrl_last_message = KeyEvent::new(KeyCode::Char('m'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(last_message), Some(ScreenInputAction::LastMessage));
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(
+        decoder.decode_key(ctrl_last_message),
+        Some(ScreenInputAction::LastMessage)
+    );
+}

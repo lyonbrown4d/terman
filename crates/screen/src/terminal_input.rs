@@ -16,6 +16,7 @@ pub(crate) enum ScreenInputAction {
     Info,
     Kill,
     License,
+    LastMessage,
     LogToggle,
     NewWindow,
     Paste,
@@ -79,12 +80,22 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::Redisplay)
             }
+            KeyCode::Char('m') | KeyCode::Char('M')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                Some(ScreenInputAction::LastMessage)
+            }
             KeyCode::Char('C')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
                 Some(ScreenInputAction::Clear)
             }
-            KeyCode::Char('c') | KeyCode::Char('C')
+            KeyCode::Char('m') | KeyCode::Char('M')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                Some(ScreenInputAction::LastMessage)
+            }
+            KeyCode::Char('C') | KeyCode::Char('C')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
             {
                 Some(ScreenInputAction::NewWindow)

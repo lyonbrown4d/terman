@@ -128,6 +128,9 @@ pub(super) fn attach_interactive(
                         send_control_request(&endpoint, ScreenIpcRequest::PreviousWindow)?;
                     },
                     Some(ScreenInputAction::License) => print_attach_license()?,
+                    Some(ScreenInputAction::LastMessage) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::LastMessage)?;
+                    }
                     Some(ScreenInputAction::LogToggle) => {
                         send_control_request(&endpoint, ScreenIpcRequest::ToggleLog)?;
                     }
