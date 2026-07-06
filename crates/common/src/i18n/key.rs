@@ -38,6 +38,7 @@ pub enum MessageKey {
     BuiltinScreenAttachUnsupported,
     BuiltinScreenAttachHelp,
     BuiltinScreenAttachHardcopyPathUnavailable,
+    BuiltinScreenAttachTitlePrompt,
     BuiltinScreenAttachTargetRequired,
     BuiltinScreenAttachOutputThreadPanicked,
     BuiltinScreenSessionNotFound,
@@ -141,6 +142,7 @@ impl MessageKey {
             Self::BuiltinScreenAttachHardcopyPathUnavailable => {
                 "builtin-screen-attach-hardcopy-path-unavailable"
             }
+            Self::BuiltinScreenAttachTitlePrompt => "builtin-screen-attach-title-prompt",
             Self::BuiltinScreenAttachTargetRequired => "builtin-screen-attach-target-required",
             Self::BuiltinScreenAttachOutputThreadPanicked => {
                 "builtin-screen-attach-output-thread-panicked"

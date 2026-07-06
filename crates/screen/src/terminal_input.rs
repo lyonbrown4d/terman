@@ -156,10 +156,12 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::Paste)
             }
-            KeyCode::Char('a') if key.modifiers.is_empty() => {
-                Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
+            KeyCode::Char('A')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::Title)
             }
-            KeyCode::Char('A') if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
+            KeyCode::Char('a') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
             }
             _ if is_screen_prefix_key(key) => Some(ScreenInputAction::LastWindow),

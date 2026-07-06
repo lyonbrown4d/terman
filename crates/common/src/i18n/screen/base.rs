@@ -80,6 +80,10 @@ pub fn builtin_screen_attach_hardcopy_path_unavailable_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachHardcopyPathUnavailable, &[])
 }
 
+pub fn builtin_screen_attach_title_prompt_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenAttachTitlePrompt, &[])
+}
+
 pub fn builtin_screen_attach_target_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachTargetRequired, &[])
 }

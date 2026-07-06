@@ -23,6 +23,7 @@ use super::{
     },
     attach_size::{fit_attach_window, toggle_attach_width},
     attach_termcap::print_attach_dumptermcap,
+    attach_title::prompt_attach_title,
     ipc_client::send_control_request,
 };
 use crate::{
@@ -119,6 +120,7 @@ pub(super) fn attach_interactive(
                         return Ok(());
                     }
                     Some(ScreenInputAction::Time) => print_attach_time()?,
+                    Some(ScreenInputAction::Title) => prompt_attach_title(&endpoint)?,
                     Some(ScreenInputAction::Version) => print_attach_version()?,
                     Some(ScreenInputAction::Windows) => print_attach_windows(&endpoint)?,
                     Some(ScreenInputAction::WriteBuffer) => write_attach_buffer(&endpoint)?,

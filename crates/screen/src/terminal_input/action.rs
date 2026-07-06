@@ -27,6 +27,7 @@ pub(crate) enum ScreenInputAction {
     Reset,
     SelectWindow(usize),
     Time,
+    Title,
     Version,
     WidthToggle,
     Windows,

@@ -186,3 +186,12 @@ fn detects_screen_exchange_buffer_prefixes() {
         Some(ScreenInputAction::RemoveBuffer)
     );
 }
+#[test]
+fn detects_screen_title_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let title = KeyEvent::new(KeyCode::Char('A'), KeyModifiers::SHIFT);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(title), Some(ScreenInputAction::Title));
+}

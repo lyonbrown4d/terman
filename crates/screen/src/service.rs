@@ -4,6 +4,7 @@ mod attach_number;
 mod attach_output;
 mod attach_size;
 mod attach_termcap;
+mod attach_title;
 mod client;
 mod control;
 mod control_at;
