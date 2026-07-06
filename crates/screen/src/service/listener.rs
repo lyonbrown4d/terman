@@ -106,6 +106,8 @@ fn handle_client(
             bus.set_paste_buffer(bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetRegister { name, bytes }) => { bus.set_register(name, bytes); write_response(stream, &ScreenIpcResponse::Accepted) }
+        Ok(ScreenIpcRequest::PasteRegister { name }) => { send_control_event(control_tx, ScreenControlEvent::Input(bus.register_snapshot(&name)))?; write_response(stream, &ScreenIpcResponse::Accepted) }
         Ok(ScreenIpcRequest::SetScrollback { lines }) => {
             bus.set_scrollback_lines(lines);
             write_response(stream, &ScreenIpcResponse::Accepted)

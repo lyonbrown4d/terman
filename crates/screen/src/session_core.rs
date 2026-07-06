@@ -5,7 +5,7 @@ use std::{
 
 mod logging;
 mod replay;
-mod state;
+mod registers; mod state;
 mod window;
 
 use state::{ScreenRemovedWindow, ScreenSessionState, ScreenSessionSubscriber, fallback_status, session_status};

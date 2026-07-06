@@ -129,6 +129,13 @@ pub(crate) enum ScreenIpcRequest {
     SetPasteBuffer {
         bytes: Vec<u8>,
     },
+    SetRegister {
+        name: String,
+        bytes: Vec<u8>,
+    },
+    PasteRegister {
+        name: String,
+    },
     SetScrollback {
         lines: usize,
     },

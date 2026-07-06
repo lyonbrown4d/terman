@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{ScreenSessionStatus, ScreenWindowStatus, replay::DEFAULT_SCROLLBACK_LINES, window::ScreenWindowState};
 
 pub(crate) struct ScreenRemovedWindow {
@@ -17,6 +19,7 @@ pub(super) struct ScreenSessionState {
     pub(super) active_window: usize,
     last_window: Option<usize>,
     pub(super) paste_buffer: Vec<u8>,
+    pub(super) registers: HashMap<String, Vec<u8>>,
     pub(super) subscribers: Vec<ScreenSessionSubscriber>,
     pub(super) attach_clients: usize,
     pub(super) cols: Option<u16>,
@@ -30,6 +33,7 @@ impl Default for ScreenSessionState {
             active_window: 0,
             last_window: None,
             paste_buffer: Vec::new(),
+            registers: HashMap::new(),
             subscribers: Vec::new(),
             attach_clients: 0,
             cols: None,
