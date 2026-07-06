@@ -41,6 +41,10 @@ impl ScreenOutputLog {
         Ok(())
     }
 
+    pub(super) fn toggle_enabled(&mut self) -> io::Result<()> {
+        self.set_enabled(!self.enabled)
+    }
+
     pub(super) fn append(&mut self, bytes: &[u8]) {
         if !self.enabled {
             return;

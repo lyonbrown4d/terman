@@ -85,7 +85,7 @@ builtin-screen-control-unsetenv-required = Specify environment variable name as 
 builtin-screen-control-env-name-invalid = Environment variable names cannot be empty or contain =.
 builtin-screen-control-shell-required = Specify a shell command as screen -X shell <command>.
 builtin-screen-control-shelltitle-required = Specify a default shell window title as screen -X shelltitle <title>.
-builtin-screen-control-log-required = Specify screen log state as screen -X log on or screen -X log off.
+builtin-screen-control-log-required = Specify screen log state as screen -X log [on|off], or omit the state to toggle logging.
 builtin-screen-control-logfile-required = Specify a log file path as screen -X logfile <path>.
 builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, screen, shell, defshell, shelltitle, chdir, setenv, unsetenv, paste, pastefile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, title, aka, sleep, time, version, info, dinfo, displays, windows, windowlist, hardcopy, clear, reset, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.

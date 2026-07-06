@@ -1,10 +1,10 @@
 use std::{
-    io,
     path::PathBuf,
     sync::{Arc, Mutex, mpsc},
 };
 
 mod logging;
+mod log_control;
 mod replay;
 mod registers; mod state;
 mod window;
@@ -220,28 +220,6 @@ impl ScreenSessionBus {
             .lock()
             .map(|state| state.paste_buffer.clone())
             .unwrap_or_default()
-    }
-
-    pub(crate) fn set_log_path(&self, path: String) -> io::Result<()> {
-        let mut state = self
-            .inner
-            .lock()
-            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
-        match state.active_window_mut() {
-            Some(window) => window.set_log_path(path),
-            None => Ok(()),
-        }
-    }
-
-    pub(crate) fn set_log_enabled(&self, enabled: bool) -> io::Result<()> {
-        let mut state = self
-            .inner
-            .lock()
-            .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
-        match state.active_window_mut() {
-            Some(window) => window.set_log_enabled(enabled),
-            None => Ok(()),
-        }
     }
 
     pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {

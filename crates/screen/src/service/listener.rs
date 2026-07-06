@@ -101,6 +101,7 @@ fn handle_client(
         Ok(ScreenIpcRequest::SetLogEnabled { enabled }) => {
             write_result_response(stream, bus.set_log_enabled(enabled))
         }
+        Ok(ScreenIpcRequest::ToggleLog) => write_result_response(stream, bus.toggle_log_enabled()),
         Ok(ScreenIpcRequest::SetLogFile { path }) => {
             write_result_response(stream, bus.set_log_path(path))
         }

@@ -63,6 +63,10 @@ impl ScreenWindowState {
         self.output_log.set_enabled(enabled)
     }
 
+    pub(super) fn toggle_log_enabled(&mut self) -> io::Result<()> {
+        self.output_log.toggle_enabled()
+    }
+
     pub(super) fn append_output(&mut self, bytes: &[u8], cols: Option<u16>) {
         self.replay.append(bytes, cols);
         self.output_log.append(bytes);

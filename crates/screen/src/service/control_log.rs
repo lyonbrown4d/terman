@@ -11,8 +11,12 @@ pub(super) fn request_log_command(
     inline_payload: &str,
     extra_args: &[String],
 ) -> io::Result<()> {
-    let enabled = parse_log_state(inline_payload, extra_args)?;
-    send_targeted_session_control_request(args, ScreenIpcRequest::SetLogEnabled { enabled })
+    match parse_log_state(inline_payload, extra_args)? {
+        Some(enabled) => {
+            send_targeted_session_control_request(args, ScreenIpcRequest::SetLogEnabled { enabled })
+        }
+        None => send_targeted_session_control_request(args, ScreenIpcRequest::ToggleLog),
+    }
 }
 
 pub(super) fn request_deflog_command(
@@ -20,7 +24,12 @@ pub(super) fn request_deflog_command(
     inline_payload: &str,
     extra_args: &[String],
 ) -> io::Result<()> {
-    let enabled = parse_log_state(inline_payload, extra_args)?;
+    let Some(enabled) = parse_log_state(inline_payload, extra_args)? else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            terman_common::builtin_screen_control_log_required_hint(),
+        ));
+    };
     send_session_control_request(
         args,
         ScreenIpcRequest::SetEnv {
@@ -30,11 +39,12 @@ pub(super) fn request_deflog_command(
     )
 }
 
-fn parse_log_state(inline_payload: &str, extra_args: &[String]) -> io::Result<bool> {
+fn parse_log_state(inline_payload: &str, extra_args: &[String]) -> io::Result<Option<bool>> {
     let payload = control_command_payload(inline_payload, extra_args);
     match payload.trim().to_ascii_lowercase().as_str() {
-        "on" | "1" | "true" => Ok(true),
-        "off" | "0" | "false" => Ok(false),
+        "" => Ok(None),
+        "on" | "1" | "true" => Ok(Some(true)),
+        "off" | "0" | "false" => Ok(Some(false)),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             terman_common::builtin_screen_control_log_required_hint(),
@@ -48,9 +58,10 @@ mod tests {
 
     #[test]
     fn parses_log_states() {
-        assert!(parse_log_state("on", &[]).unwrap());
-        assert!(!parse_log_state("off", &[]).unwrap());
-        assert!(parse_log_state("", &["true".into()]).unwrap());
+        assert_eq!(parse_log_state("", &[]).unwrap(), None);
+        assert_eq!(parse_log_state("on", &[]).unwrap(), Some(true));
+        assert_eq!(parse_log_state("off", &[]).unwrap(), Some(false));
+        assert_eq!(parse_log_state("", &["true".into()]).unwrap(), Some(true));
         assert!(parse_log_state("toggle", &[]).is_err());
     }
 }

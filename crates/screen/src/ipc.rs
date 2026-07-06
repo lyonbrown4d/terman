@@ -138,6 +138,7 @@ pub(crate) enum ScreenIpcRequest {
     SetLogEnabled {
         enabled: bool,
     },
+    ToggleLog,
     SetLogFile {
         path: String,
     },
