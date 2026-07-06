@@ -67,6 +67,10 @@ pub fn builtin_screen_control_stuff_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlStuffRequired, &[])
 }
 
+pub fn builtin_screen_control_register_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlRegisterRequired, &[])
+}
+
 pub fn builtin_screen_control_resize_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlResizeRequired, &[])
 }

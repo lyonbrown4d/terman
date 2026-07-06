@@ -64,11 +64,13 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X readbuf -e utf-8 input.txt
       - terman-screen -S dev -X writebuf -e utf-8 output.txt
       - terman-screen -S dev -X readreg . input.txt
+      - terman-screen -S dev -X readreg -e utf-8 . input.txt
       - terman-screen -S dev -X removebuf
       - terman-screen -S dev -X paste
       - terman-screen -S dev -X paste .
       - terman-screen -S dev -X process .
       - terman-screen -S dev -X register . "hello\015"
+      - terman-screen -S dev -X register -e utf-8 . "hello\015"
       - terman-screen -S dev -X stuff "echo hi\n"
       - terman-screen -S dev -X meta
       - terman-screen -S dev -X xon
@@ -111,6 +113,7 @@ builtin-screen-control-logfile-required = Specify a log file path as screen -X l
 builtin-screen-control-logtstamp-required = Specify screen log timestamp as logtstamp [on|off], logtstamp after <seconds>, or logtstamp string <text>.
 builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, stuff, meta, xon, xoff, screen, shell, defshell, shelltitle, term, chdir, setenv, unsetenv, paste, pastefile, bufferfile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, fit, width, height, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, license, info, dinfo, dumptermcap, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, redisplay, eval, at, colon, sessionname.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
+builtin-screen-control-register-required = Specify register text as screen -X register [-e encoding] <register> <text>.
 builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
 builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, title, -, ., #, or an empty selector.
 builtin-screen-control-number = screen window number: {$index} {$title}
@@ -131,9 +134,9 @@ builtin-screen-control-hardcopydir-required = Specify an existing directory as s
 builtin-screen-control-hardcopy-append-required = Specify hardcopy append state as screen -X hardcopy_append <on|off>.
 builtin-screen-control-pastefile-path-required = Specify an input path as screen -X pastefile <path>.
 builtin-screen-control-readbuf-path-required = Specify an optional input path as screen -X readbuf [-e encoding] [path]; omit the path to use the screen exchange file.
-builtin-screen-control-readreg-required = Specify register and input path as screen -X readreg <register> <path>.
+builtin-screen-control-readreg-required = Specify register and input path as screen -X readreg [-e encoding] <register> <path>.
 builtin-screen-control-writebuf-path-required = Specify an optional output path as screen -X writebuf [-e encoding] [path]; omit the path to use the screen exchange file.
-builtin-screen-control-buffer-encoding-required = Specify a supported encoding as screen -X readbuf -e <encoding> [path] or screen -X writebuf -e <encoding> [path].
+builtin-screen-control-buffer-encoding-required = Specify a supported encoding as screen -X readbuf -e <encoding> [path], screen -X writebuf -e <encoding> [path], screen -X readreg -e <encoding> <register> <path>, or screen -X register -e <encoding> <register> <text>.
 builtin-screen-control-source-path-required = Specify a command file path as screen -X source <path>.
 builtin-screen-control-hardcopy-complete = Wrote {$bytes} byte(s) of screen hardcopy to {$path}.
 builtin-screen-control-dumptermcap-complete = Wrote screen termcap entry to {$path}.
