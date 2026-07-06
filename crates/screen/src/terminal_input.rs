@@ -135,7 +135,9 @@ impl ScreenInputDecoder {
             KeyCode::Char('W') if key.modifiers == KeyModifiers::SHIFT => {
                 Some(ScreenInputAction::WidthToggle)
             }
-            KeyCode::Char('w') | KeyCode::Char('W') if key.modifiers.is_empty() => {
+            KeyCode::Char('w') | KeyCode::Char('W')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 Some(ScreenInputAction::Windows)
             }
             KeyCode::Char(c) if key.modifiers.is_empty() && c.is_ascii_digit() => {

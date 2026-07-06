@@ -83,3 +83,12 @@ fn detects_screen_redisplay_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(redisplay), Some(ScreenInputAction::Redisplay));
 }
+#[test]
+fn detects_screen_ctrl_windows_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let windows = KeyEvent::new(KeyCode::Char('w'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(windows), Some(ScreenInputAction::Windows));
+}
