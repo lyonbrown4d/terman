@@ -13,6 +13,7 @@ pub(crate) enum ScreenInputAction {
     Hardcopy,
     Info,
     Kill,
+    Paste,
     NextWindow,
     PreviousWindow,
     Time,
@@ -97,6 +98,7 @@ impl ScreenInputDecoder {
             }
             KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
+            KeyCode::Char(']') if key.modifiers.is_empty() => Some(ScreenInputAction::Paste),
             _ if is_screen_prefix_key(key) => {
                 Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
             }
