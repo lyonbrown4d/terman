@@ -98,6 +98,10 @@ fn handle_client(
             bus.publish_message(&bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetHardcopyDir { path }) => {
+            bus.set_hardcopy_dir(path);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::SetLogEnabled { enabled }) => {
             write_result_response(stream, bus.set_log_enabled(enabled))
         }
@@ -204,6 +208,7 @@ fn handle_client(
                     cols: status.cols,
                     rows: status.rows,
                     scrollback_lines: status.scrollback_lines,
+                    hardcopy_dir: status.hardcopy_dir,
                     window_title: status.window_title,
                     active_window: status.active_window,
                     windows,

@@ -101,6 +101,9 @@ pub(crate) enum ScreenIpcRequest {
         message: String,
     },
     Hardcopy,
+    SetHardcopyDir {
+        path: PathBuf,
+    },
     Info,
     LastMessage,
     NewWindow {
@@ -196,6 +199,7 @@ pub(crate) enum ScreenIpcResponse {
         cols: Option<u16>,
         rows: Option<u16>,
         scrollback_lines: usize,
+        hardcopy_dir: Option<PathBuf>,
         window_title: Option<String>,
         active_window: usize,
         windows: Vec<ScreenWindowInfo>,

@@ -2,6 +2,7 @@ use std::{
     env,
     fs::OpenOptions,
     io::{self, Write},
+    path::{Path, PathBuf},
 };
 
 use super::{control_time::screen_time_message, ipc_client::request_endpoint_response};
@@ -20,9 +21,10 @@ pub(super) fn print_attach_help() -> io::Result<()> {
 }
 
 pub(super) fn print_attach_hardcopy(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+    let hardcopy_dir = attach_hardcopy_dir(endpoint)?;
     match request_endpoint_response(endpoint, ScreenIpcRequest::Hardcopy)? {
         ScreenIpcResponse::Hardcopy { bytes } => {
-            let path = write_numbered_hardcopy(&bytes)?;
+            let path = write_numbered_hardcopy(hardcopy_dir.as_deref(), &bytes)?;
             let mut stdout = io::stdout();
             stdout.write_all(b"\r\n")?;
             stdout.write_all(
@@ -144,6 +146,16 @@ pub(super) fn print_attach_windows(endpoint: &ScreenIpcEndpoint) -> io::Result<(
     }
 }
 
+fn attach_hardcopy_dir(endpoint: &ScreenIpcEndpoint) -> io::Result<Option<PathBuf>> {
+    match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
+        ScreenIpcResponse::Info { hardcopy_dir, .. } => Ok(hardcopy_dir),
+        ScreenIpcResponse::Rejected { reason } => {
+            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
+        }
+        response => Err(unexpected_response_error(&response)),
+    }
+}
+
 fn write_attach_window_entry(
     stdout: &mut impl Write,
     window: &ScreenWindowInfo,
@@ -166,14 +178,14 @@ fn write_attach_window_entry(
     stdout.write_all(b"\r\n")
 }
 
-fn write_numbered_hardcopy(bytes: &[u8]) -> io::Result<String> {
+fn write_numbered_hardcopy(hardcopy_dir: Option<&Path>, bytes: &[u8]) -> io::Result<String> {
     let prefix = attach_hardcopy_prefix();
     for index in 0..MAX_ATTACH_HARDCOPY_SLOTS {
-        let path = attach_hardcopy_path(&prefix, index);
+        let path = attach_hardcopy_path(hardcopy_dir, &prefix, index);
         match OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(mut file) => {
                 file.write_all(bytes)?;
-                return Ok(path);
+                return Ok(path.display().to_string());
             }
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {}
             Err(err) => return Err(err),
@@ -201,17 +213,28 @@ fn attach_hardcopy_prefix() -> String {
         .unwrap_or_else(|| DEFAULT_ATTACH_HARDCOPY_PREFIX.to_string())
 }
 
-fn attach_hardcopy_path(prefix: &str, index: usize) -> String {
-    format!("{prefix}.{index}")
+fn attach_hardcopy_path(hardcopy_dir: Option<&Path>, prefix: &str, index: usize) -> PathBuf {
+    let file_name = format!("{prefix}.{index}");
+    hardcopy_dir
+        .map(|directory| directory.join(&file_name))
+        .unwrap_or_else(|| PathBuf::from(file_name))
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::{Path, PathBuf};
+
     use super::attach_hardcopy_path;
 
     #[test]
     fn formats_attach_hardcopy_path() {
-        assert_eq!(attach_hardcopy_path("hardcopy", 0), "hardcopy.0");
-        assert_eq!(attach_hardcopy_path("screen-copy", 42), "screen-copy.42");
+        assert_eq!(
+            attach_hardcopy_path(None, "hardcopy", 0),
+            PathBuf::from("hardcopy.0")
+        );
+        assert_eq!(
+            attach_hardcopy_path(Some(Path::new("copies")), "screen-copy", 42),
+            PathBuf::from("copies").join("screen-copy.42")
+        );
     }
 }

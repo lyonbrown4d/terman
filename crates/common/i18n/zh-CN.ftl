@@ -22,6 +22,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X windows
       - terman-screen -S dev -X windowlist
       - terman-screen -S dev -X hardcopy
+      - terman-screen -S dev -X hardcopydir .
       - terman-screen -S dev -X screen
       - terman-screen -S dev -X chdir .
       - terman-screen -S dev -X setenv EDITOR vim
@@ -78,7 +79,7 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、shelltitle、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、shelltitle、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、hardcopydir、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-chdir-directory-required = 请按 screen -X chdir <路径> 指定一个已存在的目录。
 builtin-screen-control-chdir-home-required = screen -X chdir 无法找到 HOME 或 USERPROFILE。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
@@ -91,7 +92,7 @@ builtin-screen-control-shelltitle-required = 请按 screen -X shelltitle <标题
 builtin-screen-control-log-required = 请按 screen -X log [on|off] 指定日志状态；省略状态时切换日志开关。
 builtin-screen-control-logfile-required = 请按 screen -X logfile <路径> 指定日志文件路径，或按 screen -X logfile flush <秒数> 指定刷新间隔。
 builtin-screen-control-logtstamp-required = 请按 logtstamp [on|off]、logtstamp after <秒数> 或 logtstamp string <文本> 指定日志时间戳。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、shelltitle、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、stuff、screen、shell、defshell、shelltitle、chdir、setenv、unsetenv、paste、pastefile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、info、dinfo、displays、windows、windowlist、hardcopy、hardcopydir、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 不支持的 screen 窗口 selector `{$selector}`。请使用可见的数字窗口索引、标题、-、.、# 或空 selector。
@@ -106,6 +107,7 @@ builtin-screen-control-displays-entry = displays：session={$session_name} attac
 builtin-screen-control-windows-entry = {$index}{$active_marker} {$title} size={$cols}x{$rows} attach_clients={$attach_clients} replay_bytes={$replay_bytes}
 builtin-screen-control-unexpected-response = 非预期的 screen 控制响应：{$response}。
 builtin-screen-control-hardcopy-path-required = 可按 screen -X hardcopy [路径] 指定输出路径；省略时写入 hardcopy.<窗口编号>。
+builtin-screen-control-hardcopydir-required = 请按 screen -X hardcopydir <路径> 指定一个已存在的目录。
 builtin-screen-control-pastefile-path-required = 请按 screen -X pastefile <路径> 指定输入文件路径。
 builtin-screen-control-readbuf-path-required = 请按 screen -X readbuf <路径> 指定输入文件路径。
 builtin-screen-control-readreg-required = 请按 screen -X readreg <寄存器> <路径> 指定寄存器和输入文件路径。

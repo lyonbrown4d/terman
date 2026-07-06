@@ -53,6 +53,7 @@ pub(crate) struct ScreenSessionStatus {
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
     pub(crate) scrollback_lines: usize,
+    pub(crate) hardcopy_dir: Option<PathBuf>,
     pub(crate) window_title: Option<String>,
     pub(crate) active_window: usize,
     pub(crate) windows: Vec<ScreenWindowStatus>,
@@ -142,6 +143,12 @@ impl ScreenSessionBus {
             .lock()
             .map(|state| session_status(&state))
             .unwrap_or_else(|_| fallback_status())
+    }
+
+    pub(crate) fn set_hardcopy_dir(&self, path: PathBuf) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.hardcopy_dir = Some(path);
+        }
     }
 
     #[cfg(test)]

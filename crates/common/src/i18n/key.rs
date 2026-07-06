@@ -78,6 +78,7 @@ pub enum MessageKey {
     BuiltinScreenControlWindowsEntry,
     BuiltinScreenControlUnexpectedResponse,
     BuiltinScreenControlHardcopyPathRequired,
+    BuiltinScreenControlHardcopydirRequired,
     BuiltinScreenControlHardcopyComplete,
     BuiltinScreenControlPastefilePathRequired,
     BuiltinScreenControlReadbufPathRequired,
@@ -192,6 +193,9 @@ impl MessageKey {
             }
             Self::BuiltinScreenControlHardcopyPathRequired => {
                 "builtin-screen-control-hardcopy-path-required"
+            }
+            Self::BuiltinScreenControlHardcopydirRequired => {
+                "builtin-screen-control-hardcopydir-required"
             }
             Self::BuiltinScreenControlHardcopyComplete => {
                 "builtin-screen-control-hardcopy-complete"

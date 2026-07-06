@@ -241,6 +241,10 @@ pub fn builtin_screen_control_hardcopy_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlHardcopyPathRequired, &[])
 }
 
+pub fn builtin_screen_control_hardcopydir_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlHardcopydirRequired, &[])
+}
+
 pub fn builtin_screen_control_pastefile_path_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlPastefilePathRequired, &[])
 }
