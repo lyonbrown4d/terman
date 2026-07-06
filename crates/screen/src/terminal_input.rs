@@ -82,7 +82,14 @@ impl ScreenInputDecoder {
             KeyCode::Char('n') | KeyCode::Char('N') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::NextWindow)
             }
+            KeyCode::Char(' ') if key.modifiers.is_empty() => Some(ScreenInputAction::NextWindow),
             KeyCode::Char('p') | KeyCode::Char('P') if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::PreviousWindow)
+            }
+            KeyCode::Backspace if key.modifiers.is_empty() => Some(ScreenInputAction::PreviousWindow),
+            KeyCode::Char('h') | KeyCode::Char('H')
+                if key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
                 Some(ScreenInputAction::PreviousWindow)
             }
             KeyCode::Char('h') | KeyCode::Char('H') if key.modifiers.is_empty() => {
