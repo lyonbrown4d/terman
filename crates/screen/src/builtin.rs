@@ -153,6 +153,16 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
                         publish_window_redraw(&session_bus, &replay);
                     }
                 }
+                ScreenControlEvent::LastWindow => {
+                    if let Some(replay) = switch_screen_window(
+                        &session_bus,
+                        &windows,
+                        &mut active_window,
+                        ScreenWindowSwitch::Last,
+                    ) {
+                        publish_window_redraw(&session_bus, &replay);
+                    }
+                }
                 ScreenControlEvent::KillWindow => {
                     kill_active_window(&mut windows, active_window);
                 }

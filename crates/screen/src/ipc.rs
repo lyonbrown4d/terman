@@ -110,6 +110,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     NextWindow,
     PreviousWindow,
+    LastWindow,
     GetPasteBuffer,
     PasteBuffer,
     KillWindow,

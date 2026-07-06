@@ -15,6 +15,7 @@ pub(crate) enum ScreenInputAction {
     Kill,
     NewWindow,
     Paste,
+    LastWindow,
     NextWindow,
     PreviousWindow,
     SelectWindow(usize),
@@ -105,9 +106,13 @@ impl ScreenInputDecoder {
             KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             KeyCode::Char(']') if key.modifiers.is_empty() => Some(ScreenInputAction::Paste),
-            _ if is_screen_prefix_key(key) => {
+            KeyCode::Char('a') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
             }
+            KeyCode::Char('A') if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::Bytes(vec![SCREEN_CONTROL_PREFIX]))
+            }
+            _ if is_screen_prefix_key(key) => Some(ScreenInputAction::LastWindow),
             _ => {
                 let mut bytes = vec![SCREEN_CONTROL_PREFIX];
                 if let Some(mut key_bytes) = key_to_bytes(key) {

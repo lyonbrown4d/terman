@@ -26,6 +26,7 @@ pub(crate) enum ScreenControlEvent {
     SelectWindow { index: usize },
     NextWindow,
     PreviousWindow,
+    LastWindow,
     KillWindow,
     Resize { cols: u16, rows: u16 },
     Terminate,
@@ -148,6 +149,13 @@ impl ScreenSessionBus {
             .lock()
             .ok()
             .and_then(|mut state| state.select_window(index))
+    }
+
+    pub(crate) fn select_last_window(&self) -> Option<Vec<u8>> {
+        self.inner
+            .lock()
+            .ok()
+            .and_then(|mut state| state.select_last_window())
     }
     pub(crate) fn remove_window(&self, index: usize) -> Option<ScreenRemovedWindow> {
         self.inner

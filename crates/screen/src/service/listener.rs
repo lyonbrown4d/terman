@@ -126,9 +126,7 @@ fn handle_client(
             },
         ),
         Ok(ScreenIpcRequest::NewWindow { command }) => {
-            control_tx
-                .send(ScreenControlEvent::NewWindow { command })
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::NewWindow { command })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::GetPasteBuffer) => write_response(
@@ -166,40 +164,32 @@ fn handle_client(
             )
         }
         Ok(ScreenIpcRequest::PasteBuffer) => {
-            control_tx
-                .send(ScreenControlEvent::Input(bus.paste_buffer_snapshot()))
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::Input(bus.paste_buffer_snapshot()))?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::SelectWindow { index }) => {
-            control_tx
-                .send(ScreenControlEvent::SelectWindow { index })
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::SelectWindow { index })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::NextWindow) => {
-            control_tx
-                .send(ScreenControlEvent::NextWindow)
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::NextWindow)?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::PreviousWindow) => {
-            control_tx
-                .send(ScreenControlEvent::PreviousWindow)
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::PreviousWindow)?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::LastWindow) => {
+            send_control_event(control_tx, ScreenControlEvent::LastWindow)?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::KillWindow) => {
-            control_tx
-                .send(ScreenControlEvent::KillWindow)
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::KillWindow)?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Ping) => write_response(stream, &ScreenIpcResponse::Accepted),
         Ok(ScreenIpcRequest::Quit) => {
-            control_tx
-                .send(ScreenControlEvent::Terminate)
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::Terminate)?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::RenameSession { name }) => match rename_session(session_name, name) {
@@ -212,15 +202,11 @@ fn handle_client(
             ),
         },
         Ok(ScreenIpcRequest::Input { bytes }) => {
-            control_tx
-                .send(ScreenControlEvent::Input(bytes))
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::Input(bytes))?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Resize { cols, rows }) => {
-            control_tx
-                .send(ScreenControlEvent::Resize { cols, rows })
-                .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))?;
+            send_control_event(control_tx, ScreenControlEvent::Resize { cols, rows })?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Err(err) => write_response(
@@ -279,6 +265,15 @@ fn stream_attach(
     }
 
     Ok(())
+}
+
+fn send_control_event(
+    control_tx: &mpsc::Sender<ScreenControlEvent>,
+    event: ScreenControlEvent,
+) -> io::Result<()> {
+    control_tx
+        .send(event)
+        .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))
 }
 
 fn write_result_response(stream: &mut LocalSocketStream, result: io::Result<()>) -> io::Result<()> {

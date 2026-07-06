@@ -181,13 +181,23 @@ fn detects_screen_help_prefix() {
 }
 
 #[test]
-fn sends_literal_prefix_when_prefix_is_repeated() {
+fn detects_screen_last_window_when_prefix_is_repeated() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
 
     assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(prefix), Some(ScreenInputAction::LastWindow));
+}
+
+#[test]
+fn sends_literal_prefix_with_ctrl_a_a() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let literal = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(
-        decoder.decode_key(prefix),
+        decoder.decode_key(literal),
         Some(ScreenInputAction::Bytes(vec![0x01]))
     );
 }

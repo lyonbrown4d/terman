@@ -15,6 +15,7 @@ pub(super) struct ScreenSessionSubscriber {
 pub(super) struct ScreenSessionState {
     pub(super) windows: Vec<ScreenWindowState>,
     pub(super) active_window: usize,
+    last_window: Option<usize>,
     pub(super) paste_buffer: Vec<u8>,
     pub(super) subscribers: Vec<ScreenSessionSubscriber>,
     pub(super) attach_clients: usize,
@@ -27,6 +28,7 @@ impl Default for ScreenSessionState {
         Self {
             windows: vec![ScreenWindowState::new(0)],
             active_window: 0,
+            last_window: None,
             paste_buffer: Vec::new(),
             subscribers: Vec::new(),
             attach_clients: 0,
@@ -55,20 +57,39 @@ impl ScreenSessionState {
             window.set_title(title);
         }
         self.windows.push(window);
+        if self.active_window != index && self.window(self.active_window).is_some() {
+            self.last_window = Some(self.active_window);
+        }
         self.active_window = index;
     }
 
     pub(super) fn select_window(&mut self, index: usize) -> Option<Vec<u8>> {
         let replay = self.window(index)?.replay_snapshot();
+        if self.active_window != index && self.window(self.active_window).is_some() {
+            self.last_window = Some(self.active_window);
+        }
         self.active_window = index;
         Some(replay)
+    }
+
+    pub(super) fn select_last_window(&mut self) -> Option<Vec<u8>> {
+        let index = self.last_window?;
+        if self.window(index).is_none() {
+            self.last_window = None;
+            return None;
+        }
+        self.select_window(index)
     }
 
     pub(super) fn remove_window(&mut self, index: usize) -> Option<ScreenRemovedWindow> {
         let position = self.windows.iter().position(|window| window.index() == index)?;
         let was_active = self.active_window == index;
+        if self.last_window == Some(index) {
+            self.last_window = None;
+        }
         self.windows.remove(position);
         if self.windows.is_empty() {
+            self.last_window = None;
             return Some(ScreenRemovedWindow {
                 active_window: None,
                 replay: Vec::new(),

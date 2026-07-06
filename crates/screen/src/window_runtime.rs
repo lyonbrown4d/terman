@@ -25,6 +25,7 @@ pub(crate) enum ScreenWindowSwitch {
     Select(usize),
     Next,
     Previous,
+    Last,
 }
 
 pub(crate) fn spawn_screen_window_runtime(
@@ -106,6 +107,15 @@ pub(crate) fn switch_screen_window(
         .position(|window| window.index == *active_window)
         .unwrap_or(0);
     let target_position = match target {
+        ScreenWindowSwitch::Last => {
+            let replay = bus.select_last_window()?;
+            let status = bus.status_snapshot();
+            if windows.iter().any(|window| window.index == status.active_window) {
+                *active_window = status.active_window;
+                return Some(replay);
+            }
+            return None;
+        }
         ScreenWindowSwitch::Select(index) => windows.iter().position(|window| window.index == index)?,
         ScreenWindowSwitch::Next => (active_position + 1) % windows.len(),
         ScreenWindowSwitch::Previous => {
