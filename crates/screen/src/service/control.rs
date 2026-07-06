@@ -4,6 +4,7 @@ use super::{
     control_at::request_at_command,
     control_colon::request_colon_command,
     control_displays::request_displays_command,
+    control_info::request_info_command,
     control_local::request_local_control_command,
     control_parse::{control_command_payload, decode_stuff_payload, parse_resize_payload},
     control_select::request_select_command,
@@ -59,7 +60,7 @@ fn execute_control_command(
         "source" => request_source_command(args, inline_payload, extra_args, execute_control_command),
         "displays" => request_displays_command(args, request_session_response),
         "windows" => request_windows_command(args, request_session_response),
-        "info" => request_session_info(args),
+        "info" => request_info_command(args, request_session_response),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "pastefile" => request_pastefile_command(args, inline_payload, extra_args),
         "resize" => request_resize_command(args, inline_payload, extra_args),
@@ -166,34 +167,6 @@ fn request_stuff_command(
             bytes: decode_stuff_payload(&payload),
         },
     )
-}
-
-fn request_session_info(args: &ScreenArgs) -> io::Result<()> {
-    match request_session_response(args, ScreenIpcRequest::Info)? {
-        ScreenIpcResponse::Info {
-            session_name,
-            replay_bytes,
-            attach_clients,
-            cols,
-            rows,
-        } => {
-            println!(
-                "{}",
-                terman_common::builtin_screen_control_info_hint(
-                    &session_name,
-                    replay_bytes,
-                    attach_clients,
-                    cols,
-                    rows,
-                )
-            );
-            Ok(())
-        }
-        ScreenIpcResponse::Rejected { reason } => {
-            Err(io::Error::new(io::ErrorKind::Unsupported, reason))
-        }
-        response => Err(unexpected_response_error(&response)),
-    }
 }
 
 fn request_session_hardcopy(args: &ScreenArgs, path: &str) -> io::Result<()> {
