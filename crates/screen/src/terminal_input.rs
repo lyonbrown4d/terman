@@ -29,6 +29,7 @@ pub(crate) enum ScreenInputAction {
     WidthToggle,
     Resize,
     Reset,
+    Redisplay,
 }
 
 #[derive(Default)]
@@ -73,6 +74,10 @@ impl ScreenInputDecoder {
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
                 Some(ScreenInputAction::Reset)
+            }            KeyCode::Char('l') | KeyCode::Char('L')
+                if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
+            {
+                Some(ScreenInputAction::Redisplay)
             }
             KeyCode::Char('C')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>

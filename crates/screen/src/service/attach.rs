@@ -72,6 +72,8 @@ pub(super) fn attach_interactive(
                     }
                     Some(ScreenInputAction::Reset) => {
                         send_control_request(&endpoint, ScreenIpcRequest::Reset)?;
+                    }                    Some(ScreenInputAction::Redisplay) => {
+                        send_control_request(&endpoint, ScreenIpcRequest::Redisplay)?;
                     }
                     Some(ScreenInputAction::Resize) => {
                         sync_attach_terminal_size(&endpoint)?;

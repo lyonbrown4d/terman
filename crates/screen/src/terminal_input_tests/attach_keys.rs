@@ -74,3 +74,12 @@ fn detects_screen_ctrl_paste_prefix() {
     assert_eq!(decoder.decode_key(prefix), None);
     assert_eq!(decoder.decode_key(paste), Some(ScreenInputAction::Paste));
 }
+#[test]
+fn detects_screen_redisplay_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let redisplay = KeyEvent::new(KeyCode::Char('l'), KeyModifiers::CONTROL);
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(redisplay), Some(ScreenInputAction::Redisplay));
+}
