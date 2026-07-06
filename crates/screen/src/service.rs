@@ -12,6 +12,7 @@ mod control_parse;
 mod control_select;
 mod control_sleep;
 mod control_source;
+mod control_time;
 mod control_version;
 mod control_windows;
 mod ipc_client;

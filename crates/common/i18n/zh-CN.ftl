@@ -21,6 +21,7 @@ builtin-screen-cli-examples =
       - terman-screen -S dev -X select 0
       - terman-screen -X version
       - terman-screen -X help
+      - terman-screen -X time
       - terman-screen -S dev -X sleep 1
       - terman-screen -S dev -X at 0 info
       - terman-screen -S dev -X colon "info"
@@ -36,7 +37,7 @@ builtin-screen-session-name-empty = screen 会话名不能为空。
 builtin-screen-session-record-invalid = 内置 screen 会话记录无效。
 builtin-screen-unexpected-response = 非预期的 screen 响应：{$response}。
 builtin-screen-attach-unsupported = 内置 screen 暂未开放 attach。跨平台 attach 将由内置会话服务处理。
-builtin-screen-attach-help = screen 快捷键：Ctrl-A d 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k 结束会话 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 同步尺寸 | Ctrl-A h 生成 hardcopy | Ctrl-A i 显示信息 | Ctrl-A * 显示 displays | Ctrl-A v 显示版本 | Ctrl-A w 显示窗口 | Ctrl-A ? 显示帮助 | Ctrl-A Ctrl-A 发送字面 Ctrl-A
+builtin-screen-attach-help = screen 快捷键：Ctrl-A d 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k 结束会话 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 同步尺寸 | Ctrl-A h 生成 hardcopy | Ctrl-A i 显示信息 | Ctrl-A * 显示 displays | Ctrl-A t 显示时间 | Ctrl-A v 显示版本 | Ctrl-A w 显示窗口 | Ctrl-A ? 显示帮助 | Ctrl-A Ctrl-A 发送字面 Ctrl-A
 builtin-screen-attach-hardcopy-path-unavailable = 没有可用的 screen attach hardcopy 路径。
 builtin-screen-attach-target-required = 请指定 screen 会话名；当前可能存在多个内置 screen 会话。
 builtin-screen-attach-output-thread-panicked = screen attach 输出线程发生 panic。
@@ -48,13 +49,14 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、sleep、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、sleep、time、version、info、displays、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
 builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、echo、wall、stuff、pastefile、source、detach、pow_detach、resize、select、sleep、version、info、windows、hardcopy、clear、reset、eval、at、colon、sessionname。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
 builtin-screen-control-select-unsupported = 内置 screen 当前只有一个窗口；select 仅支持 0、.、# 或空 selector。收到 `{$selector}`。
 builtin-screen-control-sleep-required = 请按整数秒数指定 sleep 时长：screen -X sleep <秒数>。
+builtin-screen-control-time = screen 时间：unix_seconds={$unix_seconds}
 builtin-screen-control-version = terman-screen {$version} 内置跨平台后端
 builtin-screen-control-info = screen 信息：session={$session_name} replay_bytes={$replay_bytes} attach_clients={$attach_clients} size={$cols}x{$rows}
 builtin-screen-control-displays-entry = displays：session={$session_name} attached_clients={$attach_clients} size={$cols}x{$rows}

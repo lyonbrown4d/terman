@@ -159,6 +159,14 @@ pub fn builtin_screen_control_sleep_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlSleepRequired, &[])
 }
 
+pub fn builtin_screen_control_time_hint(unix_seconds: u64) -> String {
+    let unix_seconds = unix_seconds.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenControlTime,
+        &[("unix_seconds", &unix_seconds)],
+    )
+}
+
 pub fn builtin_screen_control_version_hint(version: &str) -> String {
     localized_message(MessageKey::BuiltinScreenControlVersion, &[("version", version)])
 }
