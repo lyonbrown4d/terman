@@ -247,3 +247,12 @@ fn sends_literal_prefix_with_ctrl_a_a() {
         Some(ScreenInputAction::Bytes(vec![0x01]))
     );
 }
+#[test]
+fn detects_screen_license_prefix() {
+    let mut decoder = ScreenInputDecoder::new();
+    let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let license = KeyEvent::new(KeyCode::Char(','), KeyModifiers::empty());
+
+    assert_eq!(decoder.decode_key(prefix), None);
+    assert_eq!(decoder.decode_key(license), Some(ScreenInputAction::License));
+}

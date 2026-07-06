@@ -17,7 +17,7 @@ use interprocess::local_socket::prelude::*;
 use super::{
     attach_output::{
         print_attach_displays, print_attach_hardcopy, print_attach_help, print_attach_info,
-        print_attach_time, print_attach_version, print_attach_windows,
+        print_attach_license, print_attach_time, print_attach_version, print_attach_windows,
     },
     ipc_client::send_control_request,
 };
@@ -120,6 +120,7 @@ pub(super) fn attach_interactive(
                     Some(ScreenInputAction::PreviousWindow) => {
                         send_control_request(&endpoint, ScreenIpcRequest::PreviousWindow)?;
                     },
+                    Some(ScreenInputAction::License) => print_attach_license()?,
                     Some(ScreenInputAction::Kill) => {
                         send_control_request(&endpoint, ScreenIpcRequest::KillWindow)?;
                     }

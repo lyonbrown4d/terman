@@ -103,6 +103,16 @@ pub(super) fn print_attach_version() -> io::Result<()> {
     stdout.flush()
 }
 
+pub(super) fn print_attach_license() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    stdout.write_all(b"\r\n")?;
+    stdout.write_all(
+        terman_common::builtin_screen_control_license_hint(env!("CARGO_PKG_VERSION")).as_bytes(),
+    )?;
+    stdout.write_all(b"\r\n")?;
+    stdout.flush()
+}
+
 pub(super) fn print_attach_displays(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info {
