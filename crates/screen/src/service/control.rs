@@ -61,7 +61,7 @@ fn execute_control_command(
         "source" => request_source_command(args, inline_payload, extra_args, execute_control_command),
         "screen" => request_new_window_command(args, inline_payload, extra_args),
         "displays" => request_displays_command(args, request_session_response),
-        "windows" => request_windows_command(args, request_session_response),
+        "windows" | "windowlist" => request_windows_command(args, request_session_response),
         "info" => request_info_command(args, request_session_response),
         "hardcopy" => request_hardcopy_command(args, inline_payload, extra_args),
         "log" => request_log_command(args, inline_payload, extra_args),
