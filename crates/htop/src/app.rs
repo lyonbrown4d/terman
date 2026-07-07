@@ -136,7 +136,7 @@ fn poll_until_refresh(
             match event::read()? {
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Mouse(mouse_event) => {
-                    let _ = mouse::handle_mouse(mouse_event, MouseContext {
+                    if mouse::handle_mouse(mouse_event, MouseContext {
                         tab,
                         sort,
                         sort_menu_open,
@@ -145,7 +145,7 @@ fn poll_until_refresh(
                         help_open,
                         selected,
                         processes,
-                    });
+                    }) == mouse::MouseAction::Quit { return Ok(true); }
                 }
                 Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => {}
                 Event::Key(key) if handle_help_input(key.code, help_open) => {}

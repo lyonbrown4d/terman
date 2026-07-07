@@ -11,6 +11,12 @@ use crate::{
     sort_menu,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum MouseAction {
+    Ignored,
+    Handled,
+    Quit,
+}
 pub(crate) struct MouseContext<'a> {
     pub(crate) tab: &'a mut Tab,
     pub(crate) sort: &'a mut SortMode,
@@ -22,58 +28,58 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) processes: &'a [ProcessRow],
 }
 
-pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> bool {
+pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> MouseAction {
     if *context.help_open {
         if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) {
             *context.help_open = false;
         }
-        return true;
+        return MouseAction::Handled;
     }
 
     match event.kind {
         MouseEventKind::ScrollUp => {
             *context.selected = context.selected.saturating_sub(1);
-            true
+            MouseAction::Handled
         }
         MouseEventKind::ScrollDown => {
             *context.selected = move_down(*context.selected, context.processes.len());
-            true
+            MouseAction::Handled
         }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
-        _ => false,
+        _ => MouseAction::Ignored,
     }
 }
 
-fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> bool {
+fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     if *context.sort_menu_open {
         if let Some(mode) = sort_menu::mode_at(terminal_area(), column, row) {
             *context.sort_cursor = mode;
             *context.sort = mode;
         }
         *context.sort_menu_open = false;
-        return true;
+        return MouseAction::Handled;
     }
 
-    if handle_footer(column, row, &mut context) {
-        return true;
+    match handle_footer(column, row, &mut context) {
+        MouseAction::Ignored => {}
+        action => return action,
     }
 
     if let Some(tab) = tab_at(column, row) {
         *context.tab = tab;
-        return true;
+        return MouseAction::Handled;
     }
 
     if let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) {
         *context.selected = index;
-        return true;
+        return MouseAction::Handled;
     }
-
-    false
+    MouseAction::Ignored
 }
 
-fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> bool {
+fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
     if row != terminal_area().height.saturating_sub(1) {
-        return false;
+        return MouseAction::Ignored;
     }
     match footer_action(column) {
         Some(FooterAction::Help) => *context.help_open = true,
@@ -82,15 +88,17 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> bool 
             *context.sort_cursor = *context.sort;
             *context.sort_menu_open = true;
         }
-        None => return false,
+        Some(FooterAction::Quit) => return MouseAction::Quit,
+        None => return MouseAction::Ignored,
     }
-    true
+    MouseAction::Handled
 }
 
 enum FooterAction {
     Help,
     Tree,
     Sort,
+    Quit,
 }
 
 fn footer_action(column: u16) -> Option<FooterAction> {
@@ -98,6 +106,7 @@ fn footer_action(column: u16) -> Option<FooterAction> {
         0..=9 => Some(FooterAction::Help),
         43..=53 => Some(FooterAction::Tree),
         54..=68 => Some(FooterAction::Sort),
+        98..=112 => Some(FooterAction::Quit),
         _ => None,
     }
 }
