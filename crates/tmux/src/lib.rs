@@ -22,6 +22,7 @@ mod session_core;
 mod sessions;
 mod status;
 mod shell;
+mod window_commands;
 
 pub use cli::{TmuxArgs, run_with_binary_parse};
 use builtin::try_run_builtin_tmux_command;
