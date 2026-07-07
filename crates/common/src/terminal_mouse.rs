@@ -5,7 +5,7 @@ pub fn mouse_event_bytes(event: MouseEvent) -> Option<Vec<u8>> {
         MouseEventKind::Down(button) => (button_code(button, event.modifiers)?, 'M'),
         MouseEventKind::Up(button) => (button_code(button, event.modifiers)?, 'm'),
         MouseEventKind::Drag(button) => (button_code(button, event.modifiers)? + 32, 'M'),
-        MouseEventKind::Moved => (modifier_code(event.modifiers) + 35, 'M'),
+        MouseEventKind::Moved => return None,
         MouseEventKind::ScrollUp => (modifier_code(event.modifiers) + 64, 'M'),
         MouseEventKind::ScrollDown => (modifier_code(event.modifiers) + 65, 'M'),
         MouseEventKind::ScrollLeft => (modifier_code(event.modifiers) + 66, 'M'),
@@ -46,6 +46,12 @@ mod tests {
     fn encodes_modified_drag() {
         let event = MouseEvent { kind: MouseEventKind::Drag(MouseButton::Right), column: 9, row: 1, modifiers: KeyModifiers::CONTROL };
         assert_eq!(mouse_event_bytes(event), Some(b"\x1b[<50;10;2M".to_vec()));
+    }
+
+    #[test]
+    fn ignores_buttonless_move_events() {
+        let event = MouseEvent { kind: MouseEventKind::Moved, column: 1, row: 1, modifiers: KeyModifiers::empty() };
+        assert_eq!(mouse_event_bytes(event), None);
     }
 
     #[test]
