@@ -125,6 +125,10 @@ impl Metrics {
         self.networks.refresh(true);
     }
 
+    pub(crate) fn kill_process(&mut self, pid: &str) -> bool {
+        self.system.processes().iter().find(|(candidate, _)| candidate.to_string() == pid).map(|(_, process)| process.kill()).unwrap_or(false)
+    }
+
     pub(crate) fn snapshot(&self, sort: SortMode, filter: &str, tree: bool) -> Snapshot {
         let networks = self.network_rows();
         let processes = self.process_rows(sort, filter, tree);
