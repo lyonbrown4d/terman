@@ -40,11 +40,15 @@ struct TmuxSessionSubscriber {
     sender: mpsc::Sender<TmuxSessionEvent>,
 }
 
-struct TmuxSessionState {
+struct TmuxWindowReplay {
+    index: u32,
     replay: Vec<u8>,
+}
+
+struct TmuxSessionState {
+    windows: Vec<TmuxWindowReplay>,
     subscribers: Vec<TmuxSessionSubscriber>,
     attached_clients: u32,
-    windows: u32,
     active_window: u32,
     cols: Option<u16>,
     rows: Option<u16>,
@@ -82,15 +86,7 @@ impl Drop for TmuxSessionSubscription {
 impl TmuxSessionBus {
     pub(crate) fn new(windows: u32) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(TmuxSessionState {
-                replay: Vec::new(),
-                subscribers: Vec::new(),
-                attached_clients: 0,
-                windows: windows.max(1),
-                active_window: 0,
-                cols: None,
-                rows: None,
-            })),
+            inner: Arc::new(Mutex::new(TmuxSessionState::new(windows))),
         }
     }
 
@@ -101,59 +97,42 @@ impl TmuxSessionBus {
         let (tx, rx) = mpsc::channel();
         let mut active = false;
         let replay = if let Ok(mut state) = self.inner.lock() {
-            let replay = state.replay.clone();
-            state.subscribers.push(TmuxSessionSubscriber {
-                client_id,
-                sender: tx,
-            });
+            let replay = state.active_replay().to_vec();
+            state.subscribers.push(TmuxSessionSubscriber { client_id, sender: tx });
             state.attached_clients = state.attached_clients.saturating_add(1);
             active = true;
             replay
         } else {
             Vec::new()
         };
-
-        (
-            replay,
-            TmuxSessionSubscription {
-                receiver: rx,
-                bus: self.clone(),
-                active,
-            },
-        )
+        (replay, TmuxSessionSubscription { receiver: rx, bus: self.clone(), active })
     }
 
     pub(crate) fn replay_snapshot(&self) -> Vec<u8> {
-        self.inner
-            .lock()
-            .map(|state| state.replay.clone())
-            .unwrap_or_default()
+        self.inner.lock().map(|state| state.active_replay().to_vec()).unwrap_or_default()
     }
 
     pub(crate) fn status_snapshot(&self) -> TmuxSessionStatus {
-        self.inner
-            .lock()
-            .map(|state| TmuxSessionStatus {
-                replay_bytes: state.replay.len(),
-                attached_clients: state.attached_clients,
-                windows: state.windows,
-                active_window: state.active_window,
-                cols: state.cols,
-                rows: state.rows,
-            })
-            .unwrap_or(TmuxSessionStatus {
-                replay_bytes: 0,
-                attached_clients: 0,
-                windows: 1,
-                active_window: 0,
-                cols: None,
-                rows: None,
-            })
+        self.inner.lock().map(|state| TmuxSessionStatus {
+            replay_bytes: state.active_replay().len(),
+            attached_clients: state.attached_clients,
+            windows: state.windows.len().max(1) as u32,
+            active_window: state.active_window,
+            cols: state.cols,
+            rows: state.rows,
+        }).unwrap_or(TmuxSessionStatus {
+            replay_bytes: 0,
+            attached_clients: 0,
+            windows: 1,
+            active_window: 0,
+            cols: None,
+            rows: None,
+        })
     }
 
     pub(crate) fn clear_replay(&self) {
         if let Ok(mut state) = self.inner.lock() {
-            state.replay.clear();
+            state.active_replay_mut().clear();
         }
     }
 
@@ -162,13 +141,18 @@ impl TmuxSessionBus {
     }
 
     pub(crate) fn publish_output(&self, bytes: &[u8]) {
-        self.publish(TmuxSessionEvent::Output(bytes.to_vec()), |state| {
-            state.replay.extend_from_slice(bytes);
-            if state.replay.len() > MAX_REPLAY_BYTES {
-                let overflow = state.replay.len() - MAX_REPLAY_BYTES;
-                state.replay.drain(..overflow);
-            }
-        });
+        let active = self.status_snapshot().active_window;
+        self.publish_window_output(active, bytes);
+    }
+
+    pub(crate) fn publish_window_output(&self, index: u32, bytes: &[u8]) {
+        let Ok(mut state) = self.inner.lock() else {
+            return;
+        };
+        state.append_window_output(index, bytes);
+        if index == state.active_window {
+            send_to_subscribers(&mut state, TmuxSessionEvent::Output(bytes.to_vec()));
+        }
     }
 
     pub(crate) fn publish_resize(&self, cols: u16, rows: u16) {
@@ -180,11 +164,19 @@ impl TmuxSessionBus {
 
     pub(crate) fn set_windows(&self, windows: u32) {
         if let Ok(mut state) = self.inner.lock() {
-            let windows = windows.max(1);
-            state.windows = windows;
-            if state.active_window >= windows {
-                state.active_window = windows - 1;
-            }
+            state.set_window_count(windows.max(1));
+        }
+    }
+
+    pub(crate) fn add_window(&self, index: u32) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.ensure_window(index);
+        }
+    }
+
+    pub(crate) fn remove_window(&self, index: u32) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.remove_window(index);
         }
     }
 
@@ -192,17 +184,21 @@ impl TmuxSessionBus {
         let Ok(mut state) = self.inner.lock() else {
             return false;
         };
-        if index >= state.windows {
+        if !state.has_window(index) {
             return false;
         }
         state.active_window = index;
+        let replay = state.active_replay().to_vec();
+        send_to_subscribers(&mut state, TmuxSessionEvent::Output(b"\x1bc".to_vec()));
+        if !replay.is_empty() {
+            send_to_subscribers(&mut state, TmuxSessionEvent::Output(replay));
+        }
         true
     }
+
     pub(crate) fn detach_client(&self, client_id: &str) {
         if let Ok(mut state) = self.inner.lock() {
-            state
-                .subscribers
-                .retain(|subscriber| subscriber.client_id.as_deref() != Some(client_id));
+            state.subscribers.retain(|subscriber| subscriber.client_id.as_deref() != Some(client_id));
         }
     }
 
@@ -219,59 +215,72 @@ impl TmuxSessionBus {
             return;
         };
         update(&mut state);
-        state
-            .subscribers
-            .retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
+        send_to_subscribers(&mut state, event);
     }
+}
+
+impl TmuxSessionState {
+    fn new(windows: u32) -> Self {
+        let mut state = Self { windows: Vec::new(), subscribers: Vec::new(), attached_clients: 0, active_window: 0, cols: None, rows: None };
+        state.set_window_count(windows.max(1));
+        state
+    }
+
+    fn active_replay(&self) -> &[u8] {
+        self.windows.iter().find(|window| window.index == self.active_window).map(|window| window.replay.as_slice()).unwrap_or(&[])
+    }
+
+    fn active_replay_mut(&mut self) -> &mut Vec<u8> {
+        self.ensure_window(self.active_window);
+        self.windows.iter_mut().find(|window| window.index == self.active_window).map(|window| &mut window.replay).expect("active window exists")
+    }
+
+    fn has_window(&self, index: u32) -> bool {
+        self.windows.iter().any(|window| window.index == index)
+    }
+
+    fn ensure_window(&mut self, index: u32) {
+        if !self.has_window(index) {
+            self.windows.push(TmuxWindowReplay { index, replay: Vec::new() });
+            self.windows.sort_by_key(|window| window.index);
+        }
+    }
+
+    fn append_window_output(&mut self, index: u32, bytes: &[u8]) {
+        self.ensure_window(index);
+        let replay = self.windows.iter_mut().find(|window| window.index == index).expect("window exists");
+        replay.replay.extend_from_slice(bytes);
+        if replay.replay.len() > MAX_REPLAY_BYTES {
+            let overflow = replay.replay.len() - MAX_REPLAY_BYTES;
+            replay.replay.drain(..overflow);
+        }
+    }
+
+    fn set_window_count(&mut self, windows: u32) {
+        for index in 0..windows {
+            self.ensure_window(index);
+        }
+        self.windows.retain(|window| window.index < windows);
+        if !self.has_window(self.active_window) {
+            self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
+        }
+    }
+
+    fn remove_window(&mut self, index: u32) {
+        self.windows.retain(|window| window.index != index);
+        if self.windows.is_empty() {
+            self.ensure_window(0);
+        }
+        if !self.has_window(self.active_window) {
+            self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
+        }
+    }
+}
+
+fn send_to_subscribers(state: &mut TmuxSessionState, event: TmuxSessionEvent) {
+    state.subscribers.retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{TmuxSessionBus, TmuxSessionEvent};
-
-    #[test]
-    fn replays_recent_output_to_attach_clients() {
-        let bus = TmuxSessionBus::new(1);
-        bus.publish_output(b"hello");
-
-        assert_eq!(bus.replay_snapshot(), b"hello".to_vec());
-    }
-
-    #[test]
-    fn subscribes_with_replay_without_losing_snapshot() {
-        let bus = TmuxSessionBus::new(1);
-        bus.publish_output(b"hello");
-        let (replay, subscription) = bus.subscribe_with_replay(None);
-        bus.publish_output(b"!");
-
-        assert_eq!(replay, b"hello".to_vec());
-        assert_eq!(
-            subscription.try_recv(),
-            Ok(TmuxSessionEvent::Output(b"!".to_vec()))
-        );
-    }
-
-    #[test]
-    fn tracks_attach_client_count() {
-        let bus = TmuxSessionBus::new(2);
-        let (_replay, subscription) = bus.subscribe_with_replay(None);
-
-        assert_eq!(bus.status_snapshot().attached_clients, 1);
-        assert_eq!(bus.status_snapshot().windows, 2);
-        assert_eq!(bus.status_snapshot().active_window, 0);
-        drop(subscription);
-        assert_eq!(bus.status_snapshot().attached_clients, 0);
-    }
-
-    #[test]
-    fn detaches_one_attach_client() {
-        let bus = TmuxSessionBus::new(1);
-        let (_replay, subscription) = bus.subscribe_with_replay(Some(String::from("client")));
-
-        bus.detach_client("client");
-
-        assert!(subscription.recv().is_err());
-        drop(subscription);
-        assert_eq!(bus.status_snapshot().attached_clients, 0);
-    }
-}
+#[path = "session_core_tests.rs"]
+mod tests;
