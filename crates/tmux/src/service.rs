@@ -81,13 +81,18 @@ fn handle_client(
             bus.detach_client(&client_id);
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
-        Ok(TmuxIpcRequest::CapturePane) => write_response(
-            stream,
-            &TmuxIpcResponse::Captured {
-                bytes: bus.replay_snapshot(),
-            },
-        ),
-        Ok(TmuxIpcRequest::DetachAll) => {
+        Ok(TmuxIpcRequest::CapturePane { index }) => match bus.window_replay_snapshot(index) {
+            Some(bytes) => write_response(stream, &TmuxIpcResponse::Captured { bytes }),
+            None => write_response(
+                stream,
+                &TmuxIpcResponse::Rejected {
+                    reason: terman_common::builtin_tmux_window_not_found_hint(
+                        "current",
+                        index.unwrap_or_default() as usize,
+                    ),
+                },
+            ),
+        },        Ok(TmuxIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)
         }

@@ -106,6 +106,16 @@ impl TmuxSessionBus {
         self.inner.lock().map(|state| state.active_replay().to_vec()).unwrap_or_default()
     }
 
+    pub(crate) fn window_replay_snapshot(&self, index: Option<u32>) -> Option<Vec<u8>> {
+        self.inner.lock().ok().and_then(|state| {
+            let index = index.unwrap_or(state.active_window);
+            state
+                .windows
+                .iter()
+                .find(|window| window.index == index)
+                .map(|window| window.replay.clone())
+        })
+    }
     pub(crate) fn status_snapshot(&self) -> TmuxSessionStatus {
         self.inner.lock().map(|state| TmuxSessionStatus {
             replay_bytes: state.active_replay().len(),
