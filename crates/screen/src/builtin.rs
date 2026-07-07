@@ -216,7 +216,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
                 Ok(Event::Mouse(mouse)) => {
-                    handle_builtin_mouse(&session_bus, &windows, &mut active_window, mouse);
+                    handle_builtin_mouse(&session_bus, &mut windows, &mut active_window, mouse);
                 }
                 Ok(Event::Key(key)) => {
                     if let Some(bytes) = key_to_bytes(key) {

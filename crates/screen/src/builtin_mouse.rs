@@ -8,7 +8,8 @@ use crossterm::{
 use crate::{
     builtin_output::publish_window_redraw,
     session_core::ScreenSessionBus,
-    window_runtime::{ScreenWindowRuntime, ScreenWindowSwitch, switch_screen_window},
+    terminal_mouse::mouse_event_bytes,
+    window_runtime::{ScreenWindowRuntime, ScreenWindowSwitch, switch_screen_window, write_active_window_input},
 };
 
 pub(crate) fn enable_mouse_capture() -> io::Result<()> {
@@ -21,7 +22,7 @@ pub(crate) fn disable_mouse_capture() {
 
 pub(crate) fn handle_builtin_mouse(
     bus: &ScreenSessionBus,
-    windows: &[ScreenWindowRuntime],
+    windows: &mut [ScreenWindowRuntime],
     active_window: &mut usize,
     event: MouseEvent,
 ) {
@@ -30,13 +31,22 @@ pub(crate) fn handle_builtin_mouse(
         MouseEventKind::ScrollDown => switch_with_mouse(bus, windows, active_window, ScreenWindowSwitch::Next),
         MouseEventKind::Down(MouseButton::Right) => publish_windows(bus),
         MouseEventKind::Down(MouseButton::Middle) => publish_help(bus),
-        _ => {}
+        _ => forward_mouse_event(windows, *active_window, event),
     }
 }
 
+fn forward_mouse_event(
+    windows: &mut [ScreenWindowRuntime],
+    active_window: usize,
+    event: MouseEvent,
+) {
+    if let Some(bytes) = mouse_event_bytes(event) {
+        write_active_window_input(windows, active_window, &bytes);
+    }
+}
 fn switch_with_mouse(
     bus: &ScreenSessionBus,
-    windows: &[ScreenWindowRuntime],
+    windows: &mut [ScreenWindowRuntime],
     active_window: &mut usize,
     target: ScreenWindowSwitch,
 ) {

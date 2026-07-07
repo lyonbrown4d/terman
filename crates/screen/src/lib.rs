@@ -15,6 +15,7 @@ mod screen_exchange;
 mod sessions;
 mod shell;
 mod terminal_input;
+mod terminal_mouse;
 mod window_runtime;
 
 pub use cli::{ScreenArgs, run_with_binary_parse};
