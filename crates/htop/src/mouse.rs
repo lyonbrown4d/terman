@@ -124,7 +124,7 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         *context.tab = tab;
         return MouseAction::Handled;
     }
-    if let Some(mode) = process_header_sort_at(*context.tab, column, row) {
+    if let Some(mode) = table_header_sort_at(*context.tab, column, row) {
         *context.sort = mode;
         *context.sort_cursor = mode;
         return MouseAction::Handled;
@@ -186,16 +186,13 @@ fn tab_at(column: u16, row: u16) -> Option<Tab> {
     }
     None
 }
-fn process_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
-    if tab != Tab::Processes || row != 5 {
-        return None;
-    }
-    match column.saturating_sub(1) {
-        0..=10 => Some(SortMode::Pid),
-        11..=16 => Some(SortMode::Cpu),
-        17..=34 => Some(SortMode::Memory),
-        35..=44 => Some(SortMode::Time),
-        45..=u16::MAX => Some(SortMode::Name),
+fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
+    if row != 5 { return None; }
+    let column = column.saturating_sub(1);
+    match tab {
+        Tab::Processes => match column { 0..=10 => Some(SortMode::Pid), 11..=16 => Some(SortMode::Cpu), 17..=34 => Some(SortMode::Memory), 35..=44 => Some(SortMode::Time), _ => Some(SortMode::Name) },
+        Tab::Io => match column { 0..=10 => Some(SortMode::Pid), 11..=54 => Some(SortMode::Io), _ => Some(SortMode::Name) },
+        _ => None,
     }
 }
 fn row_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {

@@ -40,7 +40,7 @@ impl Metrics {
     pub(crate) fn snapshot(&self, sort: SortMode, filter: &str, tree: bool) -> Snapshot {
         let networks = self.network_rows();
         let processes = self.process_rows(sort, filter, tree);
-        let io = self.io_rows(filter);
+        let io = self.io_rows(sort, filter);
         let sockets = socket_rows(&self.system);
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
@@ -107,7 +107,7 @@ impl Metrics {
         if tree { tree_rows(rows) } else { rows }
     }
 
-    fn io_rows(&self, filter: &str) -> Vec<IoRow> {
+    fn io_rows(&self, sort: SortMode, filter: &str) -> Vec<IoRow> {
         let mut rows: Vec<_> = self
             .system
             .processes()
@@ -126,11 +126,7 @@ impl Metrics {
             })
             .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
             .collect();
-        rows.sort_by(|left, right| {
-            (right.read_rate + right.written_rate)
-                .cmp(&(left.read_rate + left.written_rate))
-                .then_with(|| (right.read + right.written).cmp(&(left.read + left.written)))
-        });
+        rows.sort_by(|left, right| compare_io_row(left, right, sort));
         rows
     }
 
@@ -251,6 +247,15 @@ fn compare_process_io(left: &ProcessRow, right: &ProcessRow) -> Ordering {
     right_rate.cmp(&left_rate).then_with(|| right_total.cmp(&left_total))
 }
 
+fn compare_io_row(left: &IoRow, right: &IoRow, sort: SortMode) -> Ordering {
+    match sort {
+        SortMode::Pid => left.pid.cmp(&right.pid),
+        SortMode::Name => left.name.to_lowercase().cmp(&right.name.to_lowercase()),
+        _ => (right.read_rate + right.written_rate)
+            .cmp(&(left.read_rate + left.written_rate))
+            .then_with(|| (right.read + right.written).cmp(&(left.read + left.written))),
+    }
+}
 fn compare_f32(left: f32, right: f32) -> Ordering {
     left.partial_cmp(&right).unwrap_or(Ordering::Equal)
 }
