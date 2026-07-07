@@ -52,9 +52,18 @@ pub(crate) struct Snapshot {
     pub(crate) received_per_refresh: u64,
     pub(crate) transmitted_per_refresh: u64,
     pub(crate) uptime: u64,
+    pub(crate) system: SystemSummary,
     pub(crate) processes: Vec<ProcessRow>,
     pub(crate) io: Vec<IoRow>,
     pub(crate) networks: Vec<NetworkRow>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SystemSummary {
+    pub(crate) hostname: String,
+    pub(crate) os: String,
+    pub(crate) kernel: String,
+    pub(crate) arch: String,
 }
 
 #[derive(Clone, Debug)]
@@ -125,6 +134,7 @@ impl Metrics {
             received_per_refresh: received,
             transmitted_per_refresh: transmitted,
             uptime: System::uptime(),
+            system: system_summary(),
             processes,
             io,
             networks,
@@ -224,6 +234,15 @@ fn append_tree(
         for child in child_rows {
             append_tree(child, depth + 1, children, seen, output);
         }
+    }
+}
+
+fn system_summary() -> SystemSummary {
+    SystemSummary {
+        hostname: System::host_name().unwrap_or_else(|| "unknown".to_string()),
+        os: System::long_os_version().or_else(System::name).unwrap_or_else(|| "unknown".to_string()),
+        kernel: System::kernel_version().unwrap_or_else(|| "unknown".to_string()),
+        arch: std::env::consts::ARCH.to_string(),
     }
 }
 

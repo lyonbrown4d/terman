@@ -111,6 +111,8 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
         meter_line("CPU", snapshot.cpu_usage as f64, 100.0, 24, format!(
             "{:>5.1}% across {} core(s)", snapshot.cpu_usage, snapshot.cpu_count
         )),
+        plain_line(format!("Host: {}  OS: {}", snapshot.system.hostname, snapshot.system.os)),
+        plain_line(format!("Kernel: {}  Arch: {}", snapshot.system.kernel, snapshot.system.arch)),
         meter_line("Mem", snapshot.used_memory as f64, snapshot.total_memory as f64, 24, format!(
             "{} / {}", format_bytes(snapshot.used_memory), format_bytes(snapshot.total_memory)
         )),
@@ -266,9 +268,9 @@ fn body_rows(area: Rect) -> usize {
 }
 
 fn overview_core_rows(area: Rect, count: usize) -> usize {
-    (area.height as usize).saturating_sub(12).min(count).min(8)
+    (area.height as usize).saturating_sub(14).min(count).min(8)
 }
 
 fn overview_process_rows(area: Rect, core_rows: usize) -> usize {
-    (area.height as usize).saturating_sub(10 + core_rows).min(5)
+    (area.height as usize).saturating_sub(12 + core_rows).min(5)
 }
