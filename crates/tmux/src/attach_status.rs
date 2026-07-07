@@ -12,7 +12,7 @@ use crate::{
     service::request_endpoint_response,
 };
 
-pub(crate) const PREFIX_STATUS: &str = "tmux prefix | c new  x/& kill  n next  p previous  0-9 select  d detach";
+pub(crate) const PREFIX_STATUS: &str = "tmux prefix | c new  x/& kill  n/p switch  d detach  mouse active";
 pub(crate) const KILL_CONFIRM_STATUS: &str = "tmux confirm | kill current window? y yes  n/Esc no";
 
 pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String> {
@@ -22,7 +22,7 @@ pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String
                 let name = window_names.get(position).map(String::as_str).unwrap_or("-");
                 if *index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") }
             }).collect::<Vec<_>>().join(" ");
-            Ok(format!("tmux {session_name} | {windows} | C-b n/p/0-9 switch  C-b d detach"))
+            Ok(format!("tmux {session_name} | {windows} | C-b n/p switch  mouse click/wheel  right list  middle help"))
         }
         TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
         response => Err(io::Error::new(io::ErrorKind::InvalidData, terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")))),
