@@ -16,14 +16,28 @@ pub(crate) struct BuiltinTmuxSession {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) ipc_endpoint: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) window_indexes: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) window_names: Vec<String>,
 }
 
 impl BuiltinTmuxSession {
+    pub(crate) fn window_indices(&self) -> Vec<u32> {
+        let mut indexes = if self.window_indexes.is_empty() {
+            (0..self.windows.max(1)).collect()
+        } else {
+            self.window_indexes.clone()
+        };
+        indexes.sort_unstable();
+        indexes.dedup();
+        indexes
+    }
+
     pub(crate) fn window_name(&self, index: u32) -> String {
-        self.window_names
-            .get(index as usize)
-            .cloned()
+        self.window_indices()
+            .iter()
+            .position(|candidate| *candidate == index)
+            .and_then(|position| self.window_names.get(position).cloned())
             .unwrap_or_else(|| index.to_string())
     }
 }
@@ -35,17 +49,18 @@ pub(crate) enum RenameBuiltinTmuxSession {
     DestinationExists,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum AddBuiltinTmuxWindow {
-    Added(u32),
+    Added { windows: u32, index: u32, name: String },
     SessionMissing,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum KillBuiltinTmuxWindow {
-    Killed(u32),
+    Killed { windows: u32, index: u32 },
     SessionKilled,
     SessionMissing,
+    WindowMissing,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -85,6 +100,7 @@ mod tests {
                 command: None,
                 pid: None,
                 ipc_endpoint: None,
+                window_indexes: Vec::new(),
                 window_names: Vec::new(),
             }
         );
@@ -100,6 +116,7 @@ mod tests {
             command: None,
             pid: None,
             ipc_endpoint: None,
+            window_indexes: Vec::new(),
             window_names: Vec::new(),
         };
 

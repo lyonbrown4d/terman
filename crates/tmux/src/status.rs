@@ -25,6 +25,7 @@ struct TmuxSessionJson {
     windows: u32,
     attached_clients: u32,
     active_window: u32,
+    window_indexes: Vec<u32>,
     window_names: Vec<String>,
 }
 
@@ -148,9 +149,8 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
 }
 
 fn tmux_session_json(session: LiveTmuxSession) -> TmuxSessionJson {
-    let window_names = (0..session.windows)
-        .map(|index| session.record.window_name(index))
-        .collect();
+    let window_indexes = session.record.window_indices();
+    let window_names = window_indexes.iter().map(|index| session.record.window_name(*index)).collect();
     TmuxSessionJson {
         id: session
             .record
@@ -165,6 +165,7 @@ fn tmux_session_json(session: LiveTmuxSession) -> TmuxSessionJson {
         windows: session.windows,
         attached_clients: session.attached_clients,
         active_window: session.active_window,
+        window_indexes,
         window_names,
     }
 }

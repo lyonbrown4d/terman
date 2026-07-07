@@ -28,6 +28,7 @@ pub(crate) fn register_builtin_tmux_session(
         command,
         pid,
         ipc_endpoint: Some(ipc_endpoint.raw_name().to_string()),
+        window_indexes: vec![0],
         window_names: vec![String::from("0")],
     })
 }
@@ -35,7 +36,8 @@ pub(crate) fn register_builtin_tmux_session(
 pub(crate) fn load_builtin_tmux_sessions() -> io::Result<Vec<BuiltinTmuxSession>> {
     let mut sessions = Vec::new();
     for path in session_record_paths()? {
-        if let Some(session) = read_session_record(&path) {
+        if let Some(mut session) = read_session_record(&path) {
+            ensure_window_model(&mut session);
             sessions.push(session);
         }
     }
@@ -45,37 +47,44 @@ pub(crate) fn load_builtin_tmux_sessions() -> io::Result<Vec<BuiltinTmuxSession>
 }
 
 pub(crate) fn builtin_tmux_session_exists(name: &str) -> io::Result<bool> {
-    Ok(load_builtin_tmux_sessions()?
-        .into_iter()
-        .any(|session| session.name == name))
+    Ok(load_builtin_tmux_sessions()?.into_iter().any(|session| session.name == name))
 }
 
 pub(crate) fn add_builtin_tmux_window(name: &str) -> io::Result<AddBuiltinTmuxWindow> {
     let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
         return Ok(AddBuiltinTmuxWindow::SessionMissing);
     };
-    ensure_window_names(&mut session);
-    let next_index = session.windows;
-    session.windows = session.windows.saturating_add(1);
-    session.window_names.push(next_index.to_string());
+    ensure_window_model(&mut session);
+    let next_index = session.window_indexes.iter().copied().max().unwrap_or(0) + 1;
+    let window_name = next_index.to_string();
+    session.window_indexes.push(next_index);
+    session.window_names.push(window_name.clone());
+    session.windows = session.window_indexes.len() as u32;
     replace_session_record(&path, &session)?;
-    Ok(AddBuiltinTmuxWindow::Added(session.windows))
+    Ok(AddBuiltinTmuxWindow::Added { windows: session.windows, index: next_index, name: window_name })
 }
 
-pub(crate) fn kill_builtin_tmux_window(name: &str) -> io::Result<KillBuiltinTmuxWindow> {
+pub(crate) fn kill_builtin_tmux_window(name: &str, target: Option<u32>) -> io::Result<KillBuiltinTmuxWindow> {
     let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
         return Ok(KillBuiltinTmuxWindow::SessionMissing);
     };
-    ensure_window_names(&mut session);
-    if session.windows <= 1 {
+    ensure_window_model(&mut session);
+    let index = target.unwrap_or_else(|| *session.window_indexes.last().unwrap_or(&0));
+    let Some(position) = session.window_indexes.iter().position(|candidate| *candidate == index) else {
+        return Ok(KillBuiltinTmuxWindow::WindowMissing);
+    };
+    if session.window_indexes.len() <= 1 {
         remove_session_record(&path)?;
         return Ok(KillBuiltinTmuxWindow::SessionKilled);
     }
 
-    session.windows -= 1;
-    let _ = session.window_names.pop();
+    session.window_indexes.remove(position);
+    if position < session.window_names.len() {
+        session.window_names.remove(position);
+    }
+    session.windows = session.window_indexes.len() as u32;
     replace_session_record(&path, &session)?;
-    Ok(KillBuiltinTmuxWindow::Killed(session.windows))
+    Ok(KillBuiltinTmuxWindow::Killed { windows: session.windows, index })
 }
 
 pub(crate) fn rename_builtin_tmux_window(
@@ -86,8 +95,11 @@ pub(crate) fn rename_builtin_tmux_window(
     let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
         return Ok(RenameBuiltinTmuxWindow::SessionMissing);
     };
-    ensure_window_names(&mut session);
-    let Some(window_name) = session.window_names.get_mut(index) else {
+    ensure_window_model(&mut session);
+    let Some(position) = session.window_indexes.iter().position(|candidate| *candidate == index as u32) else {
+        return Ok(RenameBuiltinTmuxWindow::WindowMissing);
+    };
+    let Some(window_name) = session.window_names.get_mut(position) else {
         return Ok(RenameBuiltinTmuxWindow::WindowMissing);
     };
 
@@ -96,10 +108,7 @@ pub(crate) fn rename_builtin_tmux_window(
     Ok(RenameBuiltinTmuxWindow::Renamed)
 }
 
-pub(crate) fn rename_builtin_tmux_session(
-    old_name: &str,
-    new_name: &str,
-) -> io::Result<RenameBuiltinTmuxSession> {
+pub(crate) fn rename_builtin_tmux_session(old_name: &str, new_name: &str) -> io::Result<RenameBuiltinTmuxSession> {
     if builtin_tmux_session_exists(new_name)? {
         return Ok(RenameBuiltinTmuxSession::DestinationExists);
     }
@@ -119,10 +128,7 @@ pub(crate) fn rename_builtin_tmux_session(
 pub(crate) fn remove_builtin_tmux_session(name: &str) -> io::Result<bool> {
     let mut removed = false;
     for path in session_record_paths()? {
-        if read_session_record(&path)
-            .map(|session| session.name == name)
-            .unwrap_or(false)
-        {
+        if read_session_record(&path).map(|session| session.name == name).unwrap_or(false) {
             remove_session_record(&path)?;
             removed = true;
         }
@@ -132,9 +138,10 @@ pub(crate) fn remove_builtin_tmux_session(name: &str) -> io::Result<bool> {
 
 fn find_builtin_tmux_session(name: &str) -> io::Result<Option<(PathBuf, BuiltinTmuxSession)>> {
     for path in session_record_paths()? {
-        let Some(session) = read_session_record(&path) else {
+        let Some(mut session) = read_session_record(&path) else {
             continue;
         };
+        ensure_window_model(&mut session);
         if session.name == name {
             return Ok(Some((path, session)));
         }
@@ -142,13 +149,16 @@ fn find_builtin_tmux_session(name: &str) -> io::Result<Option<(PathBuf, BuiltinT
     Ok(None)
 }
 
-fn ensure_window_names(session: &mut BuiltinTmuxSession) {
-    if session.windows == 0 {
-        session.windows = 1;
+fn ensure_window_model(session: &mut BuiltinTmuxSession) {
+    let mut indexes = session.window_indices();
+    if indexes.is_empty() {
+        indexes.push(0);
     }
-    let window_count = session.windows as usize;
-    while session.window_names.len() < window_count {
-        session.window_names.push(session.window_names.len().to_string());
+    session.windows = indexes.len() as u32;
+    session.window_indexes = indexes;
+    while session.window_names.len() < session.window_indexes.len() {
+        let index = session.window_indexes[session.window_names.len()];
+        session.window_names.push(index.to_string());
     }
-    session.window_names.truncate(window_count);
+    session.window_names.truncate(session.window_indexes.len());
 }
