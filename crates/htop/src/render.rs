@@ -10,6 +10,7 @@ use crate::{
     core_meter::core_meter_lines,
     format::{format_bytes, format_duration, meter_fill},
     metrics::{ProcessRow, Snapshot, SortMode},
+    process_detail::process_detail_lines,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -138,7 +139,8 @@ fn draw_processes(
     selected: usize,
     filter: &str,
 ) {
-    let visible = body_rows(area);
+    let details = process_detail_lines(snapshot.processes.get(selected));
+    let visible = body_rows(area).saturating_sub(details.len() + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
     let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
     lines.push(plain_line(format!(
@@ -151,6 +153,8 @@ fn draw_processes(
     for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
         lines.push(process_line(row, start + offset == selected));
     }
+    lines.push(title_line("DETAILS"));
+    lines.extend(details);
     render_block(frame, area, "Processes", lines);
 }
 

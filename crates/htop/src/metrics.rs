@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use sysinfo::{Networks, System};
+use sysinfo::{Networks, Process, System};
 
 pub(crate) struct Metrics {
     system: System,
@@ -68,6 +68,9 @@ pub(crate) struct ProcessRow {
     pub(crate) pid: String,
     pub(crate) parent_pid: Option<String>,
     pub(crate) depth: usize,
+    pub(crate) status: String,
+    pub(crate) run_time: u64,
+    pub(crate) command: String,
     pub(crate) cpu: f32,
     pub(crate) memory: u64,
     pub(crate) name: String,
@@ -141,6 +144,9 @@ impl Metrics {
                 pid: pid.to_string(),
                 parent_pid: process.parent().map(|parent| parent.to_string()),
                 depth: 0,
+                status: format!("{:?}", process.status()),
+                run_time: process.run_time(),
+                command: command_line(process),
                 cpu: process.cpu_usage(),
                 memory: process.memory(),
                 name: process.name().to_string_lossy().into_owned(),
@@ -219,6 +225,14 @@ fn append_tree(
             append_tree(child, depth + 1, children, seen, output);
         }
     }
+}
+
+fn command_line(process: &Process) -> String {
+    let parts = process.cmd();
+    if parts.is_empty() {
+        return process.name().to_string_lossy().into_owned();
+    }
+    parts.iter().map(|part| part.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ")
 }
 
 fn process_matches(pid: &str, name: &str, filter: &str) -> bool {
