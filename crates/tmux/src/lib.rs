@@ -14,6 +14,7 @@ mod cli;
 mod clients;
 mod command;
 mod detach_client;
+mod di;
 mod history;
 mod ipc;
 mod lifecycle;
@@ -40,6 +41,10 @@ use command::TmuxCommand;
 use server::{TmuxServerConfig, run_tmux_server};
 
 pub fn run(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
+    di::run(args)
+}
+
+pub(crate) fn run_command(args: TmuxArgs) -> Result<(), Box<dyn Error>> {
     if args.internal_server {
         return run_tmux_server(TmuxServerConfig::from_args(args)?);
     }
@@ -78,9 +83,3 @@ mod tests {
         assert_eq!(unsupported_command_name(&["--detached".into()]), "unknown");
     }
 }
-
-
-
-
-
-

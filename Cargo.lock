@@ -1683,6 +1683,7 @@ dependencies = [
  "clap",
  "crossterm",
  "directories",
+ "fluxdi",
  "interprocess",
  "portable-pty",
  "serde",

@@ -2,7 +2,7 @@ use std::error::Error;
 
 use clap::{Args, CommandFactory, FromArgMatches, Parser};
 
-#[derive(Args, Debug)]
+#[derive(Clone, Args, Debug)]
 pub struct TmuxArgs {
     /// 等价于 tmux -d，启动会话前台/后台分离。
     /// 已开启 `--detached` 且未显式使用 `new/new-session` 时，tmux 可能按默认行为忽略或返回不同结果。
