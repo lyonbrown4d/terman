@@ -39,6 +39,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         }
         return MouseAction::Handled;
     }
+    if context.kill_target.is_some() { return if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) { click(event.column, event.row, context) } else { MouseAction::Handled }; }
     match event.kind {
         MouseEventKind::ScrollUp => {
             if sort_menu_scroll(&mut context, false) {
