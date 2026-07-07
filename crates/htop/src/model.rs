@@ -45,6 +45,7 @@ pub(crate) struct Snapshot {
     pub(crate) processes: Vec<ProcessRow>,
     pub(crate) io: Vec<IoRow>,
     pub(crate) networks: Vec<NetworkRow>,
+    pub(crate) sockets: Vec<SocketRow>,
 }
 
 #[derive(Clone, Debug)]
@@ -102,4 +103,13 @@ pub(crate) struct NetworkRow {
     pub(crate) transmitted: u64,
     pub(crate) total_received: u64,
     pub(crate) total_transmitted: u64,
+}
+#[derive(Clone, Debug)]
+pub(crate) struct SocketRow {
+    pub(crate) protocol: String,
+    pub(crate) local: String,
+    pub(crate) remote: String,
+    pub(crate) state: String,
+    pub(crate) pid: String,
+    pub(crate) process: String,
 }

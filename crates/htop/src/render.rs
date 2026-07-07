@@ -11,6 +11,7 @@ use crate::{
     footer::footer_line,
     format::{format_bytes, format_duration},
     meter::meter_line,
+    network_view::draw_network,
     model::{ProcessRow, Snapshot, SortMode},
     process_detail::process_detail_lines,
     process_status::status_summary_line,
@@ -188,37 +189,6 @@ fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
         )));
     }
     render_block(frame, area, "I/O", lines);
-}
-
-fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
-    let mut lines = vec![title_line("IFACE                 RX/s      TX/s      TOTAL RX   TOTAL TX")];
-    lines.push(network_total_line(snapshot));
-    for row in snapshot.networks.iter().take(body_rows(area)) {
-        lines.push(plain_line(format!(
-            "{:<20} {:>8} {:>8} {:>10} {:>10}",
-            row.name,
-            format_bytes(row.received),
-            format_bytes(row.transmitted),
-            format_bytes(row.total_received),
-            format_bytes(row.total_transmitted)
-        )));
-    }
-    render_block(frame, area, "Network", lines);
-}
-
-fn network_total_line(snapshot: &Snapshot) -> Line<'static> {
-    let rx = snapshot.networks.iter().map(|row| row.received).sum();
-    let tx = snapshot.networks.iter().map(|row| row.transmitted).sum();
-    let total_rx = snapshot.networks.iter().map(|row| row.total_received).sum();
-    let total_tx = snapshot.networks.iter().map(|row| row.total_transmitted).sum();
-    plain_line(format!(
-        "{:<20} {:>8} {:>8} {:>10} {:>10}",
-        "TOTAL",
-        format_bytes(rx),
-        format_bytes(tx),
-        format_bytes(total_rx),
-        format_bytes(total_tx)
-    ))
 }
 
 fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) -> Line<'static> {

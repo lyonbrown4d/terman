@@ -5,6 +5,7 @@ use std::{
 
 use sysinfo::{Networks, Process, System};
 
+use crate::network::socket_rows;
 use crate::model::{
     CpuCore, IoRow, LoadAverage, NetworkRow, ProcessRow, Snapshot, SortMode, SystemSummary,
 };
@@ -40,6 +41,7 @@ impl Metrics {
         let networks = self.network_rows();
         let processes = self.process_rows(sort, filter, tree);
         let io = self.io_rows(filter);
+        let sockets = socket_rows(&self.system);
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
         Snapshot {
@@ -60,6 +62,7 @@ impl Metrics {
             processes,
             io,
             networks,
+            sockets,
         }
     }
 

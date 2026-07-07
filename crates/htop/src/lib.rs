@@ -9,6 +9,8 @@ mod help;
 mod metrics;
 mod meter;
 mod model;
+mod network;
+mod network_view;
 mod process_detail;
 mod process_status;
 mod render;
