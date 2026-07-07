@@ -177,6 +177,7 @@ fn poll_until_refresh(
                         cpu_core_count,
                         filter: filter_input.as_deref().unwrap_or(filter.as_str()),
                         search: search_input.as_deref().unwrap_or(search.as_str()),
+                        kill_target: kill_target.as_deref(),
                         refresh_ms: *refresh_ms,
                     });
                     match action {
@@ -184,6 +185,8 @@ fn poll_until_refresh(
                         mouse::MouseAction::Search => *search_input = Some(search.clone()),
                         mouse::MouseAction::Filter => *filter_input = Some(filter.clone()),
                         mouse::MouseAction::Kill => *kill_target = selected_process_pid(processes, *selected),
+                        mouse::MouseAction::ConfirmKill => confirm_mouse_kill(metrics, kill_target),
+                        mouse::MouseAction::CancelKill => *kill_target = None,
                         mouse::MouseAction::DelayFaster => adjust_refresh(refresh_ms, KeyCode::Char('+')),
                         mouse::MouseAction::DelaySlower => adjust_refresh(refresh_ms, KeyCode::Char('-')),
                         _ => {}
@@ -220,6 +223,10 @@ fn poll_until_refresh(
     Ok(false)
 }
 
+fn confirm_mouse_kill(metrics: &mut Metrics, kill_target: &mut Option<String>) {
+    if let Some(pid) = kill_target.clone() { let _ = metrics.kill_process(pid.as_str()); }
+    *kill_target = None;
+}
 fn handle_kill_input(code: KeyCode, metrics: &mut Metrics, kill_target: &mut Option<String>) -> bool {
     let Some(pid) = kill_target.clone() else { return false; };
     match code {

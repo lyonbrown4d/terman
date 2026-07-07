@@ -13,6 +13,8 @@ pub(crate) enum FooterAction {
     Tree,
     Sort,
     Kill,
+    ConfirmKill,
+    CancelKill,
     DelayFaster,
     DelaySlower,
     Quit,
@@ -27,7 +29,7 @@ pub(crate) fn footer_line(
     refresh_ms: u64,
     kill_target: Option<&str>,
 ) -> Line<'static> {
-    Line::from(vec![
+    let mut spans = vec![
         key_span("F1"), value_span(" Help ".to_string()),
         key_span("F3"), value_span(format!(" Search:{} ", value_label(search))),
         key_span("F4"), value_span(format!(" Filter:{} ", value_label(filter))),
@@ -36,8 +38,9 @@ pub(crate) fn footer_line(
         key_span("F9"), value_span(" Kill ".to_string()),
         key_span("+/-"), value_span(format!(" Delay:{}ms ", refresh_ms)),
         key_span("F10"), value_span(" Quit ".to_string()),
-        Span::styled(prompt_text(filtering, searching, kill_target), Style::default().fg(Color::Gray)),
-    ])
+    ];
+    spans.extend(prompt_spans(filtering, searching, kill_target));
+    Line::from(spans)
 }
 
 pub(crate) fn footer_action_at(
@@ -47,6 +50,7 @@ pub(crate) fn footer_action_at(
     filter: &str,
     search: &str,
     refresh_ms: u64,
+    kill_target: Option<&str>,
 ) -> Option<FooterAction> {
     let segments = [
         (FooterAction::Help, button_width("F1", " Help ".to_string())),
@@ -69,9 +73,26 @@ pub(crate) fn footer_action_at(
         }
         start = end;
     }
-    None
+    kill_target.and_then(|pid| kill_prompt_action_at(column.saturating_sub(start), pid))
 }
 
+fn prompt_spans(filtering: bool, searching: bool, kill_target: Option<&str>) -> Vec<Span<'static>> {
+    let Some(pid) = kill_target else { return vec![Span::styled(prompt_text(filtering, searching, None), Style::default().fg(Color::Gray))]; };
+    vec![
+        Span::styled(format!(" confirm kill pid {pid}: "), Style::default().fg(Color::Gray)),
+        key_span("Y"), value_span(" Yes ".to_string()),
+        key_span("N"), value_span(" No ".to_string()),
+    ]
+}
+
+fn kill_prompt_action_at(column: u16, pid: &str) -> Option<FooterAction> {
+    let mut start = format!(" confirm kill pid {pid}: ").chars().count() as u16;
+    let yes = button_width("Y", " Yes ".to_string());
+    if column >= start && column < start.saturating_add(yes) { return Some(FooterAction::ConfirmKill); }
+    start = start.saturating_add(yes);
+    let no = button_width("N", " No ".to_string());
+    if column >= start && column < start.saturating_add(no) { Some(FooterAction::CancelKill) } else { None }
+}
 fn button_width(key: &str, value: String) -> u16 {
     key.chars().count() as u16 + 2 + value.chars().count() as u16
 }

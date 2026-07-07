@@ -11,16 +11,7 @@ use crate::{
     sort_menu,
 };
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum MouseAction {
-    Ignored,
-    Handled,
-    Search,
-    Filter,
-    Kill,
-    DelayFaster,
-    DelaySlower,
-    Quit,
-}
+pub(crate) enum MouseAction { Ignored, Handled, Search, Filter, Kill, ConfirmKill, CancelKill, DelayFaster, DelaySlower, Quit }
 pub(crate) struct MouseContext<'a> {
     pub(crate) tab: &'a mut Tab,
     pub(crate) sort: &'a mut SortMode,
@@ -38,6 +29,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) cpu_core_count: usize,
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
+    pub(crate) kill_target: Option<&'a str>,
     pub(crate) refresh_ms: u64,
 }
 pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> MouseAction {
@@ -151,6 +143,7 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
         context.filter,
         context.search,
         context.refresh_ms,
+        context.kill_target,
     ) {
         Some(FooterAction::Help) => *context.help_open = true,
         Some(FooterAction::Search) => return MouseAction::Search,
@@ -161,6 +154,8 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
             *context.sort_menu_open = true;
         }
         Some(FooterAction::Kill) => return MouseAction::Kill,
+        Some(FooterAction::ConfirmKill) => return MouseAction::ConfirmKill,
+        Some(FooterAction::CancelKill) => return MouseAction::CancelKill,
         Some(FooterAction::DelayFaster) => return MouseAction::DelayFaster,
         Some(FooterAction::DelaySlower) => return MouseAction::DelaySlower,
         Some(FooterAction::Quit) => return MouseAction::Quit,
