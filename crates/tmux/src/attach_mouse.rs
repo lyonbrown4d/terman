@@ -53,6 +53,7 @@ pub(crate) fn handle_attach_mouse(
         MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => select_relative_window(endpoint, state, false),
         MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => select_relative_window(endpoint, state, true),
         MouseEventKind::Down(MouseButton::Left) => select_clicked_window(endpoint, state, event.column),
+        MouseEventKind::Drag(MouseButton::Left) => select_dragged_window(endpoint, state, event.column),
         MouseEventKind::Down(MouseButton::Right) => show_window_list(endpoint, state),
         MouseEventKind::Down(MouseButton::Middle) => { state.clear(); render_status_line(&terman_common::builtin_tmux_attach_help()) }
         _ => Ok(()),
@@ -99,6 +100,23 @@ fn select_clicked_window(endpoint: &TmuxIpcEndpoint, state: &mut AttachMouseStat
     Ok(())
 }
 
+fn select_dragged_window(endpoint: &TmuxIpcEndpoint, state: &mut AttachMouseState, column: u16) -> io::Result<()> {
+    let list_open = state.list_open();
+    if let Some(index) = state.window_at(column) {
+        state.clear();
+        select_window(endpoint, index)?;
+        return render_current_status(endpoint);
+    }
+    if list_open {
+        state.clear();
+        return render_current_status(endpoint);
+    }
+    if let Some(StatusClickTarget::Window(index)) = clicked_status_target(endpoint, column)? {
+        select_window(endpoint, index)?;
+        render_current_status(endpoint)?;
+    }
+    Ok(())
+}
 fn clicked_status_target(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<Option<StatusClickTarget>> {
     match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } => {
