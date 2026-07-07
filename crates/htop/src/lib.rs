@@ -2,6 +2,7 @@ use std::error::Error;
 
 mod app;
 mod cli;
+mod core_meter;
 mod format;
 mod metrics;
 mod render;

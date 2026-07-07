@@ -42,6 +42,7 @@ impl SortMode {
 pub(crate) struct Snapshot {
     pub(crate) cpu_usage: f32,
     pub(crate) cpu_count: usize,
+    pub(crate) cpu_cores: Vec<CpuCore>,
     pub(crate) total_memory: u64,
     pub(crate) used_memory: u64,
     pub(crate) total_swap: u64,
@@ -54,6 +55,12 @@ pub(crate) struct Snapshot {
     pub(crate) processes: Vec<ProcessRow>,
     pub(crate) io: Vec<IoRow>,
     pub(crate) networks: Vec<NetworkRow>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct CpuCore {
+    pub(crate) index: usize,
+    pub(crate) usage: f32,
 }
 
 #[derive(Clone, Debug)]
@@ -105,6 +112,7 @@ impl Metrics {
         Snapshot {
             cpu_usage: self.system.global_cpu_usage(),
             cpu_count: self.system.cpus().len(),
+            cpu_cores: self.cpu_rows(),
             total_memory: self.system.total_memory(),
             used_memory: self.system.used_memory(),
             total_swap: self.system.total_swap(),
@@ -118,6 +126,13 @@ impl Metrics {
             io,
             networks,
         }
+    }
+
+    fn cpu_rows(&self) -> Vec<CpuCore> {
+        self.system.cpus().iter().enumerate().map(|(index, cpu)| CpuCore {
+            index,
+            usage: cpu.cpu_usage(),
+        }).collect()
     }
 
     fn process_rows(&self, sort: SortMode, filter: &str, tree: bool) -> Vec<ProcessRow> {

@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::{
+    core_meter::core_meter_lines,
     format::{format_bytes, format_duration, meter_fill},
     metrics::{ProcessRow, Snapshot, SortMode},
 };
@@ -101,6 +102,7 @@ fn tab_span(active: Tab, tab: Tab, label: String) -> Span<'static> {
 }
 
 fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selected: usize) {
+    let core_rows = overview_core_rows(area, snapshot.cpu_cores.len());
     let mut lines = vec![
         meter_line("CPU", snapshot.cpu_usage as f64, 100.0, 24, format!(
             "{:>5.1}% across {} core(s)", snapshot.cpu_usage, snapshot.cpu_count
@@ -118,9 +120,10 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
             format_bytes(snapshot.transmitted_per_refresh)
         )),
         plain_line(format!("Uptime: {}", format_duration(snapshot.uptime))),
-        title_line("TOP PROCESSES"),
     ];
-    for (index, row) in snapshot.processes.iter().take(overview_rows(area)).enumerate() {
+    lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
+    lines.push(title_line("TOP PROCESSES"));
+    for (index, row) in snapshot.processes.iter().take(overview_process_rows(area, core_rows)).enumerate() {
         lines.push(process_line(row, index == selected));
     }
     render_block(frame, area, "Overview", lines);
@@ -276,6 +279,10 @@ fn body_rows(area: Rect) -> usize {
     area.height.saturating_sub(4) as usize
 }
 
-fn overview_rows(area: Rect) -> usize {
-    area.height.saturating_sub(10).min(5) as usize
+fn overview_core_rows(area: Rect, count: usize) -> usize {
+    (area.height as usize).saturating_sub(12).min(count).min(8)
+}
+
+fn overview_process_rows(area: Rect, core_rows: usize) -> usize {
+    (area.height as usize).saturating_sub(10 + core_rows).min(5)
 }
