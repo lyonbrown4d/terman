@@ -5,6 +5,7 @@ use crossterm::{
 use ratatui::layout::Rect;
 
 use crate::{
+    footer::{self, FooterAction},
     model::{ProcessRow, SortMode},
     process_detail::process_detail_lines,
     render::Tab,
@@ -15,8 +16,14 @@ use crate::{
 pub(crate) enum MouseAction {
     Ignored,
     Handled,
+    Search,
+    Filter,
+    Kill,
+    DelayFaster,
+    DelaySlower,
     Quit,
 }
+
 pub(crate) struct MouseContext<'a> {
     pub(crate) tab: &'a mut Tab,
     pub(crate) sort: &'a mut SortMode,
@@ -26,6 +33,9 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) help_open: &'a mut bool,
     pub(crate) selected: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
+    pub(crate) filter: &'a str,
+    pub(crate) search: &'a str,
+    pub(crate) refresh_ms: u64,
 }
 
 pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> MouseAction {
@@ -81,35 +91,31 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
     if row != terminal_area().height.saturating_sub(1) {
         return MouseAction::Ignored;
     }
-    match footer_action(column) {
+    match footer::footer_action_at(
+        column,
+        *context.sort,
+        *context.tree,
+        context.filter,
+        context.search,
+        context.refresh_ms,
+    ) {
         Some(FooterAction::Help) => *context.help_open = true,
+        Some(FooterAction::Search) => return MouseAction::Search,
+        Some(FooterAction::Filter) => return MouseAction::Filter,
         Some(FooterAction::Tree) => *context.tree = !*context.tree,
         Some(FooterAction::Sort) => {
             *context.sort_cursor = *context.sort;
             *context.sort_menu_open = true;
         }
+        Some(FooterAction::Kill) => return MouseAction::Kill,
+        Some(FooterAction::DelayFaster) => return MouseAction::DelayFaster,
+        Some(FooterAction::DelaySlower) => return MouseAction::DelaySlower,
         Some(FooterAction::Quit) => return MouseAction::Quit,
         None => return MouseAction::Ignored,
     }
     MouseAction::Handled
 }
 
-enum FooterAction {
-    Help,
-    Tree,
-    Sort,
-    Quit,
-}
-
-fn footer_action(column: u16) -> Option<FooterAction> {
-    match column {
-        0..=9 => Some(FooterAction::Help),
-        43..=53 => Some(FooterAction::Tree),
-        54..=68 => Some(FooterAction::Sort),
-        98..=112 => Some(FooterAction::Quit),
-        _ => None,
-    }
-}
 fn tab_at(column: u16, row: u16) -> Option<Tab> {
     if row != 2 {
         return None;

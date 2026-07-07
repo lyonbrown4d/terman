@@ -5,6 +5,18 @@ use ratatui::{
 
 use crate::model::SortMode;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum FooterAction {
+    Help,
+    Search,
+    Filter,
+    Tree,
+    Sort,
+    Kill,
+    DelayFaster,
+    DelaySlower,
+    Quit,
+}
 pub(crate) fn footer_line(
     sort: SortMode,
     tree: bool,
@@ -28,6 +40,41 @@ pub(crate) fn footer_line(
     ])
 }
 
+pub(crate) fn footer_action_at(
+    column: u16,
+    sort: SortMode,
+    tree: bool,
+    filter: &str,
+    search: &str,
+    refresh_ms: u64,
+) -> Option<FooterAction> {
+    let segments = [
+        (FooterAction::Help, button_width("F1", " Help ".to_string())),
+        (FooterAction::Search, button_width("F3", format!(" Search:{} ", value_label(search)))),
+        (FooterAction::Filter, button_width("F4", format!(" Filter:{} ", value_label(filter)))),
+        (FooterAction::Tree, button_width("F5", format!(" {} ", view_label(tree)))),
+        (FooterAction::Sort, button_width("F6", format!(" Sort:{} ", sort.label()))),
+        (FooterAction::Kill, button_width("F9", " Kill ".to_string())),
+        (FooterAction::DelayFaster, button_width("+/-", format!(" Delay:{}ms ", refresh_ms))),
+        (FooterAction::Quit, button_width("F10", " Quit ".to_string())),
+    ];
+    let mut start = 0u16;
+    for (action, width) in segments {
+        let end = start.saturating_add(width);
+        if column >= start && column < end {
+            if action == FooterAction::DelayFaster && column.saturating_sub(start) >= width / 2 {
+                return Some(FooterAction::DelaySlower);
+            }
+            return Some(action);
+        }
+        start = end;
+    }
+    None
+}
+
+fn button_width(key: &str, value: String) -> u16 {
+    key.chars().count() as u16 + 2 + value.chars().count() as u16
+}
 fn key_span(key: &'static str) -> Span<'static> {
     Span::styled(format!(" {key} "), Style::default().fg(Color::Black).bg(Color::Cyan))
 }

@@ -16,7 +16,8 @@ use crate::{
     app_input::{
         adjust_refresh, clamp_selection, delay_key, filter_key, find_next, help_key, kill_key,
         move_selection, navigation_key, next_tab, quit_key, search_key, sort_key, tree_key,
-    },    cli::HtopArgs,
+    },
+    cli::HtopArgs,
     help,
     metrics::Metrics,
     model::{ProcessRow, SortMode},
@@ -139,7 +140,7 @@ fn poll_until_refresh(
             match event::read()? {
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Mouse(mouse_event) => {
-                    if mouse::handle_mouse(mouse_event, MouseContext {
+                    let action = mouse::handle_mouse(mouse_event, MouseContext {
                         tab,
                         sort,
                         sort_menu_open,
@@ -148,7 +149,19 @@ fn poll_until_refresh(
                         help_open,
                         selected,
                         processes,
-                    }) == mouse::MouseAction::Quit { return Ok(true); }
+                        filter: filter_input.as_deref().unwrap_or(filter.as_str()),
+                        search: search_input.as_deref().unwrap_or(search.as_str()),
+                        refresh_ms: *refresh_ms,
+                    });
+                    match action {
+                        mouse::MouseAction::Quit => return Ok(true),
+                        mouse::MouseAction::Search => *search_input = Some(search.clone()),
+                        mouse::MouseAction::Filter => *filter_input = Some(filter.clone()),
+                        mouse::MouseAction::Kill => *kill_target = selected_process_pid(processes, *selected),
+                        mouse::MouseAction::DelayFaster => adjust_refresh(refresh_ms, KeyCode::Char('+')),
+                        mouse::MouseAction::DelaySlower => adjust_refresh(refresh_ms, KeyCode::Char('-')),
+                        _ => {}
+                    }
                 }
                 Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => {}
                 Event::Key(key) if handle_help_input(key.code, help_open) => {}
