@@ -15,6 +15,7 @@ mod network;
 mod network_view;
 mod process_detail;
 mod process_status;
+mod process_table;
 mod render;
 mod sort_menu;
 

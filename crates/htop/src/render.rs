@@ -12,8 +12,9 @@ use crate::{
     format::{format_bytes, format_duration},
     meter::meter_line,
     network_view::draw_network,
-    model::{ProcessRow, Snapshot, SortMode},
+    model::{Snapshot, SortMode},
     process_detail::process_detail_lines,
+    process_table::{process_header_line, process_line},
     process_status::status_summary_line,
 };
 
@@ -165,7 +166,7 @@ fn draw_processes(
     let detail_scroll = detail_scroll.min(details.len().saturating_sub(detail_visible));
     let visible = body_rows(area).saturating_sub(detail_visible + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
-    let mut lines = vec![title_line("PID        CPU%  MEM%    MEM       TIME      NAME")];
+    let mut lines = vec![process_header_line(sort)];
     lines.push(plain_line(format!(
         "Sort: {}  View: {}  Sel: {}  Filter: {}",
         sort.label(),
@@ -202,27 +203,6 @@ fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize
     render_block(frame, area, "I/O", lines);
 }
 
-fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) -> Line<'static> {
-    let memory_percent = if total_memory == 0 { 0.0 } else { row.memory as f64 * 100.0 / total_memory as f64 };
-    let text = format!(
-        "{:<10} {:>5.1} {:>5.1} {:>8} {:>8} {}",
-        row.pid,
-        row.cpu,
-        memory_percent,
-        format_bytes(row.memory),
-        format_duration(row.run_time),
-        tree_name(row.depth, row.name.as_str())
-    );
-    if selected { selected_line(text) } else { plain_line(text) }
-}
-
-fn tree_name(depth: usize, name: &str) -> String {
-    if depth == 0 {
-        name.to_string()
-    } else {
-        format!("{}+- {}", "  ".repeat(depth.min(12)), name)
-    }
-}
 
 fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
     let block = Block::default()
