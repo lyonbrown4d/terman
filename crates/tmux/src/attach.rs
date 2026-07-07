@@ -6,15 +6,10 @@ use std::{
 };
 
 use crossterm::{
-    cursor::{MoveTo, RestorePosition, SavePosition},
     event::{read, Event, KeyEvent},
-    execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-    terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType},
+    terminal::{disable_raw_mode, enable_raw_mode, size},
 };
 use interprocess::local_socket::prelude::*;
-
-const PREFIX_STATUS: &str = "tmux prefix | c new  n next  p previous  0-9 select  d detach  C-b send-prefix";
 
 use crate::{
     args::target_session_arg,
@@ -22,9 +17,11 @@ use crate::{
         is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
         tmux_prefix_command, TmuxPrefixCommand,
     },
+    attach_status::{query_status_line, render_status_line, PREFIX_STATUS},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
-    sessions::{AddBuiltinTmuxWindow, add_builtin_tmux_window, load_builtin_tmux_sessions},
+    sessions::{AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, add_builtin_tmux_window,
+        kill_builtin_tmux_window, load_builtin_tmux_sessions},
 };
 
 pub(crate) fn attach_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
@@ -105,45 +102,6 @@ fn write_output(bytes: &[u8]) -> io::Result<()> {
     stdout.flush()
 }
 
-fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String> {
-    match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
-        TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } => {
-            let windows = window_indexes.iter().enumerate().map(|(position, index)| {
-                let name = window_names.get(position).map(String::as_str).unwrap_or("-");
-                if *index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") }
-            }).collect::<Vec<_>>().join(" ");
-            Ok(format!("tmux {session_name} | {windows} | C-b n/p/0-9 switch  C-b d detach"))
-        }
-        TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
-        response => Err(io::Error::new(io::ErrorKind::InvalidData, terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")))),
-    }
-}
-
-fn render_status_line(status: &str) -> io::Result<()> {
-    let (cols, rows) = size()?;
-    let row = rows.saturating_sub(1);
-    let text = fit_status_text(status, cols as usize);
-    let mut stdout = io::stdout().lock();
-    execute!(
-        stdout,
-        SavePosition,
-        MoveTo(0, row),
-        SetBackgroundColor(Color::DarkBlue),
-        SetForegroundColor(Color::White),
-        Clear(ClearType::CurrentLine),
-        Print(text),
-        ResetColor,
-        RestorePosition
-    )?;
-    stdout.flush()
-}
-
-fn fit_status_text(status: &str, width: usize) -> String {
-    let mut text = status.chars().take(width).collect::<String>();
-    let len = text.chars().count();
-    if len < width { text.push_str(&" ".repeat(width - len)); }
-    text
-}
 
 fn sync_terminal_size(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let (cols, rows) = size()?;
@@ -200,12 +158,41 @@ fn handle_prefix_command(endpoint: &TmuxIpcEndpoint, command: TmuxPrefixCommand)
     let index = match command {
         TmuxPrefixCommand::SelectWindow(index) => index,
         TmuxPrefixCommand::CreateWindow => return create_window(endpoint),
+        TmuxPrefixCommand::KillWindow => return kill_current_window(endpoint),
         TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
     };
     send_request(endpoint, TmuxIpcRequest::SelectWindow { index })
 }
 
+fn kill_current_window(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+    let (session_name, active_window) = current_session_and_window(endpoint)?;
+    match kill_builtin_tmux_window(&session_name, Some(active_window)).map_err(|err| io::Error::new(err.kind(), err.to_string()))? {
+        KillBuiltinTmuxWindow::Killed { index, .. } => {
+            send_request(endpoint, TmuxIpcRequest::KillWindow { index })
+        }
+        KillBuiltinTmuxWindow::SessionKilled => send_request(endpoint, TmuxIpcRequest::Quit),
+        KillBuiltinTmuxWindow::SessionMissing => Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&session_name),
+        )),
+        KillBuiltinTmuxWindow::WindowMissing => Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_window_not_found_hint(&session_name, active_window as usize),
+        )),
+    }
+}
+
+fn current_session_and_window(endpoint: &TmuxIpcEndpoint) -> io::Result<(String, u32)> {
+    match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
+        TmuxIpcResponse::Info { session_name, active_window, .. } => Ok((session_name, active_window)),
+        TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
+        response => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")),
+        )),
+    }
+}
 fn create_window(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let session_name = current_session_name(endpoint)?;
     match add_builtin_tmux_window(&session_name).map_err(|err| io::Error::new(err.kind(), err.to_string()))? {

@@ -3,6 +3,7 @@ use std::{error::Error, io};
 mod args;
 mod attach;
 mod attach_keys;
+mod attach_status;
 mod builtin;
 mod capture;
 mod cli;
