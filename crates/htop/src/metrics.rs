@@ -101,7 +101,7 @@ impl Metrics {
                     name: process.name().to_string_lossy().into_owned(),
                 }
             })
-            .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter))
+            .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
             .collect();
         rows.sort_by(|left, right| compare_process(left, right, sort));
         if tree { tree_rows(rows) } else { rows }
@@ -121,9 +121,10 @@ impl Metrics {
                     read: usage.total_read_bytes,
                     written: usage.total_written_bytes,
                     name: process.name().to_string_lossy().into_owned(),
+                    command: command_line(process),
                 }
             })
-            .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter))
+            .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
             .collect();
         rows.sort_by(|left, right| {
             (right.read_rate + right.written_rate)
@@ -222,9 +223,13 @@ fn command_line(process: &Process) -> String {
         .join(" ")
 }
 
-fn process_matches(pid: &str, name: &str, filter: &str) -> bool {
+fn process_matches(pid: &str, name: &str, command: &str, filter: &str) -> bool {
     let filter = filter.trim();
-    filter.is_empty() || pid.contains(filter) || name.to_lowercase().contains(&filter.to_lowercase())
+    let lowered = filter.to_lowercase();
+    filter.is_empty()
+        || pid.contains(filter)
+        || name.to_lowercase().contains(&lowered)
+        || command.to_lowercase().contains(&lowered)
 }
 
 fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ordering {

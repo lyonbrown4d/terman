@@ -1,10 +1,26 @@
 native-tool-not-found = 当前平台未检测到 {$tool}。请安装本机 {$tool} 可执行文件，或在可用时使用内置实现。
 builtin-htop-cli-about = 跨平台 htop 风格终端监控工具。
+builtin-htop-tab-overview = 概览
 builtin-htop-tab-processes = 进程
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = 网络
 builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，F5/t 树视图，F6/s 排序菜单，F9 结束进程，F10/q/Esc 退出，+/- 调整刷新间隔。
-builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
+builtin-htop-help-panel =
+    terman htop
+
+    F1 帮助：切换这个面板。
+    Tab 或 左/右：切换概览、进程、I/O、网络标签。
+    1-4：直接跳转到指定标签。
+    方向键、Home、End、PgUp、PgDn：移动进程选择。
+    F3：查找可见进程。
+    F4 或 /：按 PID、名称或完整命令行过滤进程。
+    F5 或 t：切换平铺/树状进程视图。
+    F6 或 s：打开排序菜单。
+    F9：确认后结束选中进程。
+    +/-：调整刷新间隔。
+    F10、q 或 Esc：退出。
+builtin-htop-sort-menu-title = 排序方式
+builtin-htop-sort-menu-help = 上/下选择，Enter 应用，Esc 取消。builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
 builtin-screen-cli-about = 跨平台 screen 终端会话工具（自实现内置后端）。
 builtin-screen-cli-examples =
     常见用法示例：

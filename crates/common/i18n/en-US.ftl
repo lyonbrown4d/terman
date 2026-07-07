@@ -1,10 +1,26 @@
 native-tool-not-found = {$tool} was not found on this platform. Install a native {$tool} executable or use the built-in implementation when available.
 builtin-htop-cli-about = Cross-platform htop-style terminal monitor.
+builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
 builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, F9 kill, F10/q/Esc quit, +/- adjust refresh.
-builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
+builtin-htop-help-panel =
+    terman htop
+
+    F1 Help: toggle this panel.
+    Tab or Left/Right: switch Overview, Processes, I/O, Network tabs.
+    1-4: jump to a tab directly.
+    Arrows, Home, End, PgUp, PgDn: move process selection.
+    F3: search visible processes.
+    F4 or /: filter processes by PID, name, or command line.
+    F5 or t: toggle flat/tree process view.
+    F6 or s: open the sort menu.
+    F9: kill selected process after confirmation.
+    +/-: adjust refresh delay.
+    F10, q, or Esc: quit.
+builtin-htop-sort-menu-title = Sort by
+builtin-htop-sort-menu-help = Up/Down choose, Enter apply, Esc cancel.builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
 builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
 builtin-screen-cli-examples =
     Common examples:

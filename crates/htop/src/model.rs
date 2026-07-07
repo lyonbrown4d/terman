@@ -89,6 +89,7 @@ pub(crate) struct IoRow {
     pub(crate) read: u64,
     pub(crate) written: u64,
     pub(crate) name: String,
+    pub(crate) command: String,
 }
 
 #[derive(Clone, Debug)]
