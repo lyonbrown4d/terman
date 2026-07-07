@@ -36,6 +36,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) io_scroll: &'a mut usize,
     pub(crate) network_scroll: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
+    pub(crate) cpu_core_count: usize,
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
     pub(crate) refresh_ms: u64,
@@ -57,9 +58,6 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if tab_scroll(&mut context, false) {
                 return MouseAction::Handled;
             }
-            if tab_scroll(&mut context, true) {
-                return MouseAction::Handled;
-            }
             if detail_at(event.row, &context) {
                 *context.detail_scroll = (*context.detail_scroll).saturating_sub(1);
             } else {
@@ -72,9 +70,6 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
                 return MouseAction::Handled;
             }
             if tab_scroll(&mut context, false) {
-                return MouseAction::Handled;
-            }
-            if tab_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
@@ -103,7 +98,7 @@ fn sort_menu_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
     true
 }
 fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
-    let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) else {
+    let Some(index) = process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count) else {
         return MouseAction::Ignored;
     };
     if *context.selected != index {
@@ -138,7 +133,7 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         return MouseAction::Handled;
     }
 
-    if let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) {
+    if let Some(index) = process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count) {
         if *context.selected != index {
             *context.detail_scroll = 0;
         }
@@ -210,21 +205,23 @@ fn process_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
         45..=u16::MAX => Some(SortMode::Name),
     }
 }
-fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow]) -> Option<usize> {
-    if tab != Tab::Processes || processes.is_empty() {
-        return None;
-    }
+fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
+    if tab == Tab::Overview { return overview_process_at(row, processes, cores); }
+    if tab != Tab::Processes || processes.is_empty() { return None; }
     let first_process_row = 7u16;
-    if row < first_process_row {
-        return None;
-    }
+    if row < first_process_row { return None; }
     let visible = visible_process_rows(selected, processes);
     let offset = row.saturating_sub(first_process_row) as usize;
-    if offset >= visible {
-        return None;
-    }
-    Some(visible_start(selected, visible, processes.len()) + offset)
-        .filter(|index| *index < processes.len())
+    if offset >= visible { return None; }
+    Some(visible_start(selected, visible, processes.len()) + offset).filter(|index| *index < processes.len())
+}
+
+fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
+    let body = terminal_area().height.saturating_sub(5) as usize;
+    let core_rows = body.saturating_sub(16).min(cores).min(8);
+    let start = 16u16.saturating_add(core_rows as u16);
+    let visible = body.saturating_sub(14 + core_rows).min(5);
+    row.checked_sub(start).map(usize::from).filter(|index| *index < visible && *index < processes.len())
 }
 
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
