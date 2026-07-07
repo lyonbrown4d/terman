@@ -37,8 +37,8 @@ impl AttachMouseState {
     }
 
     fn window_at(&self, row: u16, column: u16) -> Option<usize> {
-        let first_row = self.window_list_start?.saturating_add(1);
-        let offset = row.checked_sub(first_row)? as usize;
+        let start = self.window_list_start?;
+        let offset = row.checked_sub(start)? as usize;
         let (index, width) = self.window_entries.get(offset).copied()?;
         (column < width).then_some(index)
     }
@@ -167,5 +167,6 @@ fn select_previous_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
 fn select_next_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     send_control_request(endpoint, ScreenIpcRequest::NextWindow)
 }
+
 
 
