@@ -23,6 +23,7 @@ pub(crate) fn is_detach_key(key: &KeyEvent) -> bool {
 pub(crate) enum TmuxPrefixCommand {
     NextWindow,
     PreviousWindow,
+    CreateWindow,
     SelectWindow(u32),
 }
 
@@ -33,6 +34,7 @@ pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
     match key.code {
         KeyCode::Char('n') => Some(TmuxPrefixCommand::NextWindow),
         KeyCode::Char('p') => Some(TmuxPrefixCommand::PreviousWindow),
+        KeyCode::Char('c') => Some(TmuxPrefixCommand::CreateWindow),
         KeyCode::Char(ch) if ch.is_ascii_digit() => ch.to_digit(10).map(TmuxPrefixCommand::SelectWindow),
         _ => None,
     }

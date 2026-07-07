@@ -14,7 +14,7 @@ use crossterm::{
 };
 use interprocess::local_socket::prelude::*;
 
-const PREFIX_STATUS: &str = "tmux prefix | n next  p previous  0-9 select  d detach  C-b send-prefix";
+const PREFIX_STATUS: &str = "tmux prefix | c new  n next  p previous  0-9 select  d detach  C-b send-prefix";
 
 use crate::{
     args::target_session_arg,
@@ -24,7 +24,7 @@ use crate::{
     },
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
-    sessions::load_builtin_tmux_sessions,
+    sessions::{AddBuiltinTmuxWindow, add_builtin_tmux_window, load_builtin_tmux_sessions},
 };
 
 pub(crate) fn attach_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
@@ -199,12 +199,36 @@ impl AttachInputMode {
 fn handle_prefix_command(endpoint: &TmuxIpcEndpoint, command: TmuxPrefixCommand) -> io::Result<()> {
     let index = match command {
         TmuxPrefixCommand::SelectWindow(index) => index,
+        TmuxPrefixCommand::CreateWindow => return create_window(endpoint),
         TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
     };
     send_request(endpoint, TmuxIpcRequest::SelectWindow { index })
 }
 
+fn create_window(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+    let session_name = current_session_name(endpoint)?;
+    match add_builtin_tmux_window(&session_name).map_err(|err| io::Error::new(err.kind(), err.to_string()))? {
+        AddBuiltinTmuxWindow::Added { index, name, .. } => {
+            send_request(endpoint, TmuxIpcRequest::NewWindow { index, name, command: None })
+        }
+        AddBuiltinTmuxWindow::SessionMissing => Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_session_not_found_hint(&session_name),
+        )),
+    }
+}
+
+fn current_session_name(endpoint: &TmuxIpcEndpoint) -> io::Result<String> {
+    match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
+        TmuxIpcResponse::Info { session_name, .. } => Ok(session_name),
+        TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
+        response => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")),
+        )),
+    }
+}
 fn next_window_index(endpoint: &TmuxIpcEndpoint, forward: bool) -> io::Result<u32> {
     match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info { active_window, window_indexes, .. } => neighbor_window_index(active_window, &window_indexes, forward).ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_window_not_found_hint("current", active_window as usize))),
