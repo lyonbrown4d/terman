@@ -63,7 +63,7 @@ pub(crate) fn handle_builtin_mouse(
         MouseEventKind::Down(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Drag(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Down(MouseButton::Right) => right_click(bus, windows, *active_window, state, event),
-        MouseEventKind::Down(MouseButton::Middle) => { state.clear(); publish_help(bus); }
+        MouseEventKind::Down(MouseButton::Middle) => middle_click(bus, windows, *active_window, state, event),
         _ => forward_mouse_event(windows, *active_window, event),
     }
 }
@@ -104,6 +104,21 @@ fn right_click(
     }
 }
 
+fn middle_click(
+    bus: &ScreenSessionBus,
+    windows: &mut [ScreenWindowRuntime],
+    active_window: usize,
+    state: &mut ScreenMouseState,
+    event: MouseEvent,
+) {
+    if on_control_row(bus, event.row) {
+        state.clear();
+        publish_help(bus);
+    } else {
+        state.clear();
+        forward_mouse_event(windows, active_window, event);
+    }
+}
 fn on_control_row(bus: &ScreenSessionBus, row: u16) -> bool {
     let rows = bus.status_snapshot().rows.or_else(|| size().ok().map(|(_, rows)| rows));
     rows.map(|rows| row == rows.saturating_sub(1)).unwrap_or(false)
