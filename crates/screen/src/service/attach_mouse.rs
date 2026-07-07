@@ -1,11 +1,14 @@
 use std::io;
 
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, MouseEvent, MouseEventKind},
+    event::{DisableMouseCapture, EnableMouseCapture, MouseButton, MouseEvent, MouseEventKind},
     execute,
 };
 
-use super::ipc_client::send_control_request;
+use super::{
+    attach_output::{print_attach_help, print_attach_windows},
+    ipc_client::send_control_request,
+};
 use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest};
 
 pub(super) fn enable_mouse_capture() -> io::Result<()> {
@@ -23,6 +26,8 @@ pub(super) fn handle_attach_mouse(
     match event.kind {
         MouseEventKind::ScrollUp => select_previous_window(endpoint),
         MouseEventKind::ScrollDown => select_next_window(endpoint),
+        MouseEventKind::Down(MouseButton::Right) => print_attach_windows(endpoint),
+        MouseEventKind::Down(MouseButton::Middle) => print_attach_help(),
         _ => Ok(()),
     }
 }
