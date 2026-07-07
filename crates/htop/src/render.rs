@@ -126,6 +126,12 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
             format_bytes(snapshot.transmitted_per_refresh)
         )),
         plain_line(format!("Uptime: {}", format_duration(snapshot.uptime))),
+        plain_line(format!(
+            "Load average: {:.2} {:.2} {:.2}",
+            snapshot.load_average.one,
+            snapshot.load_average.five,
+            snapshot.load_average.fifteen
+        )),
     ];
     lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
     lines.push(title_line("TOP PROCESSES"));
@@ -268,9 +274,9 @@ fn body_rows(area: Rect) -> usize {
 }
 
 fn overview_core_rows(area: Rect, count: usize) -> usize {
-    (area.height as usize).saturating_sub(14).min(count).min(8)
+    (area.height as usize).saturating_sub(15).min(count).min(8)
 }
 
 fn overview_process_rows(area: Rect, core_rows: usize) -> usize {
-    (area.height as usize).saturating_sub(12 + core_rows).min(5)
+    (area.height as usize).saturating_sub(13 + core_rows).min(5)
 }

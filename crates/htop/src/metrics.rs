@@ -52,10 +52,18 @@ pub(crate) struct Snapshot {
     pub(crate) received_per_refresh: u64,
     pub(crate) transmitted_per_refresh: u64,
     pub(crate) uptime: u64,
+    pub(crate) load_average: LoadAverage,
     pub(crate) system: SystemSummary,
     pub(crate) processes: Vec<ProcessRow>,
     pub(crate) io: Vec<IoRow>,
     pub(crate) networks: Vec<NetworkRow>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct LoadAverage {
+    pub(crate) one: f64,
+    pub(crate) five: f64,
+    pub(crate) fifteen: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -134,6 +142,7 @@ impl Metrics {
             received_per_refresh: received,
             transmitted_per_refresh: transmitted,
             uptime: System::uptime(),
+            load_average: load_average(),
             system: system_summary(),
             processes,
             io,
@@ -234,6 +243,15 @@ fn append_tree(
         for child in child_rows {
             append_tree(child, depth + 1, children, seen, output);
         }
+    }
+}
+
+fn load_average() -> LoadAverage {
+    let average = System::load_average();
+    LoadAverage {
+        one: average.one,
+        five: average.five,
+        fifteen: average.fifteen,
     }
 }
 
