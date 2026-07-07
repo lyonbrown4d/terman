@@ -27,6 +27,7 @@ pub(crate) enum TmuxPrefixCommand {
     KillWindow,
     RenameWindow,
     ListWindows,
+    LastWindow,
     Help,
     SelectWindow(u32),
 }
@@ -42,6 +43,7 @@ pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
         KeyCode::Char('x') | KeyCode::Char('&') => Some(TmuxPrefixCommand::KillWindow),
         KeyCode::Char(',') => Some(TmuxPrefixCommand::RenameWindow),
         KeyCode::Char('w') => Some(TmuxPrefixCommand::ListWindows),
+        KeyCode::Char('l') => Some(TmuxPrefixCommand::LastWindow),
         KeyCode::Char('?') => Some(TmuxPrefixCommand::Help),
         KeyCode::Char(ch) if ch.is_ascii_digit() => ch.to_digit(10).map(TmuxPrefixCommand::SelectWindow),
         _ => None,

@@ -22,8 +22,17 @@ pub(crate) fn handle_window_command(
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
         TmuxPrefixCommand::RenameWindow
         | TmuxPrefixCommand::ListWindows
+        | TmuxPrefixCommand::LastWindow
         | TmuxPrefixCommand::Help => return Ok(()),
     };
+    select_window(endpoint, index)
+}
+
+pub(crate) fn current_active_window(endpoint: &TmuxIpcEndpoint) -> io::Result<u32> {
+    current_session_and_window(endpoint).map(|(_, active_window)| active_window)
+}
+
+pub(crate) fn select_window(endpoint: &TmuxIpcEndpoint, index: u32) -> io::Result<()> {
     send_request(endpoint, TmuxIpcRequest::SelectWindow { index })
 }
 

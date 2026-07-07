@@ -19,7 +19,7 @@ use crate::{
     },
     attach_rename::handle_rename_input,
     attach_status::{query_status_line, render_status_line, KILL_CONFIRM_STATUS, PREFIX_STATUS},
-    attach_window::{handle_window_command, kill_current_window},
+    attach_window::{current_active_window, handle_window_command, kill_current_window, select_window},
     attach_window_list::render_window_list_status,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
@@ -126,7 +126,7 @@ fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::
 }
 
 #[derive(Default)]
-struct AttachInputMode { prefix_pending: bool, kill_pending: bool, rename_input: Option<String> }
+struct AttachInputMode { prefix_pending: bool, kill_pending: bool, rename_input: Option<String>, last_window: Option<u32> }
 
 impl AttachInputMode {
     fn handle_key(&mut self, endpoint: &TmuxIpcEndpoint, client_id: &str, key: KeyEvent) -> io::Result<bool> {
@@ -159,7 +159,10 @@ impl AttachInputMode {
                     render_window_list_status(endpoint)?;
                 } else if matches!(command, TmuxPrefixCommand::Help) {
                     let _ = render_status_line(&terman_common::builtin_tmux_attach_help());
+                } else if matches!(command, TmuxPrefixCommand::LastWindow) {
+                    self.select_last_window(endpoint)?;
                 } else {
+                    self.track_last_window(endpoint, command)?;
                     handle_window_command(endpoint, command)?;
                     let _ = render_current_status(endpoint);
                 }
@@ -177,6 +180,35 @@ impl AttachInputMode {
         if let Some(bytes) = key_event_bytes(&key) { send_input(endpoint, bytes)?; }
         Ok(true)
     }
+    fn select_last_window(&mut self, endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+        let Some(index) = self.last_window else {
+            return render_current_status(endpoint);
+        };
+        let active_window = current_active_window(endpoint)?;
+        select_window(endpoint, index)?;
+        self.last_window = Some(active_window);
+        render_current_status(endpoint)
+    }
+
+    fn track_last_window(
+        &mut self,
+        endpoint: &TmuxIpcEndpoint,
+        command: TmuxPrefixCommand,
+    ) -> io::Result<()> {
+        if active_changing_command(command) {
+            self.last_window = Some(current_active_window(endpoint)?);
+        }
+        Ok(())
+    }}
+
+fn active_changing_command(command: TmuxPrefixCommand) -> bool {
+    matches!(
+        command,
+        TmuxPrefixCommand::CreateWindow
+            | TmuxPrefixCommand::NextWindow
+            | TmuxPrefixCommand::PreviousWindow
+            | TmuxPrefixCommand::SelectWindow(_)
+    )
 }
 
 fn handle_kill_confirmation(endpoint: &TmuxIpcEndpoint, key: &KeyEvent) -> io::Result<bool> {
