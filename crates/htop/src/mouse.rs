@@ -5,7 +5,7 @@ use crossterm::{
 use ratatui::layout::Rect;
 use crate::{
     footer::{self, FooterAction},
-    model::{IoRow, ProcessRow, SortMode},
+    model::{IoRow, ProcessRow, SocketRow, SortMode},
     process_detail::process_detail_lines,
     render::Tab,
     sort_menu,
@@ -34,6 +34,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) network_scroll: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
     pub(crate) io: &'a [IoRow],
+    pub(crate) sockets: &'a [SocketRow],
     pub(crate) cpu_core_count: usize,
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
@@ -65,7 +66,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if sort_menu_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
-            if tab_scroll(&mut context, false) {
+            if tab_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
@@ -198,9 +199,20 @@ fn process_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
     }
 }
 fn row_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
-    process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count).or_else(|| io_process_at(row, context))
+    process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count).or_else(|| io_process_at(row, context)).or_else(|| network_process_at(row, context))
 }
-fn io_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
+fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
+    if *context.tab != Tab::Network || context.sockets.is_empty() { return None; }
+    let body = terminal_area().height.saturating_sub(9) as usize;
+    let interfaces = 4usize.min(body.saturating_sub(6));
+    let visible = body.saturating_sub(interfaces + 4);
+    let first = 9u16.saturating_add(interfaces as u16);
+    let offset = row.checked_sub(first)? as usize; if offset >= visible { return None; }
+    let start = (*context.network_scroll).min(context.sockets.len().saturating_sub(visible));
+    let pid = context.sockets.get(start + offset)?.pid.as_str();
+    if pid.is_empty() || pid == "-" { return None; }
+    context.processes.iter().position(|process| process.pid == pid)
+}fn io_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
     if *context.tab != Tab::Io || context.io.is_empty() { return None; }
     let first = 6u16; if row < first { return None; }
     let visible = terminal_area().height.saturating_sub(9) as usize;
