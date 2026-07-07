@@ -117,10 +117,17 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
     for (offset, window) in windows.into_iter().enumerate() {
         let row = start.saturating_add(offset as u16).saturating_add(1);
         let title = window.title.unwrap_or_else(|| format!("window-{}", window.index));
-        message.push_str(&format!("\x1b[{row};1H\x1b[2K"));
-        message.push_str(&terman_common::builtin_screen_control_windows_entry_hint(
+        let entry = terman_common::builtin_screen_control_windows_entry_hint(
             window.index, window.active, &title, window.replay_bytes, attach_clients, cols, rows,
-        ));
+        );
+        message.push_str(&format!("\x1b[{row};1H\x1b[2K"));
+        if window.active {
+            message.push_str("\x1b[7m");
+            message.push_str(&entry);
+            message.push_str("\x1b[0m");
+        } else {
+            message.push_str(&entry);
+        }
     }
     publish_mouse_message(bus, message);
 }
