@@ -65,7 +65,7 @@ pub(crate) fn draw(
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(0), Constraint::Length(1)])
+        .constraints([Constraint::Length(5), Constraint::Min(0), Constraint::Length(1)])
         .split(frame.area());
     draw_header(frame, chunks[0], snapshot, tab);
     match tab {
@@ -81,9 +81,12 @@ fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab)
     let cpu = snapshot.cpu_usage;
     let mem = format_bytes(snapshot.used_memory);
     let total = format_bytes(snapshot.total_memory);
+    let swap = format_bytes(snapshot.used_swap);
+    let swap_total = format_bytes(snapshot.total_swap);
     let lines = vec![
         meter_line("CPU", cpu as f64, 100.0, 16, format!("{cpu:>5.1}%  Tasks:{} shown/{} total  Load:{:.2} {:.2} {:.2}", snapshot.filtered_process_count, snapshot.process_count, snapshot.load_average.one, snapshot.load_average.five, snapshot.load_average.fifteen)),
         meter_line("MEM", snapshot.used_memory as f64, snapshot.total_memory as f64, 16, format!("{mem}/{total}  Uptime:{}", format_duration(snapshot.uptime))),
+        meter_line("SWP", snapshot.used_swap as f64, snapshot.total_swap as f64, 16, format!("{swap}/{swap_total}")),
         tab_line(tab),
         Line::from(Span::styled(
             terman_common::builtin_htop_help_hint(),

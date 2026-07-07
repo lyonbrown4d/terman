@@ -155,7 +155,7 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
     MouseAction::Handled
 }
 fn tab_at(column: u16, row: u16) -> Option<Tab> {
-    if row != 2 {
+    if row != 3 {
         return None;
     }
     let labels = [
@@ -175,7 +175,7 @@ fn tab_at(column: u16, row: u16) -> Option<Tab> {
     None
 }
 fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
-    if row != 5 { return None; }
+    if row != 6 { return None; }
     let column = column.saturating_sub(1);
     match tab {
         Tab::Processes => process_table::sort_at_column(column),
@@ -188,10 +188,10 @@ fn row_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
 }
 fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
     if *context.tab != Tab::Network || context.sockets.is_empty() { return None; }
-    let body = terminal_area().height.saturating_sub(9) as usize;
+    let body = terminal_area().height.saturating_sub(10) as usize;
     let interfaces = 4usize.min(body.saturating_sub(6));
     let visible = body.saturating_sub(interfaces + 4);
-    let first = 9u16.saturating_add(interfaces as u16);
+    let first = 10u16.saturating_add(interfaces as u16);
     let offset = row.checked_sub(first)? as usize; if offset >= visible { return None; }
     let start = (*context.network_scroll).min(context.sockets.len().saturating_sub(visible));
     let pid = context.sockets.get(start + offset)?.pid.as_str();
@@ -199,8 +199,8 @@ fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
     context.processes.iter().position(|process| process.pid == pid)
 }fn io_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
     if *context.tab != Tab::Io || context.io.is_empty() { return None; }
-    let first = 6u16; if row < first { return None; }
-    let visible = terminal_area().height.saturating_sub(9) as usize;
+    let first = 7u16; if row < first { return None; }
+    let visible = terminal_area().height.saturating_sub(10) as usize;
     let offset = row.saturating_sub(first) as usize; if offset >= visible { return None; }
     let start = (*context.io_scroll).min(context.io.len().saturating_sub(visible));
     let pid = context.io.get(start + offset)?.pid.as_str();
@@ -208,7 +208,7 @@ fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
 }fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
     if tab == Tab::Overview { return overview_process_at(row, processes, cores); }
     if tab != Tab::Processes || processes.is_empty() { return None; }
-    let first_process_row = 7u16;
+    let first_process_row = 8u16;
     if row < first_process_row { return None; }
     let visible = visible_process_rows(selected, processes);
     let offset = row.saturating_sub(first_process_row) as usize;
@@ -216,14 +216,14 @@ fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
     Some(visible_start(selected, visible, processes.len()) + offset).filter(|index| *index < processes.len())
 }
 fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
-    let body = terminal_area().height.saturating_sub(5) as usize;
+    let body = terminal_area().height.saturating_sub(6) as usize;
     let core_rows = body.saturating_sub(16).min(cores).min(8);
-    let start = 16u16.saturating_add(core_rows as u16);
+    let start = 17u16.saturating_add(core_rows as u16);
     let visible = body.saturating_sub(14 + core_rows).min(5);
     row.checked_sub(start).map(usize::from).filter(|index| *index < visible && *index < processes.len())
 }
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
-    let body_rows = terminal_area().height.saturating_sub(9) as usize;
+    let body_rows = terminal_area().height.saturating_sub(10) as usize;
     let details = process_detail_lines(processes.get(selected)).len();
     body_rows.saturating_sub(detail_rows(details) + 1).max(1)
 }
@@ -231,7 +231,7 @@ fn detail_at(row: u16, context: &MouseContext<'_>) -> bool {
     if *context.tab != Tab::Processes || context.processes.is_empty() {
         return false;
     }
-    let first_detail_row = 7u16.saturating_add(visible_process_rows(*context.selected, context.processes) as u16 + 1);
+    let first_detail_row = 8u16.saturating_add(visible_process_rows(*context.selected, context.processes) as u16 + 1);
     let details = process_detail_lines(context.processes.get(*context.selected)).len();
     let end = first_detail_row.saturating_add(detail_rows(details) as u16);
     row >= first_detail_row && row < end
@@ -241,7 +241,7 @@ fn max_detail_scroll(context: &MouseContext<'_>) -> usize {
     details.saturating_sub(detail_rows(details))
 }
 fn detail_rows(count: usize) -> usize {
-    let body_rows = terminal_area().height.saturating_sub(9) as usize;
+    let body_rows = terminal_area().height.saturating_sub(10) as usize;
     let max_detail = body_rows.saturating_sub(4).max(1).min(10);
     count.max(1).min(max_detail)
 }
@@ -276,7 +276,7 @@ mod tests {
     use crate::render::Tab;
     #[test]
     fn maps_tab_clicks() {
-        assert_eq!(tab_at(1, 2), Some(Tab::Overview));
+        assert_eq!(tab_at(1, 3), Some(Tab::Overview));
         assert_eq!(tab_at(0, 0), None);
     }
 }
