@@ -45,6 +45,7 @@ pub(crate) fn draw(
     tab: Tab,
     sort: SortMode,
     tree: bool,
+    selected: usize,
     filter: &str,
     filtering: bool,
 ) {
@@ -54,8 +55,8 @@ pub(crate) fn draw(
         .split(frame.area());
     draw_header(frame, chunks[0], snapshot, tab);
     match tab {
-        Tab::Overview => draw_overview(frame, chunks[1], snapshot),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, filter),
+        Tab::Overview => draw_overview(frame, chunks[1], snapshot, selected),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter),
         Tab::Io => draw_io(frame, chunks[1], snapshot),
         Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
@@ -99,7 +100,7 @@ fn tab_span(active: Tab, tab: Tab, label: String) -> Span<'static> {
     Span::styled(format!(" {label} "), style)
 }
 
-fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selected: usize) {
     let mut lines = vec![
         meter_line("CPU", snapshot.cpu_usage as f64, 100.0, 24, format!(
             "{:>5.1}% across {} core(s)", snapshot.cpu_usage, snapshot.cpu_count
@@ -119,22 +120,33 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
         plain_line(format!("Uptime: {}", format_duration(snapshot.uptime))),
         title_line("TOP PROCESSES"),
     ];
-    for row in snapshot.processes.iter().take(overview_rows(area)) {
-        lines.push(process_line(row));
+    for (index, row) in snapshot.processes.iter().take(overview_rows(area)).enumerate() {
+        lines.push(process_line(row, index == selected));
     }
     render_block(frame, area, "Overview", lines);
 }
 
-fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sort: SortMode, tree: bool, filter: &str) {
+fn draw_processes(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    snapshot: &Snapshot,
+    sort: SortMode,
+    tree: bool,
+    selected: usize,
+    filter: &str,
+) {
+    let visible = body_rows(area);
+    let start = visible_start(selected, visible, snapshot.processes.len());
     let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
     lines.push(plain_line(format!(
-        "Sort: {}  View: {}  Filter: {}",
+        "Sort: {}  View: {}  Sel: {}  Filter: {}",
         sort.label(),
         view_label(tree),
+        selection_label(selected, snapshot.processes.len()),
         filter_label(filter)
     )));
-    for row in snapshot.processes.iter().take(body_rows(area)) {
-        lines.push(process_line(row));
+    for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
+        lines.push(process_line(row, start + offset == selected));
     }
     render_block(frame, area, "Processes", lines);
 }
@@ -179,14 +191,15 @@ fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode, tree: bool, fi
     frame.render_widget(Paragraph::new(line), area);
 }
 
-fn process_line(row: &ProcessRow) -> Line<'static> {
-    plain_line(format!(
+fn process_line(row: &ProcessRow, selected: bool) -> Line<'static> {
+    let text = format!(
         "{:<10} {:>5.1}   {:>8}   {}",
         row.pid,
         row.cpu,
         format_bytes(row.memory),
         tree_name(row.depth, row.name.as_str())
-    ))
+    );
+    if selected { selected_line(text) } else { plain_line(text) }
 }
 
 fn tree_name(depth: usize, name: &str) -> String {
@@ -231,16 +244,32 @@ fn plain_line(text: String) -> Line<'static> {
     Line::from(Span::raw(text))
 }
 
+fn selected_line(text: String) -> Line<'static> {
+    Line::from(Span::styled(text, Style::default().fg(Color::Black).bg(Color::Green)))
+}
+
 fn filter_label(filter: &str) -> &str {
     if filter.is_empty() { "-" } else { filter }
 }
 
 fn filter_prompt(filtering: bool) -> &'static str {
-    if filtering { " type filter, Enter apply, Esc cancel" } else { " / or F4 filter" }
+    if filtering { " type filter, Enter apply, Esc cancel" } else { " arrows select, PgUp/PgDn scroll" }
 }
 
 fn view_label(tree: bool) -> &'static str {
     if tree { "Tree" } else { "Flat" }
+}
+
+fn selection_label(selected: usize, count: usize) -> String {
+    if count == 0 { "0/0".to_string() } else { format!("{}/{}", selected + 1, count) }
+}
+
+fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
+    if visible == 0 || total <= visible || selected < visible {
+        0
+    } else {
+        (selected + 1 - visible).min(total - visible)
+    }
 }
 
 fn body_rows(area: Rect) -> usize {

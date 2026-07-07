@@ -43,6 +43,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut tab = Tab::Overview;
     let mut sort = SortMode::Cpu;
     let mut tree = false;
+    let mut selected = 0usize;
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
 
@@ -50,8 +51,18 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         metrics.refresh();
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
         let snapshot = metrics.snapshot(sort, active_filter, tree);
+        selected = clamp_selection(selected, snapshot.processes.len());
         terminal.draw(|frame| {
-            render::draw(frame, &snapshot, tab, sort, tree, active_filter, filter_input.is_some())
+            render::draw(
+                frame,
+                &snapshot,
+                tab,
+                sort,
+                tree,
+                selected,
+                active_filter,
+                filter_input.is_some(),
+            )
         })?;
         if args.once {
             return Ok(());
@@ -61,6 +72,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut tab,
             &mut sort,
             &mut tree,
+            &mut selected,
+            snapshot.processes.len(),
             &mut filter,
             &mut filter_input,
         )? {
@@ -74,6 +87,8 @@ fn poll_until_refresh(
     tab: &mut Tab,
     sort: &mut SortMode,
     tree: &mut bool,
+    selected: &mut usize,
+    process_count: usize,
     filter: &mut String,
     filter_input: &mut Option<String>,
 ) -> io::Result<bool> {
@@ -86,6 +101,9 @@ fn poll_until_refresh(
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
+                Event::Key(key) if navigation_key(key.code) => {
+                    *selected = move_selection(*selected, process_count, key.code);
+                }
                 Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
                 Event::Key(key) if sort_key(key.code) => *sort = sort.next(),
                 Event::Key(key) if tree_key(key.code) => *tree = !*tree,
@@ -135,6 +153,29 @@ fn sort_key(code: KeyCode) -> bool {
 
 fn tree_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('t') | KeyCode::F(5))
+}
+
+fn navigation_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown | KeyCode::Home | KeyCode::End)
+}
+
+fn move_selection(selected: usize, count: usize, code: KeyCode) -> usize {
+    if count == 0 {
+        return 0;
+    }
+    match code {
+        KeyCode::Up => selected.saturating_sub(1),
+        KeyCode::Down => (selected + 1).min(count - 1),
+        KeyCode::PageUp => selected.saturating_sub(10),
+        KeyCode::PageDown => (selected + 10).min(count - 1),
+        KeyCode::Home => 0,
+        KeyCode::End => count - 1,
+        _ => selected,
+    }
+}
+
+fn clamp_selection(selected: usize, count: usize) -> usize {
+    if count == 0 { 0 } else { selected.min(count - 1) }
 }
 
 fn next_tab(tab: Tab, code: KeyCode) -> Tab {
