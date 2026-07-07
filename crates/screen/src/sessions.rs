@@ -1,3 +1,4 @@
+mod manifest;
 mod runtime;
 mod store;
 
@@ -104,7 +105,10 @@ fn load_reachable_builtin_screen_sessions(
     let mut reachable = Vec::new();
     for session in store::load_alive_builtin_screen_sessions()? {
         match load_runtime_status_with_retry(&session) {
-            Ok(status) => reachable.push((session, status)),
+            Ok(status) => {
+                manifest::write_runtime_builtin_screen_session_manifest(&session, &status)?;
+                reachable.push((session, status));
+            }
             Err(_) => {
                 let _ = store::remove_builtin_screen_session_record(&session.name)?;
             }

@@ -62,14 +62,14 @@ pub(crate) fn register_builtin_screen_session(
         .map(|path| path.to_string_lossy().to_string())
         .unwrap_or_else(|_| String::from("<unknown>"));
     let command = args.command.clone().unwrap_or_else(default_shell);
-    let record = BuiltinScreenSession {
+    let session = BuiltinScreenSession {
         name: session_name.clone(),
         pid: std::process::id().to_string(),
         cwd,
         command,
         ipc_endpoint: Some(endpoint.raw_name().to_string()),
     };
-    let record = serialize_session_record(&record)?;
+    let record = serialize_session_record(&session)?;
 
     let mut file = fs::OpenOptions::new()
         .write(true)
@@ -86,6 +86,7 @@ pub(crate) fn register_builtin_screen_session(
             }
         })?;
     file.write_all(format!("{record}\n").as_bytes())?;
+    super::manifest::write_initial_builtin_screen_session_manifest(&session)?;
 
     let session_name = session_name_state.unwrap_or_else(|| Arc::new(Mutex::new(session_name.clone())));
     Ok(Some(BuiltinScreenSessionGuard { session_name }))
@@ -133,7 +134,9 @@ pub(crate) fn rename_builtin_screen_session(
         Err(err) => return Err(err),
     };
     file.write_all(format!("{record}\n").as_bytes())?;
+    super::manifest::write_initial_builtin_screen_session_manifest(&session)?;
     fs::remove_file(old_path)?;
+    super::manifest::rename_builtin_screen_session_manifest(old_name, new_name)?;
 
     Ok(RenameBuiltinScreenSession::Renamed)
 }
@@ -141,7 +144,10 @@ pub(crate) fn rename_builtin_screen_session(
 pub(crate) fn remove_builtin_screen_session_record(name: &str) -> io::Result<bool> {
     let path = builtin_screen_session_record_path(name);
     match fs::remove_file(path) {
-        Ok(()) => Ok(true),
+        Ok(()) => {
+            super::manifest::remove_builtin_screen_session_manifest(name)?;
+            Ok(true)
+        }
         Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
         Err(err) => Err(err),
     }
@@ -174,10 +180,12 @@ fn remove_stale_builtin_screen_session_record(path: &Path) -> io::Result<bool> {
 
     let mut system = System::new();
     system.refresh_processes(ProcessesToUpdate::All, true);
-    let stale = fs::read_to_string(path)
+    let parsed = fs::read_to_string(path)
         .ok()
-        .and_then(|record| parse_builtin_screen_session_record(&record))
-        .map(|session| !builtin_screen_session_is_alive(&session, &system))
+        .and_then(|record| parse_builtin_screen_session_record(&record));
+    let stale = parsed
+        .as_ref()
+        .map(|session| !builtin_screen_session_is_alive(session, &system))
         .unwrap_or(true);
 
     if !stale {
@@ -185,7 +193,12 @@ fn remove_stale_builtin_screen_session_record(path: &Path) -> io::Result<bool> {
     }
 
     match fs::remove_file(path) {
-        Ok(()) => Ok(true),
+        Ok(()) => {
+            if let Some(session) = parsed {
+                let _ = super::manifest::remove_builtin_screen_session_manifest(&session.name);
+            }
+            Ok(true)
+        }
         Err(err) if err.kind() == io::ErrorKind::NotFound => Ok(false),
         Err(err) => Err(err),
     }

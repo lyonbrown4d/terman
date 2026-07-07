@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, BufReader, Write};
 
-use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse};
+use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo};
 
 use super::store::BuiltinScreenSession;
 
@@ -10,6 +10,9 @@ pub(crate) struct BuiltinScreenSessionRuntimeStatus {
     pub(crate) attach_clients: usize,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
+    pub(crate) scrollback_lines: usize,
+    pub(crate) active_window: usize,
+    pub(crate) windows: Vec<ScreenWindowInfo>,
 }
 
 pub(crate) fn load_builtin_screen_runtime_status(
@@ -32,12 +35,18 @@ pub(crate) fn load_builtin_screen_runtime_status(
             attach_clients,
             cols,
             rows,
+            scrollback_lines,
+            active_window,
+            windows,
             ..
         } => Ok(BuiltinScreenSessionRuntimeStatus {
             replay_bytes,
             attach_clients,
             cols,
             rows,
+            scrollback_lines,
+            active_window,
+            windows,
         }),
         ScreenIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::Unsupported, reason))
