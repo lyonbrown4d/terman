@@ -7,6 +7,7 @@ mod format;
 mod footer;
 mod help;
 mod metrics;
+mod meter;
 mod process_detail;
 mod render;
 

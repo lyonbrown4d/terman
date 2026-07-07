@@ -9,7 +9,8 @@ use ratatui::{
 use crate::{
     core_meter::core_meter_lines,
     footer::footer_line,
-    format::{format_bytes, format_duration, meter_fill},
+    format::{format_bytes, format_duration},
+    meter::meter_line,
     metrics::{ProcessRow, Snapshot, SortMode},
     process_detail::process_detail_lines,
 };
@@ -227,17 +228,6 @@ fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: V
         .border_style(Style::default().fg(Color::Blue));
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
-
-fn meter_line(label: &str, value: f64, max: f64, width: usize, suffix: String) -> Line<'static> {
-    let filled = meter_fill(value, max, width);
-    Line::from(vec![
-        Span::styled(format!("{label:<3} ["), Style::default().fg(Color::Cyan)),
-        Span::styled("#".repeat(filled), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
-        Span::styled("-".repeat(width.saturating_sub(filled)), Style::default().fg(Color::DarkGray)),
-        Span::styled(format!("] {suffix}"), Style::default().fg(Color::White)),
-    ])
-}
-
 
 fn title_line(text: &'static str) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
