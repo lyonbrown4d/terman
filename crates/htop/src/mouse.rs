@@ -113,6 +113,12 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         return MouseAction::Handled;
     }
 
+    if let Some(mode) = process_header_sort_at(*context.tab, column, row) {
+        *context.sort = mode;
+        *context.sort_cursor = mode;
+        return MouseAction::Handled;
+    }
+
     if let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) {
         if *context.selected != index {
             *context.detail_scroll = 0;
@@ -173,6 +179,18 @@ fn tab_at(column: u16, row: u16) -> Option<Tab> {
     None
 }
 
+fn process_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
+    if tab != Tab::Processes || row != 5 {
+        return None;
+    }
+    match column.saturating_sub(1) {
+        0..=10 => Some(SortMode::Pid),
+        11..=16 => Some(SortMode::Cpu),
+        17..=34 => Some(SortMode::Memory),
+        35..=44 => Some(SortMode::Time),
+        45..=u16::MAX => Some(SortMode::Name),
+    }
+}
 fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow]) -> Option<usize> {
     if tab != Tab::Processes || processes.is_empty() {
         return None;
