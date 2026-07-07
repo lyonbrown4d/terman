@@ -11,6 +11,7 @@ mod metrics;
 mod meter;
 mod model;
 mod mouse;
+mod mouse_context;
 mod network;
 mod network_view;
 mod process_detail;

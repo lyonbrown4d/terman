@@ -1,3 +1,4 @@
+pub(crate) use crate::mouse_context::MouseContext;
 use crate::process_table;
 use crossterm::{
     event::{MouseButton, MouseEvent, MouseEventKind},
@@ -6,36 +7,16 @@ use crossterm::{
 use ratatui::layout::Rect;
 use crate::{
     footer::{self, FooterAction},
-    model::{IoRow, ProcessRow, SocketRow, SortMode},
+    model::{ProcessRow, SortMode},
     process_detail::process_detail_lines,
     render::Tab,
     sort_menu,
 };
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MouseAction { Ignored, Handled, Search, Filter, Kill, ConfirmKill, CancelKill, DelayFaster, DelaySlower, Quit }
-pub(crate) struct MouseContext<'a> {
-    pub(crate) tab: &'a mut Tab,
-    pub(crate) sort: &'a mut SortMode,
-    pub(crate) sort_menu_open: &'a mut bool,
-    pub(crate) sort_cursor: &'a mut SortMode,
-    pub(crate) tree: &'a mut bool,
-    pub(crate) help_open: &'a mut bool,
-    pub(crate) selected: &'a mut usize,
-    pub(crate) detail_scroll: &'a mut usize,
-    pub(crate) io_scroll: &'a mut usize,
-    pub(crate) network_scroll: &'a mut usize,
-    pub(crate) processes: &'a [ProcessRow],
-    pub(crate) io: &'a [IoRow],
-    pub(crate) sockets: &'a [SocketRow],
-    pub(crate) cpu_core_count: usize,
-    pub(crate) filter: &'a str,
-    pub(crate) search: &'a str,
-    pub(crate) kill_target: Option<&'a str>,
-    pub(crate) refresh_ms: u64,
-}
 pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> MouseAction {
     if *context.help_open {
-        if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) {
+        if matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Down(MouseButton::Middle)) {
             *context.help_open = false;
         }
         return MouseAction::Handled;
@@ -74,6 +55,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         MouseEventKind::ScrollRight => { if sort_menu_scroll(&mut context, true) { return MouseAction::Handled; } *context.tab = (*context.tab).next(); MouseAction::Handled }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
         MouseEventKind::Drag(MouseButton::Left) => drag_select(event.row, context),
+        MouseEventKind::Down(MouseButton::Middle) => { *context.help_open = true; MouseAction::Handled },
         MouseEventKind::Down(MouseButton::Right) => right_click(event.row, context),
         _ => MouseAction::Ignored,
     }
