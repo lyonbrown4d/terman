@@ -8,7 +8,8 @@ pub fn mouse_event_bytes(event: MouseEvent) -> Option<Vec<u8>> {
         MouseEventKind::Moved => (modifier_code(event.modifiers) + 35, 'M'),
         MouseEventKind::ScrollUp => (modifier_code(event.modifiers) + 64, 'M'),
         MouseEventKind::ScrollDown => (modifier_code(event.modifiers) + 65, 'M'),
-        _ => return None,
+        MouseEventKind::ScrollLeft => (modifier_code(event.modifiers) + 66, 'M'),
+        MouseEventKind::ScrollRight => (modifier_code(event.modifiers) + 67, 'M'),
     };
     Some(format!("\x1b[<{code};{};{}{suffix}", event.column.saturating_add(1), event.row.saturating_add(1)).into_bytes())
 }
@@ -45,5 +46,11 @@ mod tests {
     fn encodes_modified_drag() {
         let event = MouseEvent { kind: MouseEventKind::Drag(MouseButton::Right), column: 9, row: 1, modifiers: KeyModifiers::CONTROL };
         assert_eq!(mouse_event_bytes(event), Some(b"\x1b[<50;10;2M".to_vec()));
+    }
+
+    #[test]
+    fn encodes_horizontal_wheel_as_sgr_mouse_sequence() {
+        let event = MouseEvent { kind: MouseEventKind::ScrollRight, column: 2, row: 7, modifiers: KeyModifiers::ALT };
+        assert_eq!(mouse_event_bytes(event), Some(b"\x1b[<75;3;8M".to_vec()));
     }
 }
