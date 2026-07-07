@@ -3,7 +3,7 @@ use std::{error::Error, io};
 use serde::Serialize;
 
 use crate::{
-    args::{target_pane_index_arg, target_session_name_arg, target_window_index_arg},
+    args::{resize_pane_height_arg, resize_pane_width_arg, target_pane_index_arg, target_session_name_arg, target_window_index_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::{BuiltinTmuxSession, load_builtin_tmux_sessions},
@@ -51,6 +51,28 @@ pub(crate) fn display_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn 
     let info = query_tmux_info(&session)?;
     let message = display_panes_message(&target, &info);
     match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::DisplayMessage { message })? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(unexpected_response_error(response)),
+    }
+}
+pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
+        return Err(session_not_found_error(&target));
+    };
+    let info = query_tmux_info(&session)?;
+    let window_index = target_window_index_arg(args).map(|index| index as u32).unwrap_or(info.active_window);
+    let pane_index = target_pane_index_arg(args).unwrap_or(0) as u32;
+    if pane_index != 0 {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_pane_not_found_hint(&target, window_index, pane_index),
+        )));
+    }
+    let cols = resize_pane_width_arg(args).ok_or_else(pane_size_required_error)?;
+    let rows = resize_pane_height_arg(args).ok_or_else(pane_size_required_error)?;
+    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::Resize { cols, rows })? {
         TmuxIpcResponse::Accepted => Ok(()),
         TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
         response => Err(unexpected_response_error(response)),
@@ -150,6 +172,12 @@ fn required_target_session_name_arg(args: &[String]) -> Result<String, Box<dyn E
     target_session_name_arg(args).ok_or_else(target_required_error)
 }
 
+fn pane_size_required_error() -> Box<dyn Error> {
+    Box::new(io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_tmux_pane_size_required_hint(),
+    ))
+}
 fn target_required_error() -> Box<dyn Error> {
     Box::new(io::Error::new(io::ErrorKind::InvalidInput, terman_common::builtin_tmux_target_required_hint()))
 }

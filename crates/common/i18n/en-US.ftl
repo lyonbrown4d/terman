@@ -173,6 +173,7 @@ builtin-tmux-client-list-entry = {$session}: {$attached_clients} attached client
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
 builtin-tmux-pane-list-entry = {$session}:{$window}.{$pane}: {$name} active={$active}
 builtin-tmux-pane-not-found = tmux pane {$window}.{$pane} in session {$session} was not found
+builtin-tmux-pane-size-required = specify pane size with resize-pane -x <cols> -y <rows>
 builtin-tmux-session-killed = killed tmux session {$name}
 builtin-tmux-session-not-found = tmux session {$name} not found
 builtin-tmux-target-required = specify a target session with -t <name>

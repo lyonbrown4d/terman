@@ -178,3 +178,6 @@ pub fn builtin_tmux_pane_not_found_hint(session: &str, window: u32, pane: u32) -
         &[("session", session), ("window", &window), ("pane", &pane)],
     )
 }
+pub fn builtin_tmux_pane_size_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxPaneSizeRequired, &[])
+}

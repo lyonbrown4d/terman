@@ -53,6 +53,13 @@ pub(crate) fn new_window_command_arg(args: &[String]) -> Option<String> {
 pub(crate) fn kill_other_windows_arg(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "-a")
 }
+pub(crate) fn resize_pane_width_arg(args: &[String]) -> Option<u16> {
+    named_arg(args, "-x", "--width").and_then(|value| value.parse::<u16>().ok())
+}
+
+pub(crate) fn resize_pane_height_arg(args: &[String]) -> Option<u16> {
+    named_arg(args, "-y", "--height").and_then(|value| value.parse::<u16>().ok())
+}
 pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
     positional_payload_after_command(args, &["display-message", "display"])
 }
@@ -170,7 +177,7 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        display_message_arg, new_window_command_arg, new_window_name_arg, rename_session_name_arg, rename_window_name_arg, send_keys_args,
+        display_message_arg, new_window_command_arg, new_window_name_arg, rename_session_name_arg, rename_window_name_arg, resize_pane_height_arg, resize_pane_width_arg, send_keys_args,
         session_name_arg, target_pane_index_arg, target_session_arg, target_session_name_arg, target_window_index_arg,
     };
 
@@ -221,6 +228,12 @@ mod tests {
         let args = ["neww".into(), "-tdev".into(), "-n".into(), "api".into(), "cargo".into(), "run".into()];
         assert_eq!(new_window_name_arg(&args), Some(String::from("api")));
         assert_eq!(new_window_command_arg(&args), Some(String::from("cargo run")));
+    }
+    #[test]
+    fn parses_resize_pane_size() {
+        let args = ["resizep".into(), "-tdev:1.0".into(), "-x".into(), "120".into(), "-y40".into()];
+        assert_eq!(resize_pane_width_arg(&args), Some(120));
+        assert_eq!(resize_pane_height_arg(&args), Some(40));
     }
     #[test]
     fn parses_send_keys_payload() {
