@@ -62,6 +62,10 @@ pub(super) fn handle_attach_mouse(
     {
         return select_list_window(endpoint, state, event.row, event.column);
     }
+    if state.list_open() {
+        state.clear();
+        return Ok(());
+    }
 
     let control_row = on_control_row(event.row);
     match event.kind {
@@ -167,6 +171,7 @@ fn select_previous_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
 fn select_next_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     send_control_request(endpoint, ScreenIpcRequest::NextWindow)
 }
+
 
 
 
