@@ -76,6 +76,8 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             }
             MouseAction::Handled
         }
+        MouseEventKind::ScrollLeft => { if sort_menu_scroll(&mut context, false) { return MouseAction::Handled; } *context.tab = (*context.tab).previous(); MouseAction::Handled }
+        MouseEventKind::ScrollRight => { if sort_menu_scroll(&mut context, true) { return MouseAction::Handled; } *context.tab = (*context.tab).next(); MouseAction::Handled }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
         MouseEventKind::Down(MouseButton::Right) => right_click(event.row, context),
         _ => MouseAction::Ignored,
