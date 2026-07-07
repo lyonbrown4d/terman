@@ -43,6 +43,19 @@ pub(crate) fn list_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn Err
     Ok(())
 }
 
+pub(crate) fn display_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
+        return Err(session_not_found_error(&target));
+    };
+    let info = query_tmux_info(&session)?;
+    let message = display_panes_message(&target, &info);
+    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::DisplayMessage { message })? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(unexpected_response_error(response)),
+    }
+}
 pub(crate) fn select_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
     let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
@@ -90,6 +103,22 @@ impl TmuxPaneInfo {
     }
 }
 
+fn display_panes_message(session: &str, info: &TmuxPaneInfo) -> String {
+    info.window_indexes
+        .iter()
+        .filter_map(|index| info.window_name(*index).map(|name| (*index, name)))
+        .map(|(index, name)| {
+            terman_common::builtin_tmux_pane_list_entry_hint(
+                session,
+                index,
+                0,
+                &name,
+                index == info.active_window,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
 fn query_tmux_info(session: &BuiltinTmuxSession) -> Result<TmuxPaneInfo, Box<dyn Error>> {
     match request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info { active_window, window_indexes, window_names, .. } => Ok(TmuxPaneInfo { active_window, window_indexes, window_names }),

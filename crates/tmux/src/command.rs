@@ -16,6 +16,7 @@ pub(crate) enum TmuxCommand {
     ListWindows,
     ListPanes,
     SelectPane,
+    DisplayPanes,
     SelectWindow,
     NextWindow,
     PreviousWindow,
@@ -45,6 +46,7 @@ impl TmuxCommand {
             Some("list-windows" | "lsw") => Self::ListWindows,
             Some("list-panes" | "listp") => Self::ListPanes,
             Some("select-pane" | "selectp") => Self::SelectPane,
+            Some("display-panes" | "displayp") => Self::DisplayPanes,
             Some("select-window" | "selectw") => Self::SelectWindow,
             Some("next-window" | "next") => Self::NextWindow,
             Some("previous-window" | "previous" | "prev") => Self::PreviousWindow,
@@ -88,6 +90,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
         assert_eq!(TmuxCommand::parse(&["listp".into()]), TmuxCommand::ListPanes);
         assert_eq!(TmuxCommand::parse(&["selectp".into()]), TmuxCommand::SelectPane);
+        assert_eq!(TmuxCommand::parse(&["displayp".into()]), TmuxCommand::DisplayPanes);
         assert_eq!(TmuxCommand::parse(&["selectw".into()]), TmuxCommand::SelectWindow);
         assert_eq!(TmuxCommand::parse(&["next".into()]), TmuxCommand::NextWindow);
         assert_eq!(TmuxCommand::parse(&["prev".into()]), TmuxCommand::PreviousWindow);
