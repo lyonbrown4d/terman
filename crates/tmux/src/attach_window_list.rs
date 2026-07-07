@@ -69,7 +69,6 @@ fn layout_window_labels(status: &str, labels: &[(u32, String)]) -> TmuxWindowLis
 }
 
 fn format_window(index: u32, active_window: u32, name: Option<&String>) -> String {
-    let marker = if index == active_window { "*" } else { "" };
     let name = name.map(String::as_str).unwrap_or("window");
-    format!("{index}:{name}{marker}")
+    if index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") }
 }
