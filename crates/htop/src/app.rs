@@ -46,6 +46,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut tree = false;
     let mut help_open = false;
     let mut selected = 0usize;
+    let mut refresh_ms = args.refresh_ms.max(100);
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
     let mut search = String::new();
@@ -72,6 +73,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     filter_input.is_some(),
                     active_search,
                     search_input.is_some(),
+                    refresh_ms,
                 );
             }
         })?;
@@ -79,7 +81,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
         if poll_until_refresh(
-            args.refresh_ms,
+            &mut refresh_ms,
             &mut tab,
             &mut sort,
             &mut tree,
@@ -97,7 +99,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn poll_until_refresh(
-    refresh_ms: u64,
+    refresh_ms: &mut u64,
     tab: &mut Tab,
     sort: &mut SortMode,
     tree: &mut bool,
@@ -109,7 +111,7 @@ fn poll_until_refresh(
     search: &mut String,
     search_input: &mut Option<String>,
 ) -> io::Result<bool> {
-    let refresh = Duration::from_millis(refresh_ms.max(100));
+    let refresh = Duration::from_millis((*refresh_ms).max(100));
     let deadline = Instant::now() + refresh;
     while Instant::now() < deadline {
         if event::poll(Duration::from_millis(50))? {
@@ -120,9 +122,8 @@ fn poll_until_refresh(
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
-                Event::Key(key) if navigation_key(key.code) => {
-                    *selected = move_selection(*selected, processes.len(), key.code);
-                }
+                Event::Key(key) if navigation_key(key.code) => *selected = move_selection(*selected, processes.len(), key.code),
+                Event::Key(key) if delay_key(key.code) => adjust_refresh(refresh_ms, key.code),
                 Event::Key(key) if help_key(key.code) => *help_open = true,
                 Event::Key(key) if search_key(key.code) => *search_input = Some(search.clone()),
                 Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
@@ -138,58 +139,29 @@ fn poll_until_refresh(
 }
 
 fn handle_help_input(code: KeyCode, help_open: &mut bool) -> bool {
-    if !*help_open {
-        return false;
-    }
-    if matches!(code, KeyCode::Esc | KeyCode::F(1)) {
-        *help_open = false;
-    }
+    if !*help_open { return false; }
+    if matches!(code, KeyCode::Esc | KeyCode::F(1)) { *help_open = false; }
     true
 }
 
-fn handle_search_input(
-    code: KeyCode,
-    search: &mut String,
-    search_input: &mut Option<String>,
-    selected: &mut usize,
-    processes: &[ProcessRow],
-) -> bool {
-    let Some(input) = search_input.as_mut() else {
-        return false;
-    };
+fn handle_search_input(code: KeyCode, search: &mut String, search_input: &mut Option<String>, selected: &mut usize, processes: &[ProcessRow]) -> bool {
+    let Some(input) = search_input.as_mut() else { return false; };
     match code {
-        KeyCode::Enter => {
-            *search = input.trim().to_string();
-            *selected = find_next(*selected, processes, search.as_str());
-            *search_input = None;
-        }
+        KeyCode::Enter => { *search = input.trim().to_string(); *selected = find_next(*selected, processes, search.as_str()); *search_input = None; }
         KeyCode::Esc => *search_input = None,
-        KeyCode::Backspace => {
-            input.pop();
-        }
+        KeyCode::Backspace => { input.pop(); }
         KeyCode::Char(ch) => input.push(ch),
         _ => {}
     }
     true
 }
 
-fn handle_filter_input(
-    code: KeyCode,
-    filter: &mut String,
-    filter_input: &mut Option<String>,
-) -> bool {
-    let Some(input) = filter_input.as_mut() else {
-        return false;
-    };
+fn handle_filter_input(code: KeyCode, filter: &mut String, filter_input: &mut Option<String>) -> bool {
+    let Some(input) = filter_input.as_mut() else { return false; };
     match code {
-        KeyCode::Enter => {
-            *filter = input.trim().to_string();
-            *filter_input = None;
-        }
+        KeyCode::Enter => { *filter = input.trim().to_string(); *filter_input = None; }
         KeyCode::Esc => *filter_input = None,
-        KeyCode::Backspace => {
-            input.pop();
-        }
+        KeyCode::Backspace => { input.pop(); }
         KeyCode::Char(ch) => input.push(ch),
         _ => {}
     }
@@ -198,56 +170,37 @@ fn handle_filter_input(
 
 fn find_next(selected: usize, processes: &[ProcessRow], term: &str) -> usize {
     let term = term.trim().to_lowercase();
-    if term.is_empty() || processes.is_empty() {
-        return selected;
-    }
+    if term.is_empty() || processes.is_empty() { return selected; }
     for offset in 1..=processes.len() {
         let index = (selected + offset) % processes.len();
-        if process_matches_search(&processes[index], term.as_str()) {
-            return index;
-        }
+        if process_matches_search(&processes[index], term.as_str()) { return index; }
     }
     selected
 }
 
 fn process_matches_search(row: &ProcessRow, term: &str) -> bool {
-    row.pid.contains(term)
-        || row.name.to_lowercase().contains(term)
-        || row.command.to_lowercase().contains(term)
+    row.pid.contains(term) || row.name.to_lowercase().contains(term) || row.command.to_lowercase().contains(term)
 }
 
-fn quit_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10))
+fn adjust_refresh(refresh_ms: &mut u64, code: KeyCode) {
+    match code {
+        KeyCode::Char('+') | KeyCode::Char('=') => *refresh_ms = refresh_ms.saturating_sub(100).max(100),
+        KeyCode::Char('-') => *refresh_ms = (*refresh_ms + 100).min(60_000),
+        _ => {}
+    }
 }
 
-fn help_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::F(1) | KeyCode::Char('h'))
-}
-
-fn search_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::F(3))
-}
-
-fn filter_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('/') | KeyCode::F(4))
-}
-
-fn sort_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('s') | KeyCode::F(6))
-}
-
-fn tree_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('t') | KeyCode::F(5))
-}
-
-fn navigation_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown | KeyCode::Home | KeyCode::End)
-}
+fn quit_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10)) }
+fn help_key(code: KeyCode) -> bool { matches!(code, KeyCode::F(1) | KeyCode::Char('h')) }
+fn search_key(code: KeyCode) -> bool { matches!(code, KeyCode::F(3)) }
+fn filter_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('/') | KeyCode::F(4)) }
+fn sort_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('s') | KeyCode::F(6)) }
+fn tree_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('t') | KeyCode::F(5)) }
+fn delay_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('+') | KeyCode::Char('=') | KeyCode::Char('-')) }
+fn navigation_key(code: KeyCode) -> bool { matches!(code, KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown | KeyCode::Home | KeyCode::End) }
 
 fn move_selection(selected: usize, count: usize, code: KeyCode) -> usize {
-    if count == 0 {
-        return 0;
-    }
+    if count == 0 { return 0; }
     match code {
         KeyCode::Up => selected.saturating_sub(1),
         KeyCode::Down => (selected + 1).min(count - 1),

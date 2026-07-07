@@ -12,6 +12,7 @@ pub(crate) fn footer_line(
     filtering: bool,
     search: &str,
     searching: bool,
+    refresh_ms: u64,
 ) -> Line<'static> {
     Line::from(vec![
         key_span("F1"), value_span(" Help ".to_string()),
@@ -19,6 +20,7 @@ pub(crate) fn footer_line(
         key_span("F4"), value_span(format!(" Filter:{} ", value_label(filter))),
         key_span("F5"), value_span(format!(" {} ", view_label(tree))),
         key_span("F6"), value_span(format!(" Sort:{} ", sort.label())),
+        key_span("+/-"), value_span(format!(" Delay:{}ms ", refresh_ms)),
         key_span("F10"), value_span(" Quit ".to_string()),
         Span::styled(prompt_text(filtering, searching), Style::default().fg(Color::Gray)),
     ])
@@ -42,7 +44,7 @@ fn prompt_text(filtering: bool, searching: bool) -> &'static str {
     } else if filtering {
         " type filter, Enter apply, Esc cancel"
     } else {
-        " arrows select, PgUp/PgDn scroll"
+        " arrows select, +/- delay"
     }
 }
 
