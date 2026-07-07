@@ -7,6 +7,34 @@ pub(crate) struct Metrics {
     networks: Networks,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum SortMode {
+    Cpu,
+    Memory,
+    Pid,
+    Name,
+}
+
+impl SortMode {
+    pub(crate) fn next(self) -> Self {
+        match self {
+            Self::Cpu => Self::Memory,
+            Self::Memory => Self::Pid,
+            Self::Pid => Self::Name,
+            Self::Name => Self::Cpu,
+        }
+    }
+
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::Cpu => "CPU",
+            Self::Memory => "MEM",
+            Self::Pid => "PID",
+            Self::Name => "NAME",
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct Snapshot {
     pub(crate) cpu_usage: f32,
@@ -62,7 +90,7 @@ impl Metrics {
         self.networks.refresh(true);
     }
 
-    pub(crate) fn snapshot(&self) -> Snapshot {
+    pub(crate) fn snapshot(&self, sort: SortMode) -> Snapshot {
         let networks = self.network_rows();
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
@@ -77,13 +105,13 @@ impl Metrics {
             received_per_refresh: received,
             transmitted_per_refresh: transmitted,
             uptime: System::uptime(),
-            processes: self.process_rows(),
+            processes: self.process_rows(sort),
             io: self.io_rows(),
             networks,
         }
     }
 
-    fn process_rows(&self) -> Vec<ProcessRow> {
+    fn process_rows(&self, sort: SortMode) -> Vec<ProcessRow> {
         let mut rows: Vec<_> = self.system.processes().iter().map(|(pid, process)| {
             ProcessRow {
                 pid: pid.to_string(),
@@ -92,7 +120,7 @@ impl Metrics {
                 name: process.name().to_string_lossy().into_owned(),
             }
         }).collect();
-        rows.sort_by(|left, right| compare_f32(right.cpu, left.cpu));
+        rows.sort_by(|left, right| compare_process(left, right, sort));
         rows
     }
 
@@ -125,6 +153,15 @@ impl Metrics {
             (right.received + right.transmitted).cmp(&(left.received + left.transmitted))
         });
         rows
+    }
+}
+
+fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ordering {
+    match sort {
+        SortMode::Cpu => compare_f32(right.cpu, left.cpu),
+        SortMode::Memory => right.memory.cmp(&left.memory),
+        SortMode::Pid => left.pid.cmp(&right.pid),
+        SortMode::Name => left.name.to_lowercase().cmp(&right.name.to_lowercase()),
     }
 }
 

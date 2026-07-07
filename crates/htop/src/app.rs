@@ -14,7 +14,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
     cli::HtopArgs,
-    metrics::Metrics,
+    metrics::{Metrics, SortMode},
     render::{self, Tab},
 };
 
@@ -41,10 +41,11 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
     let mut metrics = Metrics::new();
     let mut tab = Tab::Overview;
+    let mut sort = SortMode::Cpu;
 
     loop {
         metrics.refresh();
-        terminal.draw(|frame| render::draw(frame, &metrics.snapshot(), tab))?;
+        terminal.draw(|frame| render::draw(frame, &metrics.snapshot(sort), tab, sort))?;
         if args.once {
             return Ok(());
         }
@@ -54,6 +55,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             if event::poll(Duration::from_millis(50))? {
                 match event::read()? {
                     Event::Key(key) if quit_key(key.code) => return Ok(()),
+                    Event::Key(key) if sort_key(key.code) => sort = sort.next(),
                     Event::Key(key) => tab = next_tab(tab, key.code),
                     Event::Resize(_, _) => break,
                     _ => {}
@@ -64,7 +66,11 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn quit_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('q') | KeyCode::Esc)
+    matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10))
+}
+
+fn sort_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('s') | KeyCode::F(6))
 }
 
 fn next_tab(tab: Tab, code: KeyCode) -> Tab {

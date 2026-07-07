@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::metrics::Snapshot;
+use crate::metrics::{Snapshot, SortMode};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Tab {
@@ -36,18 +36,19 @@ impl Tab {
     }
 }
 
-pub(crate) fn draw(frame: &mut Frame<'_>, snapshot: &Snapshot, tab: Tab) {
+pub(crate) fn draw(frame: &mut Frame<'_>, snapshot: &Snapshot, tab: Tab, sort: SortMode) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(0)])
+        .constraints([Constraint::Length(4), Constraint::Min(0), Constraint::Length(1)])
         .split(frame.area());
     draw_header(frame, chunks[0], snapshot, tab);
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort),
         Tab::Io => draw_io(frame, chunks[1], snapshot),
         Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
+    draw_footer(frame, chunks[2], sort);
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {
@@ -105,7 +106,7 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
             format_bytes(snapshot.transmitted_per_refresh)
         )),
         plain_line(format!("Uptime: {}", format_duration(snapshot.uptime))),
-        title_line("TOP CPU"),
+        title_line("TOP PROCESSES"),
     ];
     for row in snapshot.processes.iter().take(overview_rows(area)) {
         lines.push(plain_line(format!(
@@ -119,8 +120,9 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
     render_block(frame, area, "Overview", lines);
 }
 
-fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sort: SortMode) {
     let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
+    lines.push(plain_line(format!("Sort: {}", sort.label())));
     for row in snapshot.processes.iter().take(body_rows(area)) {
         lines.push(plain_line(format!(
             "{:<10} {:>5.1}   {:>8}   {}",
@@ -162,6 +164,15 @@ fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
     render_block(frame, area, "Network", lines);
 }
 
+fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode) {
+    let line = Line::from(vec![
+        key_span("F6"), value_span(format!(" Sort:{} ", sort.label())),
+        key_span("F10"), value_span(" Quit ".to_string()),
+        Span::styled(terman_common::builtin_htop_help_hint(), Style::default().fg(Color::Gray)),
+    ]);
+    frame.render_widget(Paragraph::new(line), area);
+}
+
 fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
     let block = Block::default()
         .title(title)
@@ -187,6 +198,14 @@ fn meter_fill(value: f64, max: f64, width: usize) -> usize {
     ((value / max).clamp(0.0, 1.0) * width as f64).round() as usize
 }
 
+fn key_span(key: &'static str) -> Span<'static> {
+    Span::styled(format!(" {key} "), Style::default().fg(Color::Black).bg(Color::Cyan))
+}
+
+fn value_span(text: String) -> Span<'static> {
+    Span::styled(text, Style::default().fg(Color::White).bg(Color::Blue))
+}
+
 fn title_line(text: &'static str) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
 }
@@ -196,7 +215,7 @@ fn plain_line(text: String) -> Line<'static> {
 }
 
 fn body_rows(area: Rect) -> usize {
-    area.height.saturating_sub(3) as usize
+    area.height.saturating_sub(4) as usize
 }
 
 fn overview_rows(area: Rect) -> usize {
