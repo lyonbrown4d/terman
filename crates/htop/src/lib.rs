@@ -8,6 +8,7 @@ mod footer;
 mod help;
 mod metrics;
 mod meter;
+mod model;
 mod process_detail;
 mod process_status;
 mod render;

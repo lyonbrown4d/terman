@@ -15,7 +15,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use crate::{
     cli::HtopArgs,
     help,
-    metrics::{Metrics, ProcessRow, SortMode},
+    metrics::Metrics, model::{ProcessRow, SortMode},
     render::{self, Tab},
 };
 

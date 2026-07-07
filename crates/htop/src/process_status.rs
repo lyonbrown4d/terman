@@ -1,6 +1,6 @@
 use ratatui::text::{Line, Span};
 
-use crate::metrics::ProcessRow;
+use crate::model::ProcessRow;
 
 #[derive(Default)]
 struct StatusCounts {

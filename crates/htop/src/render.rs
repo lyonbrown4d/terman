@@ -11,7 +11,7 @@ use crate::{
     footer::footer_line,
     format::{format_bytes, format_duration},
     meter::meter_line,
-    metrics::{ProcessRow, Snapshot, SortMode},
+    model::{ProcessRow, Snapshot, SortMode},
     process_detail::process_detail_lines,
     process_status::status_summary_line,
 };

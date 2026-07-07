@@ -1,6 +1,6 @@
 use ratatui::{text::{Line, Span}};
 
-use crate::{meter::meter_line, metrics::CpuCore};
+use crate::{meter::meter_line, model::CpuCore};
 
 pub(crate) fn core_meter_lines(cores: &[CpuCore], limit: usize) -> Vec<Line<'static>> {
     let mut lines = Vec::new();

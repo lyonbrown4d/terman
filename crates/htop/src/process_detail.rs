@@ -3,10 +3,7 @@ use ratatui::{
     text::{Line, Span},
 };
 
-use crate::{
-    format::{format_bytes, format_duration},
-    metrics::ProcessRow,
-};
+use crate::{format::{format_bytes, format_duration}, model::ProcessRow};
 
 pub(crate) fn process_detail_lines(row: Option<&ProcessRow>) -> Vec<Line<'static>> {
     let Some(row) = row else {
@@ -19,6 +16,8 @@ pub(crate) fn process_detail_lines(row: Option<&ProcessRow>) -> Vec<Line<'static
         detail_line("CPU", format!("{:.1}%", row.cpu).as_str()),
         detail_line("Memory", format_bytes(row.memory).as_str()),
         detail_line("Runtime", format_duration(row.run_time).as_str()),
+        detail_line("Read", format!("{}/s  total {}", format_bytes(row.read_rate), format_bytes(row.read_total)).as_str()),
+        detail_line("Write", format!("{}/s  total {}", format_bytes(row.written_rate), format_bytes(row.written_total)).as_str()),
         detail_line("Command", command_summary(row.command.as_str()).as_str()),
     ]
 }

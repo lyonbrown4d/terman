@@ -5,111 +5,13 @@ use std::{
 
 use sysinfo::{Networks, Process, System};
 
+use crate::model::{
+    CpuCore, IoRow, LoadAverage, NetworkRow, ProcessRow, Snapshot, SortMode, SystemSummary,
+};
+
 pub(crate) struct Metrics {
     system: System,
     networks: Networks,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum SortMode {
-    Cpu,
-    Memory,
-    Pid,
-    Name,
-}
-
-impl SortMode {
-    pub(crate) fn next(self) -> Self {
-        match self {
-            Self::Cpu => Self::Memory,
-            Self::Memory => Self::Pid,
-            Self::Pid => Self::Name,
-            Self::Name => Self::Cpu,
-        }
-    }
-
-    pub(crate) fn label(self) -> &'static str {
-        match self {
-            Self::Cpu => "CPU",
-            Self::Memory => "MEM",
-            Self::Pid => "PID",
-            Self::Name => "NAME",
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct Snapshot {
-    pub(crate) cpu_usage: f32,
-    pub(crate) cpu_count: usize,
-    pub(crate) cpu_cores: Vec<CpuCore>,
-    pub(crate) total_memory: u64,
-    pub(crate) used_memory: u64,
-    pub(crate) total_swap: u64,
-    pub(crate) used_swap: u64,
-    pub(crate) process_count: usize,
-    pub(crate) filtered_process_count: usize,
-    pub(crate) received_per_refresh: u64,
-    pub(crate) transmitted_per_refresh: u64,
-    pub(crate) uptime: u64,
-    pub(crate) load_average: LoadAverage,
-    pub(crate) system: SystemSummary,
-    pub(crate) processes: Vec<ProcessRow>,
-    pub(crate) io: Vec<IoRow>,
-    pub(crate) networks: Vec<NetworkRow>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct LoadAverage {
-    pub(crate) one: f64,
-    pub(crate) five: f64,
-    pub(crate) fifteen: f64,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct SystemSummary {
-    pub(crate) hostname: String,
-    pub(crate) os: String,
-    pub(crate) kernel: String,
-    pub(crate) arch: String,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct CpuCore {
-    pub(crate) index: usize,
-    pub(crate) usage: f32,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct ProcessRow {
-    pub(crate) pid: String,
-    pub(crate) parent_pid: Option<String>,
-    pub(crate) depth: usize,
-    pub(crate) status: String,
-    pub(crate) run_time: u64,
-    pub(crate) command: String,
-    pub(crate) cpu: f32,
-    pub(crate) memory: u64,
-    pub(crate) name: String,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct IoRow {
-    pub(crate) pid: String,
-    pub(crate) read_rate: u64,
-    pub(crate) written_rate: u64,
-    pub(crate) read: u64,
-    pub(crate) written: u64,
-    pub(crate) name: String,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct NetworkRow {
-    pub(crate) name: String,
-    pub(crate) received: u64,
-    pub(crate) transmitted: u64,
-    pub(crate) total_received: u64,
-    pub(crate) total_transmitted: u64,
 }
 
 impl Metrics {
@@ -126,7 +28,12 @@ impl Metrics {
     }
 
     pub(crate) fn kill_process(&mut self, pid: &str) -> bool {
-        self.system.processes().iter().find(|(candidate, _)| candidate.to_string() == pid).map(|(_, process)| process.kill()).unwrap_or(false)
+        self.system
+            .processes()
+            .iter()
+            .find(|(candidate, _)| candidate.to_string() == pid)
+            .map(|(_, process)| process.kill())
+            .unwrap_or(false)
     }
 
     pub(crate) fn snapshot(&self, sort: SortMode, filter: &str, tree: bool) -> Snapshot {
@@ -157,43 +64,69 @@ impl Metrics {
     }
 
     fn cpu_rows(&self) -> Vec<CpuCore> {
-        self.system.cpus().iter().enumerate().map(|(index, cpu)| CpuCore {
-            index,
-            usage: cpu.cpu_usage(),
-        }).collect()
+        self.system
+            .cpus()
+            .iter()
+            .enumerate()
+            .map(|(index, cpu)| CpuCore {
+                index,
+                usage: cpu.cpu_usage(),
+            })
+            .collect()
     }
 
     fn process_rows(&self, sort: SortMode, filter: &str, tree: bool) -> Vec<ProcessRow> {
-        let mut rows: Vec<_> = self.system.processes().iter().map(|(pid, process)| {
-            ProcessRow {
-                pid: pid.to_string(),
-                parent_pid: process.parent().map(|parent| parent.to_string()),
-                depth: 0,
-                status: format!("{:?}", process.status()),
-                run_time: process.run_time(),
-                command: command_line(process),
-                cpu: process.cpu_usage(),
-                memory: process.memory(),
-                name: process.name().to_string_lossy().into_owned(),
-            }
-        }).filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter)).collect();
+        let mut rows: Vec<_> = self
+            .system
+            .processes()
+            .iter()
+            .map(|(pid, process)| {
+                let usage = process.disk_usage();
+                ProcessRow {
+                    pid: pid.to_string(),
+                    parent_pid: process.parent().map(|parent| parent.to_string()),
+                    depth: 0,
+                    status: format!("{:?}", process.status()),
+                    run_time: process.run_time(),
+                    command: command_line(process),
+                    cpu: process.cpu_usage(),
+                    memory: process.memory(),
+                    read_rate: usage.read_bytes,
+                    written_rate: usage.written_bytes,
+                    read_total: usage.total_read_bytes,
+                    written_total: usage.total_written_bytes,
+                    name: process.name().to_string_lossy().into_owned(),
+                }
+            })
+            .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter))
+            .collect();
         rows.sort_by(|left, right| compare_process(left, right, sort));
         if tree { tree_rows(rows) } else { rows }
     }
 
     fn io_rows(&self, filter: &str) -> Vec<IoRow> {
-        let mut rows: Vec<_> = self.system.processes().iter().map(|(pid, process)| {
-            let usage = process.disk_usage();
-            IoRow {
-                pid: pid.to_string(),
-                read_rate: usage.read_bytes,
-                written_rate: usage.written_bytes,
-                read: usage.total_read_bytes,
-                written: usage.total_written_bytes,
-                name: process.name().to_string_lossy().into_owned(),
-            }
-        }).filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter)).collect();
-        rows.sort_by(|left, right| (right.read_rate + right.written_rate).cmp(&(left.read_rate + left.written_rate)).then_with(|| (right.read + right.written).cmp(&(left.read + left.written))));
+        let mut rows: Vec<_> = self
+            .system
+            .processes()
+            .iter()
+            .map(|(pid, process)| {
+                let usage = process.disk_usage();
+                IoRow {
+                    pid: pid.to_string(),
+                    read_rate: usage.read_bytes,
+                    written_rate: usage.written_bytes,
+                    read: usage.total_read_bytes,
+                    written: usage.total_written_bytes,
+                    name: process.name().to_string_lossy().into_owned(),
+                }
+            })
+            .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter))
+            .collect();
+        rows.sort_by(|left, right| {
+            (right.read_rate + right.written_rate)
+                .cmp(&(left.read_rate + left.written_rate))
+                .then_with(|| (right.read + right.written).cmp(&(left.read + left.written)))
+        });
         rows
     }
 
@@ -266,7 +199,9 @@ fn load_average() -> LoadAverage {
 fn system_summary() -> SystemSummary {
     SystemSummary {
         hostname: System::host_name().unwrap_or_else(|| "unknown".to_string()),
-        os: System::long_os_version().or_else(System::name).unwrap_or_else(|| "unknown".to_string()),
+        os: System::long_os_version()
+            .or_else(System::name)
+            .unwrap_or_else(|| "unknown".to_string()),
         kernel: System::kernel_version().unwrap_or_else(|| "unknown".to_string()),
         arch: std::env::consts::ARCH.to_string(),
     }
@@ -277,7 +212,11 @@ fn command_line(process: &Process) -> String {
     if parts.is_empty() {
         return process.name().to_string_lossy().into_owned();
     }
-    parts.iter().map(|part| part.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" ")
+    parts
+        .iter()
+        .map(|part| part.to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn process_matches(pid: &str, name: &str, filter: &str) -> bool {

@@ -3,7 +3,7 @@ use ratatui::{
     text::{Line, Span},
 };
 
-use crate::metrics::SortMode;
+use crate::model::SortMode;
 
 pub(crate) fn footer_line(
     sort: SortMode,
