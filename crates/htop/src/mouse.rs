@@ -16,6 +16,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) sort: &'a mut SortMode,
     pub(crate) sort_menu_open: &'a mut bool,
     pub(crate) sort_cursor: &'a mut SortMode,
+    pub(crate) tree: &'a mut bool,
     pub(crate) help_open: &'a mut bool,
     pub(crate) selected: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
@@ -43,13 +44,17 @@ pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> bool
     }
 }
 
-fn click(column: u16, row: u16, context: MouseContext<'_>) -> bool {
+fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> bool {
     if *context.sort_menu_open {
         if let Some(mode) = sort_menu::mode_at(terminal_area(), column, row) {
             *context.sort_cursor = mode;
             *context.sort = mode;
         }
         *context.sort_menu_open = false;
+        return true;
+    }
+
+    if handle_footer(column, row, &mut context) {
         return true;
     }
 
@@ -66,6 +71,36 @@ fn click(column: u16, row: u16, context: MouseContext<'_>) -> bool {
     false
 }
 
+fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> bool {
+    if row != terminal_area().height.saturating_sub(1) {
+        return false;
+    }
+    match footer_action(column) {
+        Some(FooterAction::Help) => *context.help_open = true,
+        Some(FooterAction::Tree) => *context.tree = !*context.tree,
+        Some(FooterAction::Sort) => {
+            *context.sort_cursor = *context.sort;
+            *context.sort_menu_open = true;
+        }
+        None => return false,
+    }
+    true
+}
+
+enum FooterAction {
+    Help,
+    Tree,
+    Sort,
+}
+
+fn footer_action(column: u16) -> Option<FooterAction> {
+    match column {
+        0..=9 => Some(FooterAction::Help),
+        43..=53 => Some(FooterAction::Tree),
+        54..=68 => Some(FooterAction::Sort),
+        _ => None,
+    }
+}
 fn tab_at(column: u16, row: u16) -> Option<Tab> {
     if row != 2 {
         return None;

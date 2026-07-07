@@ -141,6 +141,7 @@ fn poll_until_refresh(
                         sort,
                         sort_menu_open,
                         sort_cursor,
+                        tree,
                         help_open,
                         selected,
                         processes,
