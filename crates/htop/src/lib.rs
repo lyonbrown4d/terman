@@ -9,6 +9,7 @@ mod help;
 mod metrics;
 mod meter;
 mod model;
+mod mouse;
 mod network;
 mod network_view;
 mod process_detail;

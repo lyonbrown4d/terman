@@ -6,7 +6,7 @@ use std::{
 
 use crossterm::{
     cursor::{Hide, Show},
-    event::{self, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -15,7 +15,9 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use crate::{
     cli::HtopArgs,
     help,
-    metrics::Metrics, model::{ProcessRow, SortMode},
+    metrics::Metrics,
+    model::{ProcessRow, SortMode},
+    mouse::{self, MouseContext},
     render::{self, Tab},
     sort_menu::{self, SortMenuAction},
 };
@@ -25,14 +27,14 @@ struct TerminalGuard;
 impl TerminalGuard {
     fn enter() -> io::Result<Self> {
         enable_raw_mode()?;
-        execute!(io::stdout(), EnterAlternateScreen, Hide)?;
+        execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture, Hide)?;
         Ok(Self)
     }
 }
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
-        let _ = execute!(io::stdout(), Show, LeaveAlternateScreen);
+        let _ = execute!(io::stdout(), Show, DisableMouseCapture, LeaveAlternateScreen);
         let _ = disable_raw_mode();
     }
 }
@@ -133,6 +135,17 @@ fn poll_until_refresh(
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
+                Event::Mouse(mouse_event) => {
+                    let _ = mouse::handle_mouse(mouse_event, MouseContext {
+                        tab,
+                        sort,
+                        sort_menu_open,
+                        sort_cursor,
+                        help_open,
+                        selected,
+                        processes,
+                    });
+                }
                 Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => {}
                 Event::Key(key) if handle_help_input(key.code, help_open) => {}
                 Event::Key(key) if handle_sort_menu_input(key.code, sort, sort_menu_open, sort_cursor) => {}

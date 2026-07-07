@@ -55,6 +55,16 @@ pub(crate) fn draw(frame: &mut Frame<'_>, cursor: SortMode) {
     frame.render_widget(Paragraph::new(lines).block(sort_block()), area);
 }
 
+
+pub(crate) fn mode_at(area: Rect, column: u16, row: u16) -> Option<SortMode> {
+    let menu = centered_rect(area, 42, 10);
+    let inside_x = column > menu.x && column < menu.x.saturating_add(menu.width).saturating_sub(1);
+    if !inside_x || row < menu.y.saturating_add(2) {
+        return None;
+    }
+    let index = row.saturating_sub(menu.y + 2) as usize;
+    SORT_MODES.get(index).copied()
+}
 fn sort_line(mode: SortMode, selected: bool) -> Line<'static> {
     let marker = if selected { ">" } else { " " };
     let text = format!(" {marker} {}", mode.label());
