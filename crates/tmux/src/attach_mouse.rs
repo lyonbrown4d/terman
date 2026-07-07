@@ -13,6 +13,7 @@ use crate::{
     attach_window_list::render_window_list_status,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
+    terminal_mouse::mouse_event_bytes,
 };
 
 pub(crate) fn enable_mouse_capture() -> io::Result<()> {
@@ -25,7 +26,7 @@ pub(crate) fn disable_mouse_capture() {
 
 pub(crate) fn handle_attach_mouse(endpoint: &TmuxIpcEndpoint, event: MouseEvent) -> io::Result<()> {
     if !on_status_row(event.row) {
-        return Ok(());
+        return forward_pane_mouse(endpoint, event);
     }
     match event.kind {
         MouseEventKind::ScrollUp => select_relative_window(endpoint, false),
@@ -39,6 +40,19 @@ pub(crate) fn handle_attach_mouse(endpoint: &TmuxIpcEndpoint, event: MouseEvent)
     }
 }
 
+fn forward_pane_mouse(endpoint: &TmuxIpcEndpoint, event: MouseEvent) -> io::Result<()> {
+    let Some(bytes) = mouse_event_bytes(event) else {
+        return Ok(());
+    };
+    match request_endpoint_response(endpoint, TmuxIpcRequest::Input { bytes })? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
+        response => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")),
+        )),
+    }
+}
 fn select_relative_window(endpoint: &TmuxIpcEndpoint, forward: bool) -> io::Result<()> {
     let command = if forward {
         TmuxPrefixCommand::NextWindow

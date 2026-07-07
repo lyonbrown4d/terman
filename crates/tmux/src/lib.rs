@@ -30,6 +30,7 @@ mod session_core;
 mod sessions;
 mod status;
 mod shell;
+mod terminal_mouse;
 mod window_commands;
 mod window_runtime;
 
