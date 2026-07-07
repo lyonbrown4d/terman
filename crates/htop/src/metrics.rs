@@ -96,6 +96,8 @@ pub(crate) struct ProcessRow {
 #[derive(Clone, Debug)]
 pub(crate) struct IoRow {
     pub(crate) pid: String,
+    pub(crate) read_rate: u64,
+    pub(crate) written_rate: u64,
     pub(crate) read: u64,
     pub(crate) written: u64,
     pub(crate) name: String,
@@ -180,12 +182,14 @@ impl Metrics {
             let usage = process.disk_usage();
             IoRow {
                 pid: pid.to_string(),
+                read_rate: usage.read_bytes,
+                written_rate: usage.written_bytes,
                 read: usage.total_read_bytes,
                 written: usage.total_written_bytes,
                 name: process.name().to_string_lossy().into_owned(),
             }
         }).filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter)).collect();
-        rows.sort_by(|left, right| (right.read + right.written).cmp(&(left.read + left.written)));
+        rows.sort_by(|left, right| (right.read_rate + right.written_rate).cmp(&(left.read_rate + left.written_rate)).then_with(|| (right.read + right.written).cmp(&(left.read + left.written))));
         rows
     }
 

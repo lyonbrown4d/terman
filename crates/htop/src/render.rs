@@ -171,11 +171,13 @@ fn draw_processes(
 }
 
 fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
-    let mut lines = vec![title_line("PID        READ       WRITE      NAME")];
+    let mut lines = vec![title_line("PID        READ/s    WRITE/s   TOTAL R   TOTAL W   NAME")];
     for row in snapshot.io.iter().take(body_rows(area)) {
         lines.push(plain_line(format!(
-            "{:<10} {:>9}  {:>9}  {}",
+            "{:<10} {:>9} {:>9} {:>9} {:>9} {}",
             row.pid,
+            format_bytes(row.read_rate),
+            format_bytes(row.written_rate),
             format_bytes(row.read),
             format_bytes(row.written),
             row.name
