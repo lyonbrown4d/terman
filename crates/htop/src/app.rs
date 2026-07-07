@@ -13,7 +13,10 @@ use crossterm::{
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
-    cli::HtopArgs,
+    app_input::{
+        adjust_refresh, clamp_selection, delay_key, filter_key, find_next, help_key, kill_key,
+        move_selection, navigation_key, next_tab, quit_key, search_key, sort_key, tree_key,
+    },    cli::HtopArgs,
     help,
     metrics::Metrics,
     model::{ProcessRow, SortMode},
@@ -235,65 +238,4 @@ fn handle_filter_input(code: KeyCode, filter: &mut String, filter_input: &mut Op
         _ => {}
     }
     true
-}
-
-fn find_next(selected: usize, processes: &[ProcessRow], term: &str) -> usize {
-    let term = term.trim().to_lowercase();
-    if term.is_empty() || processes.is_empty() { return selected; }
-    for offset in 1..=processes.len() {
-        let index = (selected + offset) % processes.len();
-        if process_matches_search(&processes[index], term.as_str()) { return index; }
-    }
-    selected
-}
-
-fn process_matches_search(row: &ProcessRow, term: &str) -> bool {
-    row.pid.contains(term) || row.name.to_lowercase().contains(term) || row.command.to_lowercase().contains(term)
-}
-
-fn adjust_refresh(refresh_ms: &mut u64, code: KeyCode) {
-    match code {
-        KeyCode::Char('+') | KeyCode::Char('=') => *refresh_ms = refresh_ms.saturating_sub(100).max(100),
-        KeyCode::Char('-') => *refresh_ms = (*refresh_ms + 100).min(60_000),
-        _ => {}
-    }
-}
-
-fn quit_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10)) }
-fn help_key(code: KeyCode) -> bool { matches!(code, KeyCode::F(1) | KeyCode::Char('h')) }
-fn search_key(code: KeyCode) -> bool { matches!(code, KeyCode::F(3)) }
-fn filter_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('/') | KeyCode::F(4)) }
-fn sort_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('s') | KeyCode::F(6)) }
-fn tree_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('t') | KeyCode::F(5)) }
-fn delay_key(code: KeyCode) -> bool { matches!(code, KeyCode::Char('+') | KeyCode::Char('=') | KeyCode::Char('-')) }
-fn kill_key(code: KeyCode) -> bool { matches!(code, KeyCode::F(9)) }
-fn navigation_key(code: KeyCode) -> bool { matches!(code, KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown | KeyCode::Home | KeyCode::End) }
-
-fn move_selection(selected: usize, count: usize, code: KeyCode) -> usize {
-    if count == 0 { return 0; }
-    match code {
-        KeyCode::Up => selected.saturating_sub(1),
-        KeyCode::Down => (selected + 1).min(count - 1),
-        KeyCode::PageUp => selected.saturating_sub(10),
-        KeyCode::PageDown => (selected + 10).min(count - 1),
-        KeyCode::Home => 0,
-        KeyCode::End => count - 1,
-        _ => selected,
-    }
-}
-
-fn clamp_selection(selected: usize, count: usize) -> usize {
-    if count == 0 { 0 } else { selected.min(count - 1) }
-}
-
-fn next_tab(tab: Tab, code: KeyCode) -> Tab {
-    match code {
-        KeyCode::Tab | KeyCode::Right => tab.next(),
-        KeyCode::Left => tab.previous(),
-        KeyCode::Char('1') => Tab::Overview,
-        KeyCode::Char('2') => Tab::Processes,
-        KeyCode::Char('3') => Tab::Io,
-        KeyCode::Char('4') => Tab::Network,
-        _ => tab,
-    }
 }

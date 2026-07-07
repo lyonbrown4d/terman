@@ -1,6 +1,7 @@
 use std::error::Error;
 
 mod app;
+mod app_input;
 mod cli;
 mod core_meter;
 mod format;
