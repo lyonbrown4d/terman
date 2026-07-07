@@ -14,7 +14,8 @@ use interprocess::local_socket::prelude::*;
 use crate::{
     args::target_session_arg,
     attach_keys::{
-        is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
+        TmuxPrefixCommand, is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes,
+        tmux_prefix_bytes, tmux_prefix_command,
     },
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
@@ -178,6 +179,10 @@ impl AttachInputMode {
                 )?;
                 return Ok(false);
             }
+            if let Some(command) = tmux_prefix_command(&key) {
+                handle_prefix_command(endpoint, command)?;
+                return Ok(true);
+            }
             send_input(endpoint, tmux_prefix_bytes())?;
             if is_tmux_prefix_key(&key) {
                 return Ok(true);
@@ -196,6 +201,41 @@ impl AttachInputMode {
     }
 }
 
+fn handle_prefix_command(endpoint: &TmuxIpcEndpoint, command: TmuxPrefixCommand) -> io::Result<()> {
+    let index = match command {
+        TmuxPrefixCommand::SelectWindow(index) => index,
+        TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
+        TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
+    };
+    send_request(endpoint, TmuxIpcRequest::SelectWindow { index })
+}
+
+fn next_window_index(endpoint: &TmuxIpcEndpoint, forward: bool) -> io::Result<u32> {
+    match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
+        TmuxIpcResponse::Info { active_window, window_indexes, .. } => {
+            neighbor_window_index(active_window, &window_indexes, forward).ok_or_else(|| {
+                io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_window_not_found_hint("current", active_window as usize))
+            })
+        }
+        TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
+        response => Err(io::Error::new(io::ErrorKind::InvalidData, terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")))),
+    }
+}
+
+fn neighbor_window_index(active_window: u32, indexes: &[u32], forward: bool) -> Option<u32> {
+    if indexes.is_empty() {
+        return None;
+    }
+    let position = indexes.iter().position(|index| *index == active_window).unwrap_or(0);
+    let next = if forward {
+        (position + 1) % indexes.len()
+    } else if position == 0 {
+        indexes.len() - 1
+    } else {
+        position - 1
+    };
+    indexes.get(next).copied()
+}
 fn send_input(endpoint: &TmuxIpcEndpoint, bytes: Vec<u8>) -> io::Result<()> {
     send_request(endpoint, TmuxIpcRequest::Input { bytes })
 }

@@ -18,6 +18,25 @@ pub(crate) fn is_detach_key(key: &KeyEvent) -> bool {
         && !key.modifiers.contains(KeyModifiers::ALT)
 }
 
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum TmuxPrefixCommand {
+    NextWindow,
+    PreviousWindow,
+    SelectWindow(u32),
+}
+
+pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
+    if !is_key_press(key) || key.modifiers.contains(KeyModifiers::CONTROL) || key.modifiers.contains(KeyModifiers::ALT) {
+        return None;
+    }
+    match key.code {
+        KeyCode::Char('n') => Some(TmuxPrefixCommand::NextWindow),
+        KeyCode::Char('p') => Some(TmuxPrefixCommand::PreviousWindow),
+        KeyCode::Char(ch) if ch.is_ascii_digit() => ch.to_digit(10).map(TmuxPrefixCommand::SelectWindow),
+        _ => None,
+    }
+}
 pub(crate) fn tmux_prefix_bytes() -> Vec<u8> {
     vec![0x02]
 }
