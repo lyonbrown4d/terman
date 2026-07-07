@@ -2,6 +2,7 @@
 pub enum MessageKey {
     NativeToolNotFound,
     BuiltinHtopCliAbout,
+    BuiltinHtopTabOverview,
     BuiltinHtopTabProcesses,
     BuiltinHtopTabIo,
     BuiltinHtopTabNetwork,
@@ -107,6 +108,7 @@ impl MessageKey {
         match self {
             Self::NativeToolNotFound => "native-tool-not-found",
             Self::BuiltinHtopCliAbout => "builtin-htop-cli-about",
+            Self::BuiltinHtopTabOverview => "builtin-htop-tab-overview",
             Self::BuiltinHtopTabProcesses => "builtin-htop-tab-processes",
             Self::BuiltinHtopTabIo => "builtin-htop-tab-io",
             Self::BuiltinHtopTabNetwork => "builtin-htop-tab-network",

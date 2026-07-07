@@ -4,6 +4,10 @@ pub fn builtin_htop_cli_about() -> String {
     localized_message(MessageKey::BuiltinHtopCliAbout, &[])
 }
 
+pub fn builtin_htop_tab_overview_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopTabOverview, &[])
+}
+
 pub fn builtin_htop_tab_processes_hint() -> String {
     localized_message(MessageKey::BuiltinHtopTabProcesses, &[])
 }

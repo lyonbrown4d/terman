@@ -1,16 +1,16 @@
-use std::io::{self, Write};
-
-use crossterm::{
-    cursor::MoveTo,
-    queue,
-    style::{Attribute, Print, SetAttribute},
-    terminal::{self, Clear, ClearType},
+use ratatui::{
+    Frame,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph},
 };
 
 use crate::metrics::Snapshot;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Tab {
+    Overview,
     Processes,
     Io,
     Network,
@@ -19,109 +19,188 @@ pub(crate) enum Tab {
 impl Tab {
     pub(crate) fn next(self) -> Self {
         match self {
+            Self::Overview => Self::Processes,
             Self::Processes => Self::Io,
             Self::Io => Self::Network,
-            Self::Network => Self::Processes,
+            Self::Network => Self::Overview,
         }
     }
 
     pub(crate) fn previous(self) -> Self {
         match self {
-            Self::Processes => Self::Network,
+            Self::Overview => Self::Network,
+            Self::Processes => Self::Overview,
             Self::Io => Self::Processes,
             Self::Network => Self::Io,
         }
     }
 }
 
-pub(crate) fn draw(stdout: &mut impl Write, snapshot: &Snapshot, tab: Tab) -> io::Result<()> {
-    let (cols, rows) = terminal::size()?;
-    queue!(stdout, Clear(ClearType::All), MoveTo(0, 0))?;
-    draw_header(stdout, cols, snapshot, tab)?;
+pub(crate) fn draw(frame: &mut Frame<'_>, snapshot: &Snapshot, tab: Tab) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(4), Constraint::Min(0)])
+        .split(frame.area());
+    draw_header(frame, chunks[0], snapshot, tab);
     match tab {
-        Tab::Processes => draw_processes(stdout, rows, snapshot)?,
-        Tab::Io => draw_io(stdout, rows, snapshot)?,
-        Tab::Network => draw_network(stdout, rows, snapshot)?,
+        Tab::Overview => draw_overview(frame, chunks[1], snapshot),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot),
+        Tab::Io => draw_io(frame, chunks[1], snapshot),
+        Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
-    stdout.flush()
 }
 
-fn draw_header(stdout: &mut impl Write, cols: u16, snapshot: &Snapshot, tab: Tab) -> io::Result<()> {
-    let memory = format_bytes(snapshot.used_memory);
+fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {
+    let cpu = snapshot.cpu_usage;
+    let mem = format_bytes(snapshot.used_memory);
     let total = format_bytes(snapshot.total_memory);
-    line(stdout, 0, cols, &format!("terman-htop  mem {memory}/{total}"))?;
-    queue!(stdout, MoveTo(0, 1))?;
-    draw_tab(stdout, tab, Tab::Processes, &terman_common::builtin_htop_tab_processes_hint())?;
-    draw_tab(stdout, tab, Tab::Io, &terman_common::builtin_htop_tab_io_hint())?;
-    draw_tab(stdout, tab, Tab::Network, &terman_common::builtin_htop_tab_network_hint())?;
-    line(stdout, 2, cols, &terman_common::builtin_htop_help_hint())
+    let lines = vec![
+        meter_line("CPU", cpu as f64, 100.0, 16, format!("{cpu:>5.1}%")),
+        meter_line("MEM", snapshot.used_memory as f64, snapshot.total_memory as f64, 16, format!("{mem}/{total}")),
+        tab_line(tab),
+        Line::from(Span::styled(
+            terman_common::builtin_htop_help_hint(),
+            Style::default().fg(Color::DarkGray),
+        )),
+    ];
+    frame.render_widget(Paragraph::new(lines), area);
 }
 
-fn draw_tab(stdout: &mut impl Write, active: Tab, tab: Tab, label: &str) -> io::Result<()> {
-    if active == tab {
-        queue!(stdout, SetAttribute(Attribute::Reverse))?;
-    }
-    queue!(stdout, Print(format!(" {label} ")))?;
-    if active == tab {
-        queue!(stdout, SetAttribute(Attribute::Reset))?;
-    }
-    queue!(stdout, Print(" "))
+fn tab_line(active: Tab) -> Line<'static> {
+    Line::from(vec![
+        tab_span(active, Tab::Overview, terman_common::builtin_htop_tab_overview_hint()),
+        Span::raw(" "),
+        tab_span(active, Tab::Processes, terman_common::builtin_htop_tab_processes_hint()),
+        Span::raw(" "),
+        tab_span(active, Tab::Io, terman_common::builtin_htop_tab_io_hint()),
+        Span::raw(" "),
+        tab_span(active, Tab::Network, terman_common::builtin_htop_tab_network_hint()),
+    ])
 }
 
-fn draw_processes(stdout: &mut impl Write, rows: u16, snapshot: &Snapshot) -> io::Result<()> {
-    line(stdout, 4, u16::MAX, "PID        CPU%    MEM        NAME")?;
-    for (offset, row) in snapshot.processes.iter().take(body_rows(rows)).enumerate() {
-        line(stdout, 5 + offset as u16, u16::MAX, &format!(
+fn tab_span(active: Tab, tab: Tab, label: String) -> Span<'static> {
+    let style = if active == tab {
+        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Gray)
+    };
+    Span::styled(format!(" {label} "), style)
+}
+
+fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+    let mut lines = vec![
+        meter_line("CPU", snapshot.cpu_usage as f64, 100.0, 24, format!(
+            "{:>5.1}% across {} core(s)", snapshot.cpu_usage, snapshot.cpu_count
+        )),
+        meter_line("Mem", snapshot.used_memory as f64, snapshot.total_memory as f64, 24, format!(
+            "{} / {}", format_bytes(snapshot.used_memory), format_bytes(snapshot.total_memory)
+        )),
+        meter_line("Swp", snapshot.used_swap as f64, snapshot.total_swap as f64, 24, format!(
+            "{} / {}", format_bytes(snapshot.used_swap), format_bytes(snapshot.total_swap)
+        )),
+        plain_line(format!("Tasks: {}", snapshot.process_count)),
+        plain_line(format!(
+            "Net: rx {} / tx {} per refresh",
+            format_bytes(snapshot.received_per_refresh),
+            format_bytes(snapshot.transmitted_per_refresh)
+        )),
+        plain_line(format!("Uptime: {}", format_duration(snapshot.uptime))),
+        title_line("TOP CPU"),
+    ];
+    for row in snapshot.processes.iter().take(overview_rows(area)) {
+        lines.push(plain_line(format!(
+            "{:<10} {:>5.1}% {:>8} {}",
+            row.pid,
+            row.cpu,
+            format_bytes(row.memory),
+            row.name
+        )));
+    }
+    render_block(frame, area, "Overview", lines);
+}
+
+fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+    let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
+    for row in snapshot.processes.iter().take(body_rows(area)) {
+        lines.push(plain_line(format!(
             "{:<10} {:>5.1}   {:>8}   {}",
             row.pid,
             row.cpu,
             format_bytes(row.memory),
             row.name
-        ))?;
+        )));
     }
-    Ok(())
+    render_block(frame, area, "Processes", lines);
 }
 
-fn draw_io(stdout: &mut impl Write, rows: u16, snapshot: &Snapshot) -> io::Result<()> {
-    line(stdout, 4, u16::MAX, "PID        READ       WRITE      NAME")?;
-    for (offset, row) in snapshot.io.iter().take(body_rows(rows)).enumerate() {
-        line(stdout, 5 + offset as u16, u16::MAX, &format!(
+fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+    let mut lines = vec![title_line("PID        READ       WRITE      NAME")];
+    for row in snapshot.io.iter().take(body_rows(area)) {
+        lines.push(plain_line(format!(
             "{:<10} {:>9}  {:>9}  {}",
             row.pid,
             format_bytes(row.read),
             format_bytes(row.written),
             row.name
-        ))?;
+        )));
     }
-    Ok(())
+    render_block(frame, area, "I/O", lines);
 }
 
-fn draw_network(stdout: &mut impl Write, rows: u16, snapshot: &Snapshot) -> io::Result<()> {
-    line(stdout, 4, u16::MAX, "IFACE                 RX        TX        TOTAL RX   TOTAL TX")?;
-    for (offset, row) in snapshot.networks.iter().take(body_rows(rows)).enumerate() {
-        line(stdout, 5 + offset as u16, u16::MAX, &format!(
+fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+    let mut lines = vec![title_line("IFACE                 RX        TX        TOTAL RX   TOTAL TX")];
+    for row in snapshot.networks.iter().take(body_rows(area)) {
+        lines.push(plain_line(format!(
             "{:<20} {:>8} {:>8} {:>10} {:>10}",
             row.name,
             format_bytes(row.received),
             format_bytes(row.transmitted),
             format_bytes(row.total_received),
             format_bytes(row.total_transmitted)
-        ))?;
+        )));
     }
-    Ok(())
+    render_block(frame, area, "Network", lines);
 }
 
-fn line(stdout: &mut impl Write, y: u16, cols: u16, text: &str) -> io::Result<()> {
-    let width = cols as usize;
-    let mut text = text.to_string();
-    if width != usize::from(u16::MAX) && text.len() > width {
-        text.truncate(width);
-    }
-    queue!(stdout, MoveTo(0, y), Print(text))
+fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Blue));
+    frame.render_widget(Paragraph::new(lines).block(block), area);
 }
 
-fn body_rows(rows: u16) -> usize {
-    rows.saturating_sub(5) as usize
+fn meter_line(label: &str, value: f64, max: f64, width: usize, suffix: String) -> Line<'static> {
+    let filled = meter_fill(value, max, width);
+    Line::from(vec![
+        Span::styled(format!("{label:<3} ["), Style::default().fg(Color::Cyan)),
+        Span::styled("#".repeat(filled), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+        Span::styled("-".repeat(width.saturating_sub(filled)), Style::default().fg(Color::DarkGray)),
+        Span::styled(format!("] {suffix}"), Style::default().fg(Color::White)),
+    ])
+}
+
+fn meter_fill(value: f64, max: f64, width: usize) -> usize {
+    if max <= 0.0 || width == 0 {
+        return 0;
+    }
+    ((value / max).clamp(0.0, 1.0) * width as f64).round() as usize
+}
+
+fn title_line(text: &'static str) -> Line<'static> {
+    Line::from(Span::styled(text, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
+}
+
+fn plain_line(text: String) -> Line<'static> {
+    Line::from(Span::raw(text))
+}
+
+fn body_rows(area: Rect) -> usize {
+    area.height.saturating_sub(3) as usize
+}
+
+fn overview_rows(area: Rect) -> usize {
+    area.height.saturating_sub(10).min(5) as usize
 }
 
 fn format_bytes(bytes: u64) -> String {
@@ -136,5 +215,16 @@ fn format_bytes(bytes: u64) -> String {
         format!("{}{}", bytes, UNITS[unit])
     } else {
         format!("{value:.1}{}", UNITS[unit])
+    }
+}
+
+fn format_duration(seconds: u64) -> String {
+    let days = seconds / 86_400;
+    let hours = (seconds % 86_400) / 3_600;
+    let minutes = (seconds % 3_600) / 60;
+    if days > 0 {
+        format!("{days}d {hours}h {minutes}m")
+    } else {
+        format!("{hours}h {minutes}m")
     }
 }

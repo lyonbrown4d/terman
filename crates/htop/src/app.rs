@@ -1,4 +1,8 @@
-use std::{error::Error, io, time::{Duration, Instant}};
+use std::{
+    error::Error,
+    io,
+    time::{Duration, Instant},
+};
 
 use crossterm::{
     cursor::{Hide, Show},
@@ -6,8 +10,13 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
+use ratatui::{Terminal, backend::CrosstermBackend};
 
-use crate::{cli::HtopArgs, metrics::Metrics, render::{self, Tab}};
+use crate::{
+    cli::HtopArgs,
+    metrics::Metrics,
+    render::{self, Tab},
+};
 
 struct TerminalGuard;
 
@@ -28,13 +37,14 @@ impl Drop for TerminalGuard {
 
 pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let _guard = TerminalGuard::enter()?;
-    let mut stdout = io::stdout();
+    let backend = CrosstermBackend::new(io::stdout());
+    let mut terminal = Terminal::new(backend)?;
     let mut metrics = Metrics::new();
-    let mut tab = Tab::Processes;
+    let mut tab = Tab::Overview;
 
     loop {
         metrics.refresh();
-        render::draw(&mut stdout, &metrics.snapshot(), tab)?;
+        terminal.draw(|frame| render::draw(frame, &metrics.snapshot(), tab))?;
         if args.once {
             return Ok(());
         }
@@ -61,9 +71,10 @@ fn next_tab(tab: Tab, code: KeyCode) -> Tab {
     match code {
         KeyCode::Tab | KeyCode::Right => tab.next(),
         KeyCode::Left => tab.previous(),
-        KeyCode::Char('1') => Tab::Processes,
-        KeyCode::Char('2') => Tab::Io,
-        KeyCode::Char('3') => Tab::Network,
+        KeyCode::Char('1') => Tab::Overview,
+        KeyCode::Char('2') => Tab::Processes,
+        KeyCode::Char('3') => Tab::Io,
+        KeyCode::Char('4') => Tab::Network,
         _ => tab,
     }
 }

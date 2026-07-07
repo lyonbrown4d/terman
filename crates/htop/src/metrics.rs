@@ -9,8 +9,16 @@ pub(crate) struct Metrics {
 
 #[derive(Clone, Debug)]
 pub(crate) struct Snapshot {
+    pub(crate) cpu_usage: f32,
+    pub(crate) cpu_count: usize,
     pub(crate) total_memory: u64,
     pub(crate) used_memory: u64,
+    pub(crate) total_swap: u64,
+    pub(crate) used_swap: u64,
+    pub(crate) process_count: usize,
+    pub(crate) received_per_refresh: u64,
+    pub(crate) transmitted_per_refresh: u64,
+    pub(crate) uptime: u64,
     pub(crate) processes: Vec<ProcessRow>,
     pub(crate) io: Vec<IoRow>,
     pub(crate) networks: Vec<NetworkRow>,
@@ -55,12 +63,23 @@ impl Metrics {
     }
 
     pub(crate) fn snapshot(&self) -> Snapshot {
+        let networks = self.network_rows();
+        let received = networks.iter().map(|row| row.received).sum();
+        let transmitted = networks.iter().map(|row| row.transmitted).sum();
         Snapshot {
+            cpu_usage: self.system.global_cpu_usage(),
+            cpu_count: self.system.cpus().len(),
             total_memory: self.system.total_memory(),
             used_memory: self.system.used_memory(),
+            total_swap: self.system.total_swap(),
+            used_swap: self.system.used_swap(),
+            process_count: self.system.processes().len(),
+            received_per_refresh: received,
+            transmitted_per_refresh: transmitted,
+            uptime: System::uptime(),
             processes: self.process_rows(),
             io: self.io_rows(),
-            networks: self.network_rows(),
+            networks,
         }
     }
 

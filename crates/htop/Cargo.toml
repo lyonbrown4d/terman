@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 clap = { workspace = true }
 crossterm = { workspace = true }
+ratatui = { workspace = true }
 sysinfo = { workspace = true }
 terman-common = { workspace = true }
 tokio = { workspace = true }
