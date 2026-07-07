@@ -19,6 +19,7 @@ mod lifecycle;
 mod new_session;
 mod pane_commands;
 mod launcher;
+mod refresh_client;
 mod message;
 mod pty;
 mod service;

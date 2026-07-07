@@ -20,6 +20,7 @@ pub(crate) enum TmuxCommand {
     SelectPane,
     DisplayPanes,
     ResizePane,
+    RefreshClient,
     SelectWindow,
     NextWindow,
     PreviousWindow,
@@ -53,6 +54,7 @@ impl TmuxCommand {
             Some("select-pane" | "selectp") => Self::SelectPane,
             Some("display-panes" | "displayp") => Self::DisplayPanes,
             Some("resize-pane" | "resizep") => Self::ResizePane,
+            Some("refresh-client" | "refresh") => Self::RefreshClient,
             Some("select-window" | "selectw") => Self::SelectWindow,
             Some("next-window" | "next") => Self::NextWindow,
             Some("previous-window" | "previous" | "prev") => Self::PreviousWindow,
@@ -100,6 +102,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["selectp".into()]), TmuxCommand::SelectPane);
         assert_eq!(TmuxCommand::parse(&["displayp".into()]), TmuxCommand::DisplayPanes);
         assert_eq!(TmuxCommand::parse(&["resizep".into()]), TmuxCommand::ResizePane);
+        assert_eq!(TmuxCommand::parse(&["refresh".into()]), TmuxCommand::RefreshClient);
         assert_eq!(TmuxCommand::parse(&["selectw".into()]), TmuxCommand::SelectWindow);
         assert_eq!(TmuxCommand::parse(&["next".into()]), TmuxCommand::NextWindow);
         assert_eq!(TmuxCommand::parse(&["prev".into()]), TmuxCommand::PreviousWindow);

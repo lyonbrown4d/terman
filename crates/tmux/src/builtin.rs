@@ -17,6 +17,7 @@ use crate::{
     message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
     pane_commands::{display_builtin_tmux_panes, kill_builtin_tmux_pane, list_builtin_tmux_panes, resize_builtin_tmux_pane, select_builtin_tmux_pane},
+    refresh_client::refresh_builtin_tmux_client,
     send_keys::{send_builtin_tmux_keys, send_builtin_tmux_prefix},
     service::request_endpoint_response,
     sessions::{
@@ -108,6 +109,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::ResizePane => {
             resize_builtin_tmux_pane(args)?;
+            Ok(true)
+        }
+        TmuxCommand::RefreshClient => {
+            refresh_builtin_tmux_client(args)?;
             Ok(true)
         }
         TmuxCommand::SelectWindow => {
