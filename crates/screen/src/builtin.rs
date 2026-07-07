@@ -17,6 +17,7 @@ use crossterm::{
 
 use crate::{
     ScreenArgs,
+    builtin_mouse::{disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse},
     builtin_output::{drain_window_output, handle_window_exit, publish_error, publish_window_redraw},
     ipc::ScreenIpcEndpoint,
     service::ScreenSessionService,
@@ -34,12 +35,14 @@ struct RawMode;
 impl RawMode {
     fn enter() -> io::Result<Self> {
         terminal::enable_raw_mode()?;
+        enable_mouse_capture()?;
         Ok(Self)
     }
 }
 
 impl Drop for RawMode {
     fn drop(&mut self) {
+        disable_mouse_capture();
         let _ = terminal::disable_raw_mode();
     }
 }
@@ -212,6 +215,9 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
 
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
+                Ok(Event::Mouse(mouse)) => {
+                    handle_builtin_mouse(&session_bus, &windows, &mut active_window, mouse);
+                }
                 Ok(Event::Key(key)) => {
                     if let Some(bytes) = key_to_bytes(key) {
                         write_active_window_input(&mut windows, active_window, &bytes);

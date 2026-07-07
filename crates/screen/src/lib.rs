@@ -2,6 +2,7 @@ use std::error::Error;
 
 mod builtin;
 mod builtin_output;
+mod builtin_mouse;
 mod cli;
 mod ipc;
 mod launcher;
