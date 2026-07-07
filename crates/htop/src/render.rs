@@ -187,7 +187,8 @@ fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
 }
 
 fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
-    let mut lines = vec![title_line("IFACE                 RX        TX        TOTAL RX   TOTAL TX")];
+    let mut lines = vec![title_line("IFACE                 RX/s      TX/s      TOTAL RX   TOTAL TX")];
+    lines.push(network_total_line(snapshot));
     for row in snapshot.networks.iter().take(body_rows(area)) {
         lines.push(plain_line(format!(
             "{:<20} {:>8} {:>8} {:>10} {:>10}",
@@ -199,6 +200,21 @@ fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
         )));
     }
     render_block(frame, area, "Network", lines);
+}
+
+fn network_total_line(snapshot: &Snapshot) -> Line<'static> {
+    let rx = snapshot.networks.iter().map(|row| row.received).sum();
+    let tx = snapshot.networks.iter().map(|row| row.transmitted).sum();
+    let total_rx = snapshot.networks.iter().map(|row| row.total_received).sum();
+    let total_tx = snapshot.networks.iter().map(|row| row.total_transmitted).sum();
+    plain_line(format!(
+        "{:<20} {:>8} {:>8} {:>10} {:>10}",
+        "TOTAL",
+        format_bytes(rx),
+        format_bytes(tx),
+        format_bytes(total_rx),
+        format_bytes(total_tx)
+    ))
 }
 
 fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) -> Line<'static> {
