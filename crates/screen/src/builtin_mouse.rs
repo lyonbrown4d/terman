@@ -58,8 +58,8 @@ pub(crate) fn handle_builtin_mouse(
     event: MouseEvent,
 ) {
     match event.kind {
-        MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => switch_with_mouse(bus, windows, active_window, state, ScreenWindowSwitch::Previous),
-        MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => switch_with_mouse(bus, windows, active_window, state, ScreenWindowSwitch::Next),
+        MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => scroll_wheel(bus, windows, active_window, state, event, ScreenWindowSwitch::Previous),
+        MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => scroll_wheel(bus, windows, active_window, state, event, ScreenWindowSwitch::Next),
         MouseEventKind::Down(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Drag(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Down(MouseButton::Right) => right_click(bus, windows, *active_window, state, event),
@@ -68,6 +68,21 @@ pub(crate) fn handle_builtin_mouse(
     }
 }
 
+fn scroll_wheel(
+    bus: &ScreenSessionBus,
+    windows: &mut [ScreenWindowRuntime],
+    active_window: &mut usize,
+    state: &mut ScreenMouseState,
+    event: MouseEvent,
+    target: ScreenWindowSwitch,
+) {
+    if on_control_row(bus, event.row) {
+        switch_with_mouse(bus, windows, active_window, state, target);
+    } else {
+        state.clear();
+        forward_mouse_event(windows, *active_window, event);
+    }
+}
 fn select_or_forward(
     bus: &ScreenSessionBus,
     windows: &mut [ScreenWindowRuntime],
