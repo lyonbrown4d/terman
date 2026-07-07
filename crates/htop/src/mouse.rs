@@ -55,7 +55,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if sort_menu_scroll(&mut context, false) {
                 return MouseAction::Handled;
             }
-            if tab_scroll(&mut context, false) {
+            if tab_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
@@ -69,7 +69,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if sort_menu_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
-            if tab_scroll(&mut context, false) {
+            if tab_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
