@@ -6,6 +6,7 @@ pub(crate) enum SortMode {
     Io,
     Pid,
     ParentPid,
+    State,
     Name,
 }
 
@@ -18,6 +19,7 @@ impl SortMode {
             Self::Io => "I/O",
             Self::Pid => "PID",
             Self::ParentPid => "PPID",
+            Self::State => "STATE",
             Self::Name => "NAME",
         }
     }

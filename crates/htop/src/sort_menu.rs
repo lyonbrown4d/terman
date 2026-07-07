@@ -9,13 +9,14 @@ use ratatui::{
 
 use crate::model::SortMode;
 
-const SORT_MODES: [SortMode; 7] = [
+const SORT_MODES: [SortMode; 8] = [
     SortMode::Cpu,
     SortMode::Memory,
     SortMode::Time,
     SortMode::Io,
     SortMode::Pid,
     SortMode::ParentPid,
+    SortMode::State,
     SortMode::Name,
 ];
 
