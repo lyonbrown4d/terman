@@ -42,6 +42,10 @@ pub(crate) fn handle_attach_mouse(
     event: MouseEvent,
 ) -> io::Result<()> {
     if !on_status_row(event.row) {
+        if state.list_open() {
+            state.clear();
+            return render_current_status(endpoint);
+        }
         state.clear();
         return forward_pane_mouse(endpoint, event);
     }
