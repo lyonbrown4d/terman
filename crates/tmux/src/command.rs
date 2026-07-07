@@ -15,6 +15,8 @@ pub(crate) enum TmuxCommand {
     NewWindow,
     ListWindows,
     SelectWindow,
+    NextWindow,
+    PreviousWindow,
     KillWindow,
     RenameWindow,
     Other,
@@ -38,6 +40,8 @@ impl TmuxCommand {
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
             Some("select-window" | "selectw") => Self::SelectWindow,
+            Some("next-window" | "next") => Self::NextWindow,
+            Some("previous-window" | "previous" | "prev") => Self::PreviousWindow,
             Some("kill-window" | "killw") => Self::KillWindow,
             Some("rename-window" | "renamew") => Self::RenameWindow,
             _ => Self::Other,
@@ -75,6 +79,8 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
         assert_eq!(TmuxCommand::parse(&["selectw".into()]), TmuxCommand::SelectWindow);
+        assert_eq!(TmuxCommand::parse(&["next".into()]), TmuxCommand::NextWindow);
+        assert_eq!(TmuxCommand::parse(&["prev".into()]), TmuxCommand::PreviousWindow);
         assert_eq!(TmuxCommand::parse(&["killw".into()]), TmuxCommand::KillWindow);
         assert_eq!(TmuxCommand::parse(&["renamew".into()]), TmuxCommand::RenameWindow);
     }

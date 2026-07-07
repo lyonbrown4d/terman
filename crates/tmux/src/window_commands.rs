@@ -115,6 +115,29 @@ pub(crate) fn select_builtin_tmux_window_command(args: &[String]) -> Result<(), 
     }
 }
 
+pub(crate) fn select_adjacent_builtin_tmux_window_command(
+    args: &[String],
+    forward: bool,
+) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
+        return Err(session_not_found_error(&target));
+    };
+    let TmuxIpcResponse::Info { active_window, window_indexes, .. } = request_endpoint_response(
+        &session_endpoint(&session),
+        TmuxIpcRequest::Info,
+    )? else {
+        return Err(unexpected_response_error(TmuxIpcResponse::Rejected { reason: String::from("expected info response") }));
+    };
+    let Some(index) = adjacent_window_index(active_window, &window_indexes, forward) else {
+        return Err(window_not_found_error(&target, active_window as usize));
+    };
+    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::SelectWindow { index })? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(unexpected_response_error(response)),
+    }
+}
 fn list_builtin_tmux_windows_json(session: &BuiltinTmuxSession) -> Result<(), Box<dyn Error>> {
     let TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::Info)? else {
         return Err(unexpected_response_error(TmuxIpcResponse::Rejected { reason: String::from("expected info response") }));
@@ -144,6 +167,20 @@ fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
     session.ipc_endpoint.as_deref().map(TmuxIpcEndpoint::from_raw_name).unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
 }
 
+fn adjacent_window_index(active_window: u32, indexes: &[u32], forward: bool) -> Option<u32> {
+    if indexes.is_empty() {
+        return None;
+    }
+    let position = indexes.iter().position(|index| *index == active_window).unwrap_or(0);
+    let next = if forward {
+        (position + 1) % indexes.len()
+    } else if position == 0 {
+        indexes.len() - 1
+    } else {
+        position - 1
+    };
+    indexes.get(next).copied()
+}
 fn list_windows_json_requested(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "--json")
 }

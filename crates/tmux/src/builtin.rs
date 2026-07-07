@@ -23,7 +23,7 @@ use crate::{
     },
     status::{list_builtin_tmux_sessions, list_builtin_tmux_sessions_json, require_live_builtin_tmux_session},
     window_commands::{create_builtin_tmux_window, kill_builtin_tmux_window_command,
-        list_builtin_tmux_windows, rename_builtin_tmux_window_command, select_builtin_tmux_window_command},
+        list_builtin_tmux_windows, rename_builtin_tmux_window_command, select_adjacent_builtin_tmux_window_command, select_builtin_tmux_window_command},
 };
 
 pub(crate) fn try_run_builtin_tmux_command(
@@ -86,6 +86,14 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::SelectWindow => {
             select_builtin_tmux_window_command(args)?;
+            Ok(true)
+        }
+        TmuxCommand::NextWindow => {
+            select_adjacent_builtin_tmux_window_command(args, true)?;
+            Ok(true)
+        }
+        TmuxCommand::PreviousWindow => {
+            select_adjacent_builtin_tmux_window_command(args, false)?;
             Ok(true)
         }
         TmuxCommand::KillWindow => {
