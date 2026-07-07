@@ -73,6 +73,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         MouseEventKind::ScrollLeft => { if sort_menu_scroll(&mut context, false) { return MouseAction::Handled; } *context.tab = (*context.tab).previous(); MouseAction::Handled }
         MouseEventKind::ScrollRight => { if sort_menu_scroll(&mut context, true) { return MouseAction::Handled; } *context.tab = (*context.tab).next(); MouseAction::Handled }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
+        MouseEventKind::Drag(MouseButton::Left) => drag_select(event.row, context),
         MouseEventKind::Down(MouseButton::Right) => right_click(event.row, context),
         _ => MouseAction::Ignored,
     }
@@ -134,6 +135,11 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         return MouseAction::Handled;
     }
     MouseAction::Ignored
+}
+fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
+    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
+    if *context.selected != index { *context.detail_scroll = 0; }
+    *context.selected = index; MouseAction::Handled
 }
 fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
     if row != terminal_area().height.saturating_sub(1) {
