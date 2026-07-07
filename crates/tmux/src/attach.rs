@@ -6,7 +6,7 @@ use std::{
 };
 
 use crossterm::{
-    event::{read, Event, KeyEvent},
+    event::{read, Event, KeyCode, KeyEvent},
     terminal::{disable_raw_mode, enable_raw_mode, size},
 };
 use interprocess::local_socket::prelude::*;
@@ -17,7 +17,7 @@ use crate::{
         is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
         tmux_prefix_command, TmuxPrefixCommand,
     },
-    attach_status::{query_status_line, render_status_line, PREFIX_STATUS},
+    attach_status::{query_status_line, render_status_line, KILL_CONFIRM_STATUS, PREFIX_STATUS},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::{AddBuiltinTmuxWindow, KillBuiltinTmuxWindow, add_builtin_tmux_window,
@@ -124,11 +124,15 @@ fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::
 }
 
 #[derive(Default)]
-struct AttachInputMode { prefix_pending: bool }
+struct AttachInputMode { prefix_pending: bool, kill_pending: bool }
 
 impl AttachInputMode {
     fn handle_key(&mut self, endpoint: &TmuxIpcEndpoint, client_id: &str, key: KeyEvent) -> io::Result<bool> {
         if !is_key_press(&key) { return Ok(true); }
+        if self.kill_pending {
+            self.kill_pending = handle_kill_confirmation(endpoint, &key)?;
+            return Ok(true);
+        }
         if self.prefix_pending {
             self.prefix_pending = false;
             if is_detach_key(&key) {
@@ -136,8 +140,13 @@ impl AttachInputMode {
                 return Ok(false);
             }
             if let Some(command) = tmux_prefix_command(&key) {
-                handle_prefix_command(endpoint, command)?;
-                let _ = render_current_status(endpoint);
+                if matches!(command, TmuxPrefixCommand::KillWindow) {
+                    self.kill_pending = true;
+                    let _ = render_status_line(KILL_CONFIRM_STATUS);
+                } else {
+                    handle_prefix_command(endpoint, command)?;
+                    let _ = render_current_status(endpoint);
+                }
                 return Ok(true);
             }
             send_input(endpoint, tmux_prefix_bytes())?;
@@ -154,6 +163,20 @@ impl AttachInputMode {
     }
 }
 
+fn handle_kill_confirmation(endpoint: &TmuxIpcEndpoint, key: &KeyEvent) -> io::Result<bool> {
+    match key.code {
+        KeyCode::Char('y') | KeyCode::Char('Y') => {
+            kill_current_window(endpoint)?;
+            let _ = render_current_status(endpoint);
+            Ok(false)
+        }
+        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+            let _ = render_current_status(endpoint);
+            Ok(false)
+        }
+        _ => Ok(true),
+    }
+}
 fn handle_prefix_command(endpoint: &TmuxIpcEndpoint, command: TmuxPrefixCommand) -> io::Result<()> {
     let index = match command {
         TmuxPrefixCommand::SelectWindow(index) => index,
