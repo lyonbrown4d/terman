@@ -2,6 +2,7 @@ use std::error::Error;
 
 mod app;
 mod cli;
+mod format;
 mod metrics;
 mod render;
 

@@ -42,31 +42,81 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut metrics = Metrics::new();
     let mut tab = Tab::Overview;
     let mut sort = SortMode::Cpu;
+    let mut filter = String::new();
+    let mut filter_input: Option<String> = None;
 
     loop {
         metrics.refresh();
-        terminal.draw(|frame| render::draw(frame, &metrics.snapshot(sort), tab, sort))?;
+        let active_filter = filter_input.as_deref().unwrap_or(&filter);
+        let snapshot = metrics.snapshot(sort, active_filter);
+        terminal.draw(|frame| {
+            render::draw(frame, &snapshot, tab, sort, active_filter, filter_input.is_some())
+        })?;
         if args.once {
             return Ok(());
         }
-        let refresh = Duration::from_millis(args.refresh_ms.max(100));
-        let deadline = Instant::now() + refresh;
-        while Instant::now() < deadline {
-            if event::poll(Duration::from_millis(50))? {
-                match event::read()? {
-                    Event::Key(key) if quit_key(key.code) => return Ok(()),
-                    Event::Key(key) if sort_key(key.code) => sort = sort.next(),
-                    Event::Key(key) => tab = next_tab(tab, key.code),
-                    Event::Resize(_, _) => break,
-                    _ => {}
-                }
-            }
+        if poll_until_refresh(args.refresh_ms, &mut tab, &mut sort, &mut filter, &mut filter_input)? {
+            return Ok(());
         }
     }
 }
 
+fn poll_until_refresh(
+    refresh_ms: u64,
+    tab: &mut Tab,
+    sort: &mut SortMode,
+    filter: &mut String,
+    filter_input: &mut Option<String>,
+) -> io::Result<bool> {
+    let refresh = Duration::from_millis(refresh_ms.max(100));
+    let deadline = Instant::now() + refresh;
+    while Instant::now() < deadline {
+        if event::poll(Duration::from_millis(50))? {
+            match event::read()? {
+                Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
+                Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
+                Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
+                Event::Key(key) if quit_key(key.code) => return Ok(true),
+                Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
+                Event::Key(key) if sort_key(key.code) => *sort = sort.next(),
+                Event::Key(key) => *tab = next_tab(*tab, key.code),
+                Event::Resize(_, _) => break,
+                _ => {}
+            }
+        }
+    }
+    Ok(false)
+}
+
+fn handle_filter_input(
+    code: KeyCode,
+    filter: &mut String,
+    filter_input: &mut Option<String>,
+) -> bool {
+    let Some(input) = filter_input.as_mut() else {
+        return false;
+    };
+    match code {
+        KeyCode::Enter => {
+            *filter = input.trim().to_string();
+            *filter_input = None;
+        }
+        KeyCode::Esc => *filter_input = None,
+        KeyCode::Backspace => {
+            input.pop();
+        }
+        KeyCode::Char(ch) => input.push(ch),
+        _ => {}
+    }
+    true
+}
+
 fn quit_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10))
+}
+
+fn filter_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('/') | KeyCode::F(4))
 }
 
 fn sort_key(code: KeyCode) -> bool {

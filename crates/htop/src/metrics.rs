@@ -44,6 +44,7 @@ pub(crate) struct Snapshot {
     pub(crate) total_swap: u64,
     pub(crate) used_swap: u64,
     pub(crate) process_count: usize,
+    pub(crate) filtered_process_count: usize,
     pub(crate) received_per_refresh: u64,
     pub(crate) transmitted_per_refresh: u64,
     pub(crate) uptime: u64,
@@ -90,8 +91,10 @@ impl Metrics {
         self.networks.refresh(true);
     }
 
-    pub(crate) fn snapshot(&self, sort: SortMode) -> Snapshot {
+    pub(crate) fn snapshot(&self, sort: SortMode, filter: &str) -> Snapshot {
         let networks = self.network_rows();
+        let processes = self.process_rows(sort, filter);
+        let io = self.io_rows(filter);
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
         Snapshot {
@@ -102,16 +105,17 @@ impl Metrics {
             total_swap: self.system.total_swap(),
             used_swap: self.system.used_swap(),
             process_count: self.system.processes().len(),
+            filtered_process_count: processes.len(),
             received_per_refresh: received,
             transmitted_per_refresh: transmitted,
             uptime: System::uptime(),
-            processes: self.process_rows(sort),
-            io: self.io_rows(),
+            processes,
+            io,
             networks,
         }
     }
 
-    fn process_rows(&self, sort: SortMode) -> Vec<ProcessRow> {
+    fn process_rows(&self, sort: SortMode, filter: &str) -> Vec<ProcessRow> {
         let mut rows: Vec<_> = self.system.processes().iter().map(|(pid, process)| {
             ProcessRow {
                 pid: pid.to_string(),
@@ -119,12 +123,12 @@ impl Metrics {
                 memory: process.memory(),
                 name: process.name().to_string_lossy().into_owned(),
             }
-        }).collect();
+        }).filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter)).collect();
         rows.sort_by(|left, right| compare_process(left, right, sort));
         rows
     }
 
-    fn io_rows(&self) -> Vec<IoRow> {
+    fn io_rows(&self, filter: &str) -> Vec<IoRow> {
         let mut rows: Vec<_> = self.system.processes().iter().map(|(pid, process)| {
             let usage = process.disk_usage();
             IoRow {
@@ -133,7 +137,7 @@ impl Metrics {
                 written: usage.total_written_bytes,
                 name: process.name().to_string_lossy().into_owned(),
             }
-        }).collect();
+        }).filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter)).collect();
         rows.sort_by(|left, right| (right.read + right.written).cmp(&(left.read + left.written)));
         rows
     }
@@ -154,6 +158,11 @@ impl Metrics {
         });
         rows
     }
+}
+
+fn process_matches(pid: &str, name: &str, filter: &str) -> bool {
+    let filter = filter.trim();
+    filter.is_empty() || pid.contains(filter) || name.to_lowercase().contains(&filter.to_lowercase())
 }
 
 fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ordering {

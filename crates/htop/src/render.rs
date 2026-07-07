@@ -6,7 +6,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::metrics::{Snapshot, SortMode};
+use crate::{
+    format::{format_bytes, format_duration, meter_fill},
+    metrics::{Snapshot, SortMode},
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Tab {
@@ -36,7 +39,14 @@ impl Tab {
     }
 }
 
-pub(crate) fn draw(frame: &mut Frame<'_>, snapshot: &Snapshot, tab: Tab, sort: SortMode) {
+pub(crate) fn draw(
+    frame: &mut Frame<'_>,
+    snapshot: &Snapshot,
+    tab: Tab,
+    sort: SortMode,
+    filter: &str,
+    filtering: bool,
+) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(4), Constraint::Min(0), Constraint::Length(1)])
@@ -44,11 +54,11 @@ pub(crate) fn draw(frame: &mut Frame<'_>, snapshot: &Snapshot, tab: Tab, sort: S
     draw_header(frame, chunks[0], snapshot, tab);
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, filter),
         Tab::Io => draw_io(frame, chunks[1], snapshot),
         Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
-    draw_footer(frame, chunks[2], sort);
+    draw_footer(frame, chunks[2], sort, filter, filtering);
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {
@@ -99,7 +109,7 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
         meter_line("Swp", snapshot.used_swap as f64, snapshot.total_swap as f64, 24, format!(
             "{} / {}", format_bytes(snapshot.used_swap), format_bytes(snapshot.total_swap)
         )),
-        plain_line(format!("Tasks: {}", snapshot.process_count)),
+        plain_line(format!("Tasks: {} shown / {} total", snapshot.filtered_process_count, snapshot.process_count)),
         plain_line(format!(
             "Net: rx {} / tx {} per refresh",
             format_bytes(snapshot.received_per_refresh),
@@ -109,28 +119,16 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
         title_line("TOP PROCESSES"),
     ];
     for row in snapshot.processes.iter().take(overview_rows(area)) {
-        lines.push(plain_line(format!(
-            "{:<10} {:>5.1}% {:>8} {}",
-            row.pid,
-            row.cpu,
-            format_bytes(row.memory),
-            row.name
-        )));
+        lines.push(process_line(row.pid.as_str(), row.cpu, row.memory, row.name.as_str()));
     }
     render_block(frame, area, "Overview", lines);
 }
 
-fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sort: SortMode) {
+fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sort: SortMode, filter: &str) {
     let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
-    lines.push(plain_line(format!("Sort: {}", sort.label())));
+    lines.push(plain_line(format!("Sort: {}  Filter: {}", sort.label(), filter_label(filter))));
     for row in snapshot.processes.iter().take(body_rows(area)) {
-        lines.push(plain_line(format!(
-            "{:<10} {:>5.1}   {:>8}   {}",
-            row.pid,
-            row.cpu,
-            format_bytes(row.memory),
-            row.name
-        )));
+        lines.push(process_line(row.pid.as_str(), row.cpu, row.memory, row.name.as_str()));
     }
     render_block(frame, area, "Processes", lines);
 }
@@ -164,13 +162,18 @@ fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
     render_block(frame, area, "Network", lines);
 }
 
-fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode) {
+fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode, filter: &str, filtering: bool) {
     let line = Line::from(vec![
+        key_span("F4"), value_span(format!(" Filter:{} ", filter_label(filter))),
         key_span("F6"), value_span(format!(" Sort:{} ", sort.label())),
         key_span("F10"), value_span(" Quit ".to_string()),
-        Span::styled(terman_common::builtin_htop_help_hint(), Style::default().fg(Color::Gray)),
+        Span::styled(filter_prompt(filtering), Style::default().fg(Color::Gray)),
     ]);
     frame.render_widget(Paragraph::new(line), area);
+}
+
+fn process_line(pid: &str, cpu: f32, memory: u64, name: &str) -> Line<'static> {
+    plain_line(format!("{pid:<10} {cpu:>5.1}   {:>8}   {name}", format_bytes(memory)))
 }
 
 fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
@@ -191,13 +194,6 @@ fn meter_line(label: &str, value: f64, max: f64, width: usize, suffix: String) -
     ])
 }
 
-fn meter_fill(value: f64, max: f64, width: usize) -> usize {
-    if max <= 0.0 || width == 0 {
-        return 0;
-    }
-    ((value / max).clamp(0.0, 1.0) * width as f64).round() as usize
-}
-
 fn key_span(key: &'static str) -> Span<'static> {
     Span::styled(format!(" {key} "), Style::default().fg(Color::Black).bg(Color::Cyan))
 }
@@ -214,36 +210,18 @@ fn plain_line(text: String) -> Line<'static> {
     Line::from(Span::raw(text))
 }
 
+fn filter_label(filter: &str) -> &str {
+    if filter.is_empty() { "-" } else { filter }
+}
+
+fn filter_prompt(filtering: bool) -> &'static str {
+    if filtering { " type filter, Enter apply, Esc cancel" } else { " / or F4 filter" }
+}
+
 fn body_rows(area: Rect) -> usize {
     area.height.saturating_sub(4) as usize
 }
 
 fn overview_rows(area: Rect) -> usize {
     area.height.saturating_sub(10).min(5) as usize
-}
-
-fn format_bytes(bytes: u64) -> String {
-    const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
-    let mut value = bytes as f64;
-    let mut unit = 0;
-    while value >= 1024.0 && unit + 1 < UNITS.len() {
-        value /= 1024.0;
-        unit += 1;
-    }
-    if unit == 0 {
-        format!("{}{}", bytes, UNITS[unit])
-    } else {
-        format!("{value:.1}{}", UNITS[unit])
-    }
-}
-
-fn format_duration(seconds: u64) -> String {
-    let days = seconds / 86_400;
-    let hours = (seconds % 86_400) / 3_600;
-    let minutes = (seconds % 3_600) / 60;
-    if days > 0 {
-        format!("{days}d {hours}h {minutes}m")
-    } else {
-        format!("{hours}h {minutes}m")
-    }
 }
