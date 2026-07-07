@@ -14,6 +14,7 @@ mod network_view;
 mod process_detail;
 mod process_status;
 mod render;
+mod sort_menu;
 
 pub use cli::{HtopArgs, run_with_binary_parse};
 

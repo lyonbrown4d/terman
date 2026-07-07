@@ -7,14 +7,6 @@ pub(crate) enum SortMode {
 }
 
 impl SortMode {
-    pub(crate) fn next(self) -> Self {
-        match self {
-            Self::Cpu => Self::Memory,
-            Self::Memory => Self::Pid,
-            Self::Pid => Self::Name,
-            Self::Name => Self::Cpu,
-        }
-    }
 
     pub(crate) fn label(self) -> &'static str {
         match self {

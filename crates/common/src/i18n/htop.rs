@@ -27,3 +27,11 @@ pub fn builtin_htop_help_hint() -> String {
 pub fn builtin_htop_help_panel_hint() -> String {
     localized_message(MessageKey::BuiltinHtopHelpPanel, &[])
 }
+
+pub fn builtin_htop_sort_menu_title_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSortMenuTitle, &[])
+}
+
+pub fn builtin_htop_sort_menu_help_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSortMenuHelp, &[])
+}

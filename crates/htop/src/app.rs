@@ -17,6 +17,7 @@ use crate::{
     help,
     metrics::Metrics, model::{ProcessRow, SortMode},
     render::{self, Tab},
+    sort_menu::{self, SortMenuAction},
 };
 
 struct TerminalGuard;
@@ -43,6 +44,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut metrics = Metrics::new();
     let mut tab = Tab::Overview;
     let mut sort = SortMode::Cpu;
+    let mut sort_menu_open = false;
+    let mut sort_cursor = sort;
     let mut tree = false;
     let mut help_open = false;
     let mut kill_target: Option<String> = None;
@@ -77,6 +80,9 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     refresh_ms,
                     kill_target.as_deref(),
                 );
+                if sort_menu_open {
+                    sort_menu::draw(frame, sort_cursor);
+                }
             }
         })?;
         if args.once {
@@ -87,6 +93,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut refresh_ms,
             &mut tab,
             &mut sort,
+            &mut sort_menu_open,
+            &mut sort_cursor,
             &mut tree,
             &mut help_open,
             &mut kill_target,
@@ -107,6 +115,8 @@ fn poll_until_refresh(
     refresh_ms: &mut u64,
     tab: &mut Tab,
     sort: &mut SortMode,
+    sort_menu_open: &mut bool,
+    sort_cursor: &mut SortMode,
     tree: &mut bool,
     help_open: &mut bool,
     kill_target: &mut Option<String>,
@@ -125,6 +135,7 @@ fn poll_until_refresh(
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => {}
                 Event::Key(key) if handle_help_input(key.code, help_open) => {}
+                Event::Key(key) if handle_sort_menu_input(key.code, sort, sort_menu_open, sort_cursor) => {}
                 Event::Key(key) if handle_search_input(key.code, search, search_input, selected, processes) => {}
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
@@ -135,7 +146,10 @@ fn poll_until_refresh(
                 Event::Key(key) if help_key(key.code) => *help_open = true,
                 Event::Key(key) if search_key(key.code) => *search_input = Some(search.clone()),
                 Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
-                Event::Key(key) if sort_key(key.code) => *sort = sort.next(),
+                Event::Key(key) if sort_key(key.code) => {
+                    *sort_cursor = *sort;
+                    *sort_menu_open = true;
+                }
                 Event::Key(key) if tree_key(key.code) => *tree = !*tree,
                 Event::Key(key) => *tab = next_tab(*tab, key.code),
                 Event::Resize(_, _) => break,
@@ -158,6 +172,26 @@ fn handle_kill_input(code: KeyCode, metrics: &mut Metrics, kill_target: &mut Opt
 
 fn selected_process_pid(processes: &[ProcessRow], selected: usize) -> Option<String> {
     processes.get(selected).map(|row| row.pid.clone())
+}
+
+fn handle_sort_menu_input(
+    code: KeyCode,
+    sort: &mut SortMode,
+    sort_menu_open: &mut bool,
+    sort_cursor: &mut SortMode,
+) -> bool {
+    if !*sort_menu_open {
+        return false;
+    }
+    match sort_menu::handle_key(sort_cursor, code) {
+        SortMenuAction::Continue => {}
+        SortMenuAction::Apply(selected) => {
+            *sort = selected;
+            *sort_menu_open = false;
+        }
+        SortMenuAction::Cancel => *sort_menu_open = false,
+    }
+    true
 }
 fn handle_help_input(code: KeyCode, help_open: &mut bool) -> bool {
     if !*help_open { return false; }
