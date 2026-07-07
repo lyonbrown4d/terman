@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, F9 kill, F10/q/Esc quit, +/- adjust refresh.
+builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, F9 kill, F10/q/Esc quit, +/- adjust refresh. Mouse: click tabs/footer/process rows, wheel lists/details, right-click process kill prompt.
 builtin-htop-help-panel =
     terman htop
 
@@ -19,6 +19,9 @@ builtin-htop-help-panel =
     F9: kill selected process after confirmation.
     +/-: adjust refresh delay.
     F10, q, or Esc: quit.
+    Mouse: click tabs, footer actions, and process rows.
+    Mouse wheel: move process selection; over details, scroll details.
+    Right-click process row: open kill confirmation.
 builtin-htop-sort-menu-title = Sort by
 builtin-htop-sort-menu-help = Up/Down choose, Enter apply, Esc cancel.builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
 builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
