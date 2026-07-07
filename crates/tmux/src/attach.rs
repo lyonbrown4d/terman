@@ -17,6 +17,7 @@ use crate::{
         is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
         tmux_prefix_command, TmuxPrefixCommand,
     },
+    attach_rename::handle_rename_input,
     attach_status::{query_status_line, render_status_line, KILL_CONFIRM_STATUS, PREFIX_STATUS},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
@@ -124,11 +125,18 @@ fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::
 }
 
 #[derive(Default)]
-struct AttachInputMode { prefix_pending: bool, kill_pending: bool }
+struct AttachInputMode { prefix_pending: bool, kill_pending: bool, rename_input: Option<String> }
 
 impl AttachInputMode {
     fn handle_key(&mut self, endpoint: &TmuxIpcEndpoint, client_id: &str, key: KeyEvent) -> io::Result<bool> {
         if !is_key_press(&key) { return Ok(true); }
+        if let Some(input) = self.rename_input.as_mut() {
+            handle_rename_input(endpoint, &key, input)?;
+            if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
+                self.rename_input = None;
+            }
+            return Ok(true);
+        }
         if self.kill_pending {
             self.kill_pending = handle_kill_confirmation(endpoint, &key)?;
             return Ok(true);
@@ -143,6 +151,9 @@ impl AttachInputMode {
                 if matches!(command, TmuxPrefixCommand::KillWindow) {
                     self.kill_pending = true;
                     let _ = render_status_line(KILL_CONFIRM_STATUS);
+                } else if matches!(command, TmuxPrefixCommand::RenameWindow) {
+                    self.rename_input = Some(String::new());
+                    let _ = render_status_line("tmux rename | ");
                 } else {
                     handle_prefix_command(endpoint, command)?;
                     let _ = render_current_status(endpoint);
@@ -184,6 +195,7 @@ fn handle_prefix_command(endpoint: &TmuxIpcEndpoint, command: TmuxPrefixCommand)
         TmuxPrefixCommand::KillWindow => return kill_current_window(endpoint),
         TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
+        TmuxPrefixCommand::RenameWindow => return Ok(()),
     };
     send_request(endpoint, TmuxIpcRequest::SelectWindow { index })
 }
