@@ -17,10 +17,22 @@ pub(crate) fn target_window_index_arg(args: &[String]) -> Option<usize> {
     target_session_arg(args).and_then(|target| {
         target
             .split_once(':')
-            .and_then(|(_, index)| index.parse::<usize>().ok())
+            .and_then(|(_, selector)| target_window_selector_index(selector))
     })
 }
 
+pub(crate) fn target_pane_index_arg(args: &[String]) -> Option<usize> {
+    target_session_arg(args).and_then(|target| {
+        target
+            .split_once(':')
+            .and_then(|(_, selector)| selector.split_once('.'))
+            .and_then(|(_, pane)| pane.parse::<usize>().ok())
+    })
+}
+
+fn target_window_selector_index(selector: &str) -> Option<usize> {
+    selector.split('.').next()?.parse::<usize>().ok()
+}
 pub(crate) fn rename_session_name_arg(args: &[String]) -> Option<String> {
     positional_after_command(args, &["rename-session"])
 }
@@ -159,7 +171,7 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 mod tests {
     use super::{
         display_message_arg, new_window_command_arg, new_window_name_arg, rename_session_name_arg, rename_window_name_arg, send_keys_args,
-        session_name_arg, target_session_arg, target_session_name_arg, target_window_index_arg,
+        session_name_arg, target_pane_index_arg, target_session_arg, target_session_name_arg, target_window_index_arg,
     };
 
     #[test]
@@ -183,6 +195,13 @@ mod tests {
         assert_eq!(target_window_index_arg(&args), Some(2));
     }
 
+    #[test]
+    fn parses_target_pane_parts() {
+        let args = ["kill-pane".into(), "-t".into(), "dev:2.0".into()];
+        assert_eq!(target_session_name_arg(&args), Some(String::from("dev")));
+        assert_eq!(target_window_index_arg(&args), Some(2));
+        assert_eq!(target_pane_index_arg(&args), Some(0));
+    }
     #[test]
     fn parses_rename_names() {
         assert_eq!(rename_session_name_arg(&["rename-session".into(), "-told".into(), "new".into()]), Some(String::from("new")));

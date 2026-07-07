@@ -15,7 +15,7 @@ use crate::{
     },
     message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
-    pane_commands::list_builtin_tmux_panes,
+    pane_commands::{kill_builtin_tmux_pane, list_builtin_tmux_panes},
     send_keys::send_builtin_tmux_keys,
     service::request_endpoint_response,
     sessions::{
@@ -107,6 +107,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::KillWindow => {
             kill_builtin_tmux_window_command(args)?;
+            Ok(true)
+        }
+        TmuxCommand::KillPane => {
+            kill_builtin_tmux_pane(args)?;
             Ok(true)
         }
         TmuxCommand::RenameWindow => {

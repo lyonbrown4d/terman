@@ -20,6 +20,7 @@ pub(crate) enum TmuxCommand {
     PreviousWindow,
     LastWindow,
     KillWindow,
+    KillPane,
     RenameWindow,
     Other,
 }
@@ -47,6 +48,7 @@ impl TmuxCommand {
             Some("previous-window" | "previous" | "prev") => Self::PreviousWindow,
             Some("last-window" | "last") => Self::LastWindow,
             Some("kill-window" | "killw") => Self::KillWindow,
+            Some("kill-pane" | "killp") => Self::KillPane,
             Some("rename-window" | "renamew") => Self::RenameWindow,
             _ => Self::Other,
         }
@@ -88,6 +90,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["prev".into()]), TmuxCommand::PreviousWindow);
         assert_eq!(TmuxCommand::parse(&["last".into()]), TmuxCommand::LastWindow);
         assert_eq!(TmuxCommand::parse(&["killw".into()]), TmuxCommand::KillWindow);
+        assert_eq!(TmuxCommand::parse(&["killp".into()]), TmuxCommand::KillPane);
         assert_eq!(TmuxCommand::parse(&["renamew".into()]), TmuxCommand::RenameWindow);
     }
 

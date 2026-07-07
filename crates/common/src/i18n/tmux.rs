@@ -170,3 +170,11 @@ pub fn builtin_tmux_pane_list_entry_hint(
         &[("session", session), ("window", &window), ("pane", &pane), ("name", name), ("active", &active)],
     )
 }
+pub fn builtin_tmux_pane_not_found_hint(session: &str, window: u32, pane: u32) -> String {
+    let window = window.to_string();
+    let pane = pane.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxPaneNotFound,
+        &[("session", session), ("window", &window), ("pane", &pane)],
+    )
+}

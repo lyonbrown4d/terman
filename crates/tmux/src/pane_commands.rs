@@ -3,10 +3,11 @@ use std::{error::Error, io};
 use serde::Serialize;
 
 use crate::{
-    args::{target_session_name_arg, target_window_index_arg},
+    args::{target_pane_index_arg, target_session_name_arg, target_window_index_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::{BuiltinTmuxSession, load_builtin_tmux_sessions},
+    window_commands::kill_builtin_tmux_window_command,
 };
 
 #[derive(Serialize)]
@@ -42,6 +43,18 @@ pub(crate) fn list_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn Err
     Ok(())
 }
 
+pub(crate) fn kill_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let window_index = target_window_index_arg(args).unwrap_or(0) as u32;
+    let pane_index = target_pane_index_arg(args).unwrap_or(0) as u32;
+    if pane_index != 0 {
+        return Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_pane_not_found_hint(&target, window_index, pane_index),
+        )));
+    }
+    kill_builtin_tmux_window_command(args)
+}
 struct TmuxPaneInfo {
     active_window: u32,
     window_indexes: Vec<u32>,
