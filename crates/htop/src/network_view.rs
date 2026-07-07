@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::{format::format_bytes, model::Snapshot};
 
-pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize) {
+pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize, selected: usize) {
     let mut lines = vec![title_line("INTERFACES")];
     lines.push(network_total_line(snapshot));
     let interface_rows = interface_limit(area, snapshot.sockets.len());
@@ -26,9 +26,10 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
     lines.push(title_line("CONNECTIONS"));
     lines.push(plain_line("Proto  Local                         Remote                        State          PID   Process".to_string()));
     let connections = connection_limit(area, interface_rows);
+    let selected_pid = snapshot.processes.get(selected).map(|row| row.pid.as_str());
     let connection_start = scroll.min(snapshot.sockets.len().saturating_sub(connections));
     for row in snapshot.sockets.iter().skip(connection_start).take(connections) {
-        lines.push(plain_line(format!(
+        let text = format!(
             "{:<5}  {:<29} {:<29} {:<13} {:<5} {}",
             row.protocol,
             trim(row.local.as_str(), 29),
@@ -36,7 +37,9 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
             trim(row.state.as_str(), 13),
             trim(row.pid.as_str(), 5),
             row.process
-        )));
+        );
+        let line = if selected_pid == Some(row.pid.as_str()) { selected_line(text) } else { plain_line(text) };
+        lines.push(line);
     }
     render_block(frame, area, "Network", lines);
 }
@@ -84,6 +87,9 @@ fn plain_line(text: String) -> Line<'static> {
     Line::from(Span::raw(text))
 }
 
+fn selected_line(text: String) -> Line<'static> {
+    Line::from(Span::styled(text, Style::default().fg(Color::Black).bg(Color::Green)))
+}
 fn trim(value: &str, max: usize) -> String {
     if value.chars().count() <= max {
         value.to_string()

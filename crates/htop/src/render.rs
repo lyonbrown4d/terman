@@ -70,8 +70,8 @@ pub(crate) fn draw(
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot, selected),
         Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll),
-        Tab::Io => draw_io(frame, chunks[1], snapshot, io_scroll),
-        Tab::Network => draw_network(frame, chunks[1], snapshot, network_scroll),
+        Tab::Io => draw_io(frame, chunks[1], snapshot, io_scroll, selected),
+        Tab::Network => draw_network(frame, chunks[1], snapshot, network_scroll, selected),
     }
     frame.render_widget(Paragraph::new(footer_line(sort, tree, filter, filtering, search, searching, refresh_ms, kill_target)), chunks[2]);
 }
@@ -181,12 +181,13 @@ fn draw_processes(
     render_block(frame, area, "Processes", lines);
 }
 
-fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize) {
+fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize, selected: usize) {
     let mut lines = vec![title_line("PID        READ/s    WRITE/s   TOTAL R   TOTAL W   NAME")];
     let visible = body_rows(area);
+    let selected_pid = snapshot.processes.get(selected).map(|row| row.pid.as_str());
     let start = scroll.min(snapshot.io.len().saturating_sub(visible));
     for row in snapshot.io.iter().skip(start).take(visible) {
-        lines.push(plain_line(format!(
+        let text = format!(
             "{:<10} {:>9} {:>9} {:>9} {:>9} {}",
             row.pid,
             format_bytes(row.read_rate),
@@ -194,7 +195,9 @@ fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize
             format_bytes(row.read),
             format_bytes(row.written),
             row.name
-        )));
+        );
+        let line = if selected_pid == Some(row.pid.as_str()) { selected_line(text) } else { plain_line(text) };
+        lines.push(line);
     }
     render_block(frame, area, "I/O", lines);
 }
