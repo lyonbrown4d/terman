@@ -24,6 +24,7 @@ pub(crate) struct TmuxSessionStatus {
     pub(crate) replay_bytes: usize,
     pub(crate) attached_clients: u32,
     pub(crate) windows: u32,
+    pub(crate) active_window: u32,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
 }
@@ -43,6 +44,7 @@ struct TmuxSessionState {
     subscribers: Vec<TmuxSessionSubscriber>,
     attached_clients: u32,
     windows: u32,
+    active_window: u32,
     cols: Option<u16>,
     rows: Option<u16>,
 }
@@ -84,6 +86,7 @@ impl TmuxSessionBus {
                 subscribers: Vec::new(),
                 attached_clients: 0,
                 windows: windows.max(1),
+                active_window: 0,
                 cols: None,
                 rows: None,
             })),
@@ -133,6 +136,7 @@ impl TmuxSessionBus {
                 replay_bytes: state.replay.len(),
                 attached_clients: state.attached_clients,
                 windows: state.windows,
+                active_window: state.active_window,
                 cols: state.cols,
                 rows: state.rows,
             })
@@ -140,6 +144,7 @@ impl TmuxSessionBus {
                 replay_bytes: 0,
                 attached_clients: 0,
                 windows: 1,
+                active_window: 0,
                 cols: None,
                 rows: None,
             })
@@ -174,10 +179,24 @@ impl TmuxSessionBus {
 
     pub(crate) fn set_windows(&self, windows: u32) {
         if let Ok(mut state) = self.inner.lock() {
-            state.windows = windows.max(1);
+            let windows = windows.max(1);
+            state.windows = windows;
+            if state.active_window >= windows {
+                state.active_window = windows - 1;
+            }
         }
     }
 
+    pub(crate) fn select_window(&self, index: u32) -> bool {
+        let Ok(mut state) = self.inner.lock() else {
+            return false;
+        };
+        if index >= state.windows {
+            return false;
+        }
+        state.active_window = index;
+        true
+    }
     pub(crate) fn detach_client(&self, client_id: &str) {
         if let Ok(mut state) = self.inner.lock() {
             state
@@ -238,6 +257,7 @@ mod tests {
 
         assert_eq!(bus.status_snapshot().attached_clients, 1);
         assert_eq!(bus.status_snapshot().windows, 2);
+        assert_eq!(bus.status_snapshot().active_window, 0);
         drop(subscription);
         assert_eq!(bus.status_snapshot().attached_clients, 0);
     }

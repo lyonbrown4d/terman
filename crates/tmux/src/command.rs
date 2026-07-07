@@ -14,6 +14,7 @@ pub(crate) enum TmuxCommand {
     SendKeys,
     NewWindow,
     ListWindows,
+    SelectWindow,
     KillWindow,
     RenameWindow,
     Other,
@@ -36,6 +37,7 @@ impl TmuxCommand {
             Some("send-keys" | "send") => Self::SendKeys,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
+            Some("select-window" | "selectw") => Self::SelectWindow,
             Some("kill-window" | "killw") => Self::KillWindow,
             Some("rename-window" | "renamew") => Self::RenameWindow,
             _ => Self::Other,
@@ -72,6 +74,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["send".into()]), TmuxCommand::SendKeys);
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
+        assert_eq!(TmuxCommand::parse(&["selectw".into()]), TmuxCommand::SelectWindow);
         assert_eq!(TmuxCommand::parse(&["killw".into()]), TmuxCommand::KillWindow);
         assert_eq!(TmuxCommand::parse(&["renamew".into()]), TmuxCommand::RenameWindow);
     }

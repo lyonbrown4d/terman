@@ -87,6 +87,7 @@ pub(crate) enum TmuxIpcRequest {
     Quit,
     RenameSession { name: String },
     UpdateWindows { windows: u32 },
+    SelectWindow { index: u32 },
     Resize { cols: u16, rows: u16 },
 }
 
@@ -101,6 +102,7 @@ pub(crate) enum TmuxIpcResponse {
         session_name: String,
         windows: u32,
         attached_clients: u32,
+        active_window: u32,
         cwd: String,
     },
     Output { bytes: Vec<u8> },
@@ -163,12 +165,14 @@ mod tests {
                 session_name: String::from("dev"),
                 windows: 1,
                 attached_clients: 0,
+                active_window: 0,
                 cwd: String::from("/tmp"),
             },
             TmuxIpcResponse::Info {
                 session_name: String::from("dev"),
                 windows: 1,
                 attached_clients: 0,
+                active_window: 0,
                 cwd: String::from("/tmp"),
             }
         );

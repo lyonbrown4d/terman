@@ -24,6 +24,7 @@ struct TmuxSessionJson {
     ipc_endpoint: Option<String>,
     windows: u32,
     attached_clients: u32,
+    active_window: u32,
     window_names: Vec<String>,
 }
 
@@ -121,6 +122,7 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
             session_name,
             windows,
             attached_clients,
+            active_window,
             cwd,
         } => {
             let mut record = session.clone();
@@ -132,6 +134,7 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
                 record,
                 windows,
                 attached_clients,
+                active_window,
             })
         }
         TmuxIpcResponse::Rejected { reason } => {
@@ -161,6 +164,7 @@ fn tmux_session_json(session: LiveTmuxSession) -> TmuxSessionJson {
         ipc_endpoint: session.record.ipc_endpoint,
         windows: session.windows,
         attached_clients: session.attached_clients,
+        active_window: session.active_window,
         window_names,
     }
 }
@@ -184,4 +188,5 @@ struct LiveTmuxSession {
     record: BuiltinTmuxSession,
     windows: u32,
     attached_clients: u32,
+    active_window: u32,
 }

@@ -105,6 +105,7 @@ fn handle_client(
                     session_name: current_session_name(session_name)?,
                     windows: status.windows,
                     attached_clients: status.attached_clients,
+                    active_window: status.active_window,
                     cwd: cwd.to_string(),
                 },
             )
@@ -126,7 +127,21 @@ fn handle_client(
             bus.set_windows(windows);
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
-        Ok(TmuxIpcRequest::Resize { cols, rows }) => {
+        Ok(TmuxIpcRequest::SelectWindow { index }) => {
+            if bus.select_window(index) {
+                write_response(stream, &TmuxIpcResponse::Accepted)
+            } else {
+                write_response(
+                    stream,
+                    &TmuxIpcResponse::Rejected {
+                        reason: terman_common::builtin_tmux_window_not_found_hint(
+                            "current",
+                            index as usize,
+                        ),
+                    },
+                )
+            }
+        }        Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             send_control(control_tx, TmuxControlEvent::Resize { cols, rows })?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }

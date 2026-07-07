@@ -2,7 +2,7 @@ use std::{error::Error, io};
 
 use crate::{
     args::{rename_window_name_arg, target_session_name_arg, target_window_index_arg},
-    ipc::{TmuxIpcEndpoint, TmuxIpcRequest},
+    ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     lifecycle::request_builtin_tmux_session_quit,
     service::request_endpoint_response,
     sessions::{
@@ -100,6 +100,28 @@ pub(crate) fn rename_builtin_tmux_window_command(args: &[String]) -> Result<(), 
     }
 }
 
+pub(crate) fn select_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let window_index = target_window_index_arg(args).unwrap_or(0) as u32;
+    let Some(session) = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target)
+    else {
+        return Err(session_not_found_error(&target));
+    };
+    if window_index >= session.windows {
+        return Err(window_not_found_error(&target, window_index as usize));
+    }
+    let endpoint = session_endpoint(&session);
+    match request_endpoint_response(&endpoint, TmuxIpcRequest::SelectWindow { index: window_index })? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidData,
+            terman_common::builtin_tmux_unexpected_info_response_hint(&format!("{response:?}")),
+        ))),
+    }
+}
 fn request_builtin_tmux_windows_update(session: &BuiltinTmuxSession, windows: u32) {
     let endpoint = session_endpoint(session);
     let _ = request_endpoint_response(&endpoint, TmuxIpcRequest::UpdateWindows { windows });
