@@ -148,7 +148,7 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
     ];
     lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
     lines.push(title_line("TOP PROCESSES"));
-    for (index, row) in snapshot.processes.iter().take(overview_process_rows(area, core_rows)).enumerate() {
+    for (index, row) in snapshot.processes.iter().take(overview_process_rows(area, core_rows, snapshot.cpu_cores.len())).enumerate() {
         lines.push(process_line(row, index == selected, snapshot.total_memory));
     }
     render_block(frame, area, "Overview", lines);
@@ -261,6 +261,7 @@ fn detail_rows(area: Rect, count: usize) -> usize {
     count.max(1).min(max_detail)
 }
 
-fn overview_process_rows(area: Rect, core_rows: usize) -> usize {
-    (area.height as usize).saturating_sub(14 + core_rows).min(5)
+fn overview_process_rows(area: Rect, core_rows: usize, core_count: usize) -> usize {
+    let overflow_row = if core_count > core_rows { 1 } else { 0 };
+    (area.height as usize).saturating_sub(14 + core_rows + overflow_row)
 }

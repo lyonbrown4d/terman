@@ -6,7 +6,7 @@ use std::{
 
 use crossterm::{
     cursor::{Hide, Show},
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -158,6 +158,8 @@ fn poll_until_refresh(
     while Instant::now() < deadline {
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
+                Event::Key(key) if key.kind == KeyEventKind::Release => {}
+                Event::Key(key) if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') => return Ok(true),
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Mouse(mouse_event) => {
                     let action = mouse::handle_mouse(mouse_event, MouseContext {

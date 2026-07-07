@@ -101,7 +101,7 @@ pub(crate) fn clamp_selection(selected: usize, count: usize) -> usize {
 pub(crate) fn next_tab(tab: Tab, code: KeyCode) -> Tab {
     match code {
         KeyCode::Tab | KeyCode::Right => tab.next(),
-        KeyCode::Left => tab.previous(),
+        KeyCode::BackTab | KeyCode::Left => tab.previous(),
         KeyCode::Char('1') => Tab::Overview,
         KeyCode::Char('2') => Tab::Processes,
         KeyCode::Char('3') => Tab::Io,

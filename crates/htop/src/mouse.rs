@@ -54,6 +54,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         MouseEventKind::ScrollLeft => { if sort_menu_scroll(&mut context, false) { return MouseAction::Handled; } *context.tab = (*context.tab).previous(); MouseAction::Handled }
         MouseEventKind::ScrollRight => { if sort_menu_scroll(&mut context, true) { return MouseAction::Handled; } *context.tab = (*context.tab).next(); MouseAction::Handled }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
+        MouseEventKind::Up(MouseButton::Left) => release_click(event.column, event.row, context),
         MouseEventKind::Drag(MouseButton::Left) => drag_select(event.row, context),
         MouseEventKind::Down(MouseButton::Middle) => { *context.help_open = true; MouseAction::Handled },
         MouseEventKind::Down(MouseButton::Right) => right_click(event.row, context),
@@ -118,6 +119,13 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     }
     MouseAction::Ignored
 }
+fn release_click(column: u16, row: u16, context: MouseContext<'_>) -> MouseAction {
+    if context.kill_target.is_some() || *context.sort_menu_open { return MouseAction::Ignored; }
+    if let Some(tab) = tab_at(column, row) { *context.tab = tab; return MouseAction::Handled; }
+    if let Some(mode) = table_header_sort_at(*context.tab, column, row) { *context.sort = mode; *context.sort_cursor = mode; return MouseAction::Handled; }
+    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; }; if *context.selected != index { *context.detail_scroll = 0; }
+    *context.selected = index; MouseAction::Handled
+}
 fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
     if detail_at(row, &context) {
         let details = process_detail_lines(context.processes.get(*context.selected)).len();
@@ -128,8 +136,7 @@ fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
         *context.detail_scroll = if rows <= 1 { 0 } else { max.saturating_mul(offset) / (rows - 1) };
         return MouseAction::Handled;
     }
-    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
-    if *context.selected != index { *context.detail_scroll = 0; }
+    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; }; if *context.selected != index { *context.detail_scroll = 0; }
     *context.selected = index; MouseAction::Handled
 }
 fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
@@ -227,8 +234,9 @@ fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
 fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
     let body = terminal_area().height.saturating_sub(6) as usize;
     let core_rows = body.saturating_sub(16).min(cores).min(8);
-    let start = 17u16.saturating_add(core_rows as u16);
-    let visible = body.saturating_sub(14 + core_rows).min(5);
+    let overflow_row = if cores > core_rows { 1usize } else { 0 };
+    let start = 17u16.saturating_add(core_rows as u16).saturating_add(overflow_row as u16);
+    let visible = body.saturating_sub(14 + core_rows + overflow_row);
     row.checked_sub(start).map(usize::from).filter(|index| *index < visible && *index < processes.len())
 }
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
