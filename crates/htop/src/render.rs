@@ -81,8 +81,8 @@ fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab)
     let mem = format_bytes(snapshot.used_memory);
     let total = format_bytes(snapshot.total_memory);
     let lines = vec![
-        meter_line("CPU", cpu as f64, 100.0, 16, format!("{cpu:>5.1}%")),
-        meter_line("MEM", snapshot.used_memory as f64, snapshot.total_memory as f64, 16, format!("{mem}/{total}")),
+        meter_line("CPU", cpu as f64, 100.0, 16, format!("{cpu:>5.1}%  Tasks:{} shown/{} total  Load:{:.2} {:.2} {:.2}", snapshot.filtered_process_count, snapshot.process_count, snapshot.load_average.one, snapshot.load_average.five, snapshot.load_average.fifteen)),
+        meter_line("MEM", snapshot.used_memory as f64, snapshot.total_memory as f64, 16, format!("{mem}/{total}  Uptime:{}", format_duration(snapshot.uptime))),
         tab_line(tab),
         Line::from(Span::styled(
             terman_common::builtin_htop_help_hint(),
