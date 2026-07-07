@@ -1,5 +1,7 @@
 use std::{error::Error, io};
 
+use serde::Serialize;
+
 use crate::{
     args::{rename_window_name_arg, target_session_name_arg, target_window_index_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
@@ -12,11 +14,29 @@ use crate::{
     },
 };
 
+#[derive(Serialize)]
+struct TmuxWindowListJson {
+    schema_version: u16,
+    session: String,
+    active_window: u32,
+    windows: Vec<TmuxWindowJson>,
+}
+
+#[derive(Serialize)]
+struct TmuxWindowJson {
+    index: u32,
+    name: String,
+    active: bool,
+}
+
 pub(crate) fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
     let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
         return Err(session_not_found_error(&target));
     };
+    if list_windows_json_requested(args) {
+        return list_builtin_tmux_windows_json(&session);
+    }
     for index in session.window_indices() {
         println!("{}", terman_common::builtin_tmux_window_list_entry_hint(&target, index, &session.window_name(index)));
     }
@@ -95,9 +115,23 @@ pub(crate) fn select_builtin_tmux_window_command(args: &[String]) -> Result<(), 
     }
 }
 
+fn list_builtin_tmux_windows_json(session: &BuiltinTmuxSession) -> Result<(), Box<dyn Error>> {
+    let TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::Info)? else {
+        return Err(unexpected_response_error(TmuxIpcResponse::Rejected { reason: String::from("expected info response") }));
+    };
+    let windows = window_indexes.into_iter().enumerate().map(|(position, index)| TmuxWindowJson {
+        index,
+        name: window_names.get(position).cloned().unwrap_or_else(|| index.to_string()),
+        active: index == active_window,
+    }).collect();
+    println!("{}", serde_json::to_string_pretty(&TmuxWindowListJson { schema_version: 1, session: session_name, active_window, windows })?);
+    Ok(())
+}
+
 fn request_builtin_tmux_window_rename(session: &BuiltinTmuxSession, index: u32, name: String) {
     let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::RenameWindow { index, name });
 }
+
 fn request_builtin_tmux_new_window(session: &BuiltinTmuxSession, index: u32, name: String) {
     let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::NewWindow { index, name, command: None });
 }
@@ -108,6 +142,10 @@ fn request_builtin_tmux_window_kill(session: &BuiltinTmuxSession, index: u32) {
 
 fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
     session.ipc_endpoint.as_deref().map(TmuxIpcEndpoint::from_raw_name).unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
+}
+
+fn list_windows_json_requested(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "--json")
 }
 
 fn required_target_session_name_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
