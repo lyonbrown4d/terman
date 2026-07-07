@@ -52,7 +52,7 @@ pub(crate) fn handle_attach_mouse(
     match event.kind {
         MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => select_relative_window(endpoint, state, false),
         MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => select_relative_window(endpoint, state, true),
-        MouseEventKind::Down(MouseButton::Left) => select_clicked_window(endpoint, state, event.column),
+        MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left) => select_clicked_window(endpoint, state, event.column),
         MouseEventKind::Drag(MouseButton::Left) => select_dragged_window(endpoint, state, event.column),
         MouseEventKind::Down(MouseButton::Right) => show_window_list(endpoint, state),
         MouseEventKind::Down(MouseButton::Middle) => { state.clear(); render_status_line(&terman_common::builtin_tmux_attach_help()) }

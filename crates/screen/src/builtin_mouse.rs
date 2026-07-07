@@ -60,7 +60,7 @@ pub(crate) fn handle_builtin_mouse(
     match event.kind {
         MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => scroll_wheel(bus, windows, active_window, state, event, ScreenWindowSwitch::Previous),
         MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => scroll_wheel(bus, windows, active_window, state, event, ScreenWindowSwitch::Next),
-        MouseEventKind::Down(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
+        MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Drag(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Down(MouseButton::Right) => right_click(bus, windows, *active_window, state, event),
         MouseEventKind::Down(MouseButton::Middle) => middle_click(bus, windows, *active_window, state, event),
