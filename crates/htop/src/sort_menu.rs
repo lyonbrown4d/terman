@@ -27,17 +27,21 @@ pub(crate) enum SortMenuAction {
 pub(crate) fn handle_key(cursor: &mut SortMode, code: KeyCode) -> SortMenuAction {
     match code {
         KeyCode::Up | KeyCode::Char('k') => {
-            *cursor = adjacent_sort(*cursor, false);
+            move_cursor(cursor, false);
             SortMenuAction::Continue
         }
         KeyCode::Down | KeyCode::Char('j') => {
-            *cursor = adjacent_sort(*cursor, true);
+            move_cursor(cursor, true);
             SortMenuAction::Continue
         }
         KeyCode::Enter => SortMenuAction::Apply(*cursor),
         KeyCode::Esc | KeyCode::F(6) => SortMenuAction::Cancel,
         _ => SortMenuAction::Continue,
     }
+}
+
+pub(crate) fn move_cursor(cursor: &mut SortMode, forward: bool) {
+    *cursor = adjacent_sort(*cursor, forward);
 }
 
 pub(crate) fn draw(frame: &mut Frame<'_>, cursor: SortMode) {

@@ -39,7 +39,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) refresh_ms: u64,
 }
 
-pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> MouseAction {
+pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> MouseAction {
     if *context.help_open {
         if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) {
             *context.help_open = false;
@@ -49,6 +49,9 @@ pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> Mous
 
     match event.kind {
         MouseEventKind::ScrollUp => {
+            if sort_menu_scroll(&mut context, false) {
+                return MouseAction::Handled;
+            }
             if detail_at(event.row, &context) {
                 *context.detail_scroll = (*context.detail_scroll).saturating_sub(1);
             } else {
@@ -57,6 +60,9 @@ pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> Mous
             MouseAction::Handled
         }
         MouseEventKind::ScrollDown => {
+            if sort_menu_scroll(&mut context, true) {
+                return MouseAction::Handled;
+            }
             if detail_at(event.row, &context) {
                 *context.detail_scroll = move_down(*context.detail_scroll, max_detail_scroll(&context));
             } else {
@@ -70,6 +76,13 @@ pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> Mous
     }
 }
 
+fn sort_menu_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
+    if !*context.sort_menu_open {
+        return false;
+    }
+    sort_menu::move_cursor(context.sort_cursor, forward);
+    true
+}
 fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
     let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) else {
         return MouseAction::Ignored;
