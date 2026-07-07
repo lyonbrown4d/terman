@@ -9,6 +9,7 @@ use crate::{
 };
 
 const PID_WIDTH: u16 = 8;
+const PPID_WIDTH: u16 = 8;
 const STATE_WIDTH: u16 = 3;
 const CPU_WIDTH: u16 = 6;
 const MEM_WIDTH: u16 = 6;
@@ -17,23 +18,26 @@ const TIME_WIDTH: u16 = 10;
 
 pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
     let pid_end = PID_WIDTH;
-    let state_end = pid_end + STATE_WIDTH;
+    let ppid_end = pid_end + PPID_WIDTH;
+    let state_end = ppid_end + STATE_WIDTH;
     let cpu_end = state_end + CPU_WIDTH;
     let mem_end = cpu_end + MEM_WIDTH;
     let res_end = mem_end + RES_WIDTH;
     let time_end = res_end + TIME_WIDTH;
     match column {
         c if c < pid_end => Some(SortMode::Pid),
-        c if c < state_end => None,
+        c if c < ppid_end || c < state_end => None,
         c if c < cpu_end => Some(SortMode::Cpu),
         c if c < mem_end || c < res_end => Some(SortMode::Memory),
         c if c < time_end => Some(SortMode::Time),
         _ => Some(SortMode::Name),
     }
 }
+
 pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
     Line::from(vec![
         header_span(format!("{:<8}", "PID"), sort == SortMode::Pid),
+        header_span(format!("{:<8}", "PPID"), false),
         header_span(" S ".to_string(), false),
         header_span(format!("{:>5} ", "CPU%"), sort == SortMode::Cpu),
         header_span(format!("{:>5} ", "MEM%"), sort == SortMode::Memory),
@@ -46,13 +50,15 @@ pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
 pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) -> Line<'static> {
     let memory_percent = memory_percent(row.memory, total_memory);
     let state = status_char(row.status.as_str());
+    let ppid = row.parent_pid.as_deref().unwrap_or("-");
     let command = tree_name(row.depth, command_text(row));
-    let text = process_text(row, state.as_str(), memory_percent, command.as_str());
+    let text = process_text(row, ppid, state.as_str(), memory_percent, command.as_str());
     if selected {
         return Line::from(Span::styled(text, selected_style()));
     }
     Line::from(vec![
         Span::styled(format!("{:<8}", row.pid), Style::default().fg(Color::Gray)),
+        Span::styled(format!("{:<8}", ppid), Style::default().fg(Color::DarkGray)),
         Span::raw(" "),
         Span::styled(format!("{state:<1}"), status_style(state.as_str())),
         Span::raw(" "),
@@ -64,10 +70,11 @@ pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) 
     ])
 }
 
-fn process_text(row: &ProcessRow, state: &str, memory_percent: f64, command: &str) -> String {
+fn process_text(row: &ProcessRow, ppid: &str, state: &str, memory_percent: f64, command: &str) -> String {
     format!(
-        "{:<8} {:<1} {:>5.1} {:>5.1} {:>8} {:>9} {}",
+        "{:<8}{:<8} {:<1} {:>5.1} {:>5.1} {:>8} {:>9} {}",
         row.pid,
+        ppid,
         state,
         row.cpu,
         memory_percent,
