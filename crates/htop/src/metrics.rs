@@ -231,9 +231,19 @@ fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ord
     match sort {
         SortMode::Cpu => compare_f32(right.cpu, left.cpu),
         SortMode::Memory => right.memory.cmp(&left.memory),
+        SortMode::Time => right.run_time.cmp(&left.run_time),
+        SortMode::Io => compare_process_io(left, right),
         SortMode::Pid => left.pid.cmp(&right.pid),
         SortMode::Name => left.name.to_lowercase().cmp(&right.name.to_lowercase()),
     }
+}
+
+fn compare_process_io(left: &ProcessRow, right: &ProcessRow) -> Ordering {
+    let left_rate = left.read_rate + left.written_rate;
+    let right_rate = right.read_rate + right.written_rate;
+    let left_total = left.read_total + left.written_total;
+    let right_total = right.read_total + right.written_total;
+    right_rate.cmp(&left_rate).then_with(|| right_total.cmp(&left_total))
 }
 
 fn compare_f32(left: f32, right: f32) -> Ordering {

@@ -2,16 +2,19 @@
 pub(crate) enum SortMode {
     Cpu,
     Memory,
+    Time,
+    Io,
     Pid,
     Name,
 }
 
 impl SortMode {
-
     pub(crate) fn label(self) -> &'static str {
         match self {
             Self::Cpu => "CPU",
             Self::Memory => "MEM",
+            Self::Time => "TIME",
+            Self::Io => "I/O",
             Self::Pid => "PID",
             Self::Name => "NAME",
         }
