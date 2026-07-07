@@ -40,6 +40,24 @@ pub(crate) fn send_builtin_tmux_keys(args: &[String]) -> Result<(), Box<dyn Erro
     }
 }
 
+pub(crate) fn send_builtin_tmux_prefix(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = target_session_name_arg(args).ok_or_else(target_required_error)?;
+    let bytes = if secondary_prefix_requested(args) { vec![0x01] } else { vec![0x02] };
+    send_tmux_input(&target, bytes)
+}
+fn send_tmux_input(target: &str, bytes: Vec<u8>) -> Result<(), Box<dyn Error>> {
+    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
+        return Err(session_not_found_error(target));
+    };
+    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::Input { bytes })? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(Box::new(io::Error::new(
+            io::ErrorKind::InvalidData,
+            terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")),
+        ))),
+    }
+}
 fn encode_send_keys(keys: &[String]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for key in keys {
@@ -85,6 +103,9 @@ fn control_byte(ch: char) -> Option<u8> {
     }
 }
 
+fn secondary_prefix_requested(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "-2")
+}
 fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
     session
         .ipc_endpoint

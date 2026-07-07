@@ -16,7 +16,7 @@ use crate::{
     message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
     pane_commands::{display_builtin_tmux_panes, kill_builtin_tmux_pane, list_builtin_tmux_panes, resize_builtin_tmux_pane, select_builtin_tmux_pane},
-    send_keys::send_builtin_tmux_keys,
+    send_keys::{send_builtin_tmux_keys, send_builtin_tmux_prefix},
     service::request_endpoint_response,
     sessions::{
         BuiltinTmuxSession, RenameBuiltinTmuxSession, load_builtin_tmux_sessions,
@@ -75,6 +75,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::SendKeys => {
             send_builtin_tmux_keys(args)?;
+            Ok(true)
+        }
+        TmuxCommand::SendPrefix => {
+            send_builtin_tmux_prefix(args)?;
             Ok(true)
         }
         TmuxCommand::NewWindow => {
