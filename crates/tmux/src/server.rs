@@ -89,7 +89,11 @@ fn run_control_loop(
                     }
                     if active_runtime(windows, index).is_some() && session_bus.select_window(index) { *active_window = index; }
                 }
-                TmuxControlEvent::Terminate => {
+                TmuxControlEvent::KillWindow { index } => {
+                    if let Some(window) = active_runtime(windows, index) {
+                        window.kill();
+                    }
+                }                TmuxControlEvent::Terminate => {
                     if !terminate_requested {
                         terminate_requested = true;
                         for window in windows.iter_mut() { window.kill(); }
