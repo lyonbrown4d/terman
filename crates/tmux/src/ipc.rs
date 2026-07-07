@@ -91,6 +91,7 @@ pub(crate) enum TmuxIpcRequest {
     NewWindow { index: u32, name: String, command: Option<String> },
     KillWindow { index: u32 },
     SelectWindow { index: u32 },
+    LastWindow,
     Resize { cols: u16, rows: u16 },
 }
 

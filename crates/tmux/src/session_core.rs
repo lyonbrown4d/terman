@@ -19,6 +19,7 @@ pub(crate) enum TmuxControlEvent {
     NewWindow { index: u32, name: String, command: Option<String> },
     RenameWindow { index: u32, name: String },
     KillWindow { index: u32 },
+    SelectWindow { index: u32 },
     Terminate,
 }
 
@@ -55,6 +56,7 @@ struct TmuxSessionState {
     subscribers: Vec<TmuxSessionSubscriber>,
     attached_clients: u32,
     active_window: u32,
+    last_window: Option<u32>,
     cols: Option<u16>,
     rows: Option<u16>,
 }
@@ -185,13 +187,23 @@ impl TmuxSessionBus {
     pub(crate) fn select_window(&self, index: u32) -> bool {
         let Ok(mut state) = self.inner.lock() else { return false; };
         if !state.has_window(index) { return false; }
-        state.active_window = index;
+        select_window_state(&mut state, index);
         let replay = state.active_replay().to_vec();
         send_to_subscribers(&mut state, TmuxSessionEvent::Output(b"\x1bc".to_vec()));
         if !replay.is_empty() { send_to_subscribers(&mut state, TmuxSessionEvent::Output(replay)); }
         true
     }
 
+    pub(crate) fn select_last_window(&self) -> Option<u32> {
+        let mut state = self.inner.lock().ok()?;
+        let index = state.last_window?;
+        if !state.has_window(index) {
+            state.last_window = None;
+            return None;
+        }
+        select_window_state(&mut state, index);
+        Some(index)
+    }
     pub(crate) fn detach_client(&self, client_id: &str) {
         if let Ok(mut state) = self.inner.lock() {
             state.subscribers.retain(|subscriber| subscriber.client_id.as_deref() != Some(client_id));
@@ -210,7 +222,7 @@ impl TmuxSessionBus {
 
 impl TmuxSessionState {
     fn new(windows: u32) -> Self {
-        let mut state = Self { windows: Vec::new(), subscribers: Vec::new(), attached_clients: 0, active_window: 0, cols: None, rows: None };
+        let mut state = Self { windows: Vec::new(), subscribers: Vec::new(), attached_clients: 0, active_window: 0, last_window: None, cols: None, rows: None };
         state.set_window_count(windows.max(1));
         state
     }
@@ -255,6 +267,7 @@ impl TmuxSessionState {
 
     fn remove_window(&mut self, index: u32) {
         self.windows.retain(|window| window.index != index);
+        if self.last_window == Some(index) { self.last_window = None; }
         if self.windows.is_empty() { self.ensure_window(0, String::from("0")); }
         if !self.has_window(self.active_window) {
             self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
@@ -262,6 +275,12 @@ impl TmuxSessionState {
     }
 }
 
+fn select_window_state(state: &mut TmuxSessionState, index: u32) {
+    if state.active_window != index {
+        state.last_window = Some(state.active_window);
+    }
+    state.active_window = index;
+}
 fn send_to_subscribers(state: &mut TmuxSessionState, event: TmuxSessionEvent) {
     state.subscribers.retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
 }

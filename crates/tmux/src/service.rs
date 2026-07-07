@@ -145,6 +145,7 @@ fn handle_client(
         }
         Ok(TmuxIpcRequest::SelectWindow { index }) => {
             if bus.select_window(index) {
+                send_control(control_tx, TmuxControlEvent::SelectWindow { index })?;
                 write_response(stream, &TmuxIpcResponse::Accepted)
             } else {
                 write_response(
@@ -157,7 +158,21 @@ fn handle_client(
                     },
                 )
             }
-        }        Ok(TmuxIpcRequest::Resize { cols, rows }) => {
+        }
+        Ok(TmuxIpcRequest::LastWindow) => {
+            if let Some(index) = bus.select_last_window() {
+                send_control(control_tx, TmuxControlEvent::SelectWindow { index })?;
+                write_response(stream, &TmuxIpcResponse::Accepted)
+            } else {
+                write_response(
+                    stream,
+                    &TmuxIpcResponse::Rejected {
+                        reason: terman_common::builtin_tmux_window_not_found_hint("last", 0),
+                    },
+                )
+            }
+        }
+        Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             send_control(control_tx, TmuxControlEvent::Resize { cols, rows })?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }

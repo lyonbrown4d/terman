@@ -140,6 +140,17 @@ pub(crate) fn select_adjacent_builtin_tmux_window_command(
         response => Err(unexpected_response_error(response)),
     }
 }
+pub(crate) fn select_last_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let target = required_target_session_name_arg(args)?;
+    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
+        return Err(session_not_found_error(&target));
+    };
+    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::LastWindow)? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(unexpected_response_error(response)),
+    }
+}
 fn list_builtin_tmux_windows_json(session: &BuiltinTmuxSession) -> Result<(), Box<dyn Error>> {
     let TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::Info)? else {
         return Err(unexpected_response_error(TmuxIpcResponse::Rejected { reason: String::from("expected info response") }));
