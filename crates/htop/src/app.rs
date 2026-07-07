@@ -56,6 +56,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut help_open = false;
     let mut kill_target: Option<String> = None;
     let mut selected = 0usize;
+    let mut detail_scroll = 0usize;
     let mut refresh_ms = args.refresh_ms.max(100);
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
@@ -83,6 +84,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     filter_input.is_some(),
                     active_search,
                     search_input.is_some(),
+                    detail_scroll,
                     refresh_ms,
                     kill_target.as_deref(),
                 );
@@ -105,6 +107,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut help_open,
             &mut kill_target,
             &mut selected,
+            &mut detail_scroll,
             snapshot.processes.as_slice(),
             &mut filter,
             &mut filter_input,
@@ -127,6 +130,7 @@ fn poll_until_refresh(
     help_open: &mut bool,
     kill_target: &mut Option<String>,
     selected: &mut usize,
+    detail_scroll: &mut usize,
     processes: &[ProcessRow],
     filter: &mut String,
     filter_input: &mut Option<String>,
@@ -148,6 +152,7 @@ fn poll_until_refresh(
                         tree,
                         help_open,
                         selected,
+                        detail_scroll,
                         processes,
                         filter: filter_input.as_deref().unwrap_or(filter.as_str()),
                         search: search_input.as_deref().unwrap_or(search.as_str()),
@@ -170,7 +175,11 @@ fn poll_until_refresh(
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
-                Event::Key(key) if navigation_key(key.code) => *selected = move_selection(*selected, processes.len(), key.code),
+                Event::Key(key) if navigation_key(key.code) => {
+                    let next = move_selection(*selected, processes.len(), key.code);
+                    if next != *selected { *detail_scroll = 0; }
+                    *selected = next;
+                }
                 Event::Key(key) if delay_key(key.code) => adjust_refresh(refresh_ms, key.code),
                 Event::Key(key) if kill_key(key.code) => *kill_target = selected_process_pid(processes, *selected),
                 Event::Key(key) if help_key(key.code) => *help_open = true,

@@ -56,6 +56,7 @@ pub(crate) fn draw(
     filtering: bool,
     search: &str,
     searching: bool,
+    detail_scroll: usize,
     refresh_ms: u64,
     kill_target: Option<&str>,
 ) {
@@ -66,7 +67,7 @@ pub(crate) fn draw(
     draw_header(frame, chunks[0], snapshot, tab);
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot, selected),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll),
         Tab::Io => draw_io(frame, chunks[1], snapshot),
         Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
@@ -155,9 +156,12 @@ fn draw_processes(
     tree: bool,
     selected: usize,
     filter: &str,
+    detail_scroll: usize,
 ) {
     let details = process_detail_lines(snapshot.processes.get(selected));
-    let visible = body_rows(area).saturating_sub(details.len() + 1).max(1);
+    let detail_visible = detail_rows(area, details.len());
+    let detail_scroll = detail_scroll.min(details.len().saturating_sub(detail_visible));
+    let visible = body_rows(area).saturating_sub(detail_visible + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
     let mut lines = vec![title_line("PID        CPU%  MEM%    MEM       TIME      NAME")];
     lines.push(plain_line(format!(
@@ -171,7 +175,7 @@ fn draw_processes(
         lines.push(process_line(row, start + offset == selected, snapshot.total_memory));
     }
     lines.push(title_line("DETAILS"));
-    lines.extend(details);
+    lines.extend(details.into_iter().skip(detail_scroll).take(detail_visible));
     render_block(frame, area, "Processes", lines);
 }
 
@@ -260,6 +264,11 @@ fn body_rows(area: Rect) -> usize {
 
 fn overview_core_rows(area: Rect, count: usize) -> usize {
     (area.height as usize).saturating_sub(16).min(count).min(8)
+}
+
+fn detail_rows(area: Rect, count: usize) -> usize {
+    let max_detail = body_rows(area).saturating_sub(4).max(1).min(10);
+    count.max(1).min(max_detail)
 }
 
 fn overview_process_rows(area: Rect, core_rows: usize) -> usize {

@@ -32,6 +32,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) tree: &'a mut bool,
     pub(crate) help_open: &'a mut bool,
     pub(crate) selected: &'a mut usize,
+    pub(crate) detail_scroll: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
@@ -48,11 +49,19 @@ pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> Mous
 
     match event.kind {
         MouseEventKind::ScrollUp => {
-            *context.selected = context.selected.saturating_sub(1);
+            if detail_at(event.row, &context) {
+                *context.detail_scroll = (*context.detail_scroll).saturating_sub(1);
+            } else {
+                move_selected(context.selected, context.detail_scroll, context.processes.len(), false);
+            }
             MouseAction::Handled
         }
         MouseEventKind::ScrollDown => {
-            *context.selected = move_down(*context.selected, context.processes.len());
+            if detail_at(event.row, &context) {
+                *context.detail_scroll = move_down(*context.detail_scroll, max_detail_scroll(&context));
+            } else {
+                move_selected(context.selected, context.detail_scroll, context.processes.len(), true);
+            }
             MouseAction::Handled
         }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
@@ -81,6 +90,9 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     }
 
     if let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) {
+        if *context.selected != index {
+            *context.detail_scroll = 0;
+        }
         *context.selected = index;
         return MouseAction::Handled;
     }
@@ -155,10 +167,38 @@ fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow]) -> 
 }
 
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
-    let rows = terminal_area().height.saturating_sub(5);
-    let body_rows = rows.saturating_sub(4) as usize;
+    let body_rows = terminal_area().height.saturating_sub(9) as usize;
     let details = process_detail_lines(processes.get(selected)).len();
-    body_rows.saturating_sub(details + 1).max(1)
+    body_rows.saturating_sub(detail_rows(details) + 1).max(1)
+}
+
+fn detail_at(row: u16, context: &MouseContext<'_>) -> bool {
+    if *context.tab != Tab::Processes || context.processes.is_empty() {
+        return false;
+    }
+    let first_detail_row = 7u16.saturating_add(visible_process_rows(*context.selected, context.processes) as u16 + 1);
+    let details = process_detail_lines(context.processes.get(*context.selected)).len();
+    let end = first_detail_row.saturating_add(detail_rows(details) as u16);
+    row >= first_detail_row && row < end
+}
+
+fn max_detail_scroll(context: &MouseContext<'_>) -> usize {
+    let details = process_detail_lines(context.processes.get(*context.selected)).len();
+    details.saturating_sub(detail_rows(details))
+}
+
+fn detail_rows(count: usize) -> usize {
+    let body_rows = terminal_area().height.saturating_sub(9) as usize;
+    let max_detail = body_rows.saturating_sub(4).max(1).min(10);
+    count.max(1).min(max_detail)
+}
+
+fn move_selected(selected: &mut usize, detail_scroll: &mut usize, count: usize, down: bool) {
+    let next = if down { move_down(*selected, count) } else { selected.saturating_sub(1) };
+    if next != *selected {
+        *detail_scroll = 0;
+    }
+    *selected = next;
 }
 
 fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
