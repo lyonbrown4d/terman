@@ -45,17 +45,27 @@ fn select_relative_window(endpoint: &TmuxIpcEndpoint, forward: bool) -> io::Resu
 }
 
 fn select_clicked_window(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<()> {
-    if let Some(index) = clicked_window_index(endpoint, column)? {
-        select_window(endpoint, index)?;
-        render_current_status(endpoint)?;
+    match clicked_status_target(endpoint, column)? {
+        Some(StatusClickTarget::Window(index)) => {
+            select_window(endpoint, index)?;
+            render_current_status(endpoint)?;
+        }
+        Some(StatusClickTarget::Help) => render_status_line(&terman_common::builtin_tmux_attach_help())?,
+        None => {}
     }
     Ok(())
 }
 
-fn clicked_window_index(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<Option<u32>> {
+fn clicked_status_target(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<Option<StatusClickTarget>> {
     match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } => {
-            Ok(status_window_at(column, &session_name, active_window, &window_indexes, &window_names))
+            if let Some(index) = status_window_at(column, &session_name, active_window, &window_indexes, &window_names) {
+                Ok(Some(StatusClickTarget::Window(index)))
+            } else if status_help_at(column, &session_name, active_window, &window_indexes, &window_names) {
+                Ok(Some(StatusClickTarget::Help))
+            } else {
+                Ok(None)
+            }
         }
         TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
         response => Err(io::Error::new(
@@ -63,6 +73,11 @@ fn clicked_window_index(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<O
             terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")),
         )),
     }
+}
+
+enum StatusClickTarget {
+    Window(u32),
+    Help,
 }
 
 fn status_window_at(
@@ -89,6 +104,38 @@ fn status_window_at(
     None
 }
 
+fn status_help_at(
+    column: u16,
+    session_name: &str,
+    active_window: u32,
+    indexes: &[u32],
+    names: &[String],
+) -> bool {
+    let prompt_start = status_prompt_start(session_name, active_window, indexes, names);
+    column >= prompt_start
+}
+
+fn status_prompt_start(
+    session_name: &str,
+    active_window: u32,
+    indexes: &[u32],
+    names: &[String],
+) -> u16 {
+    let mut width = format!("tmux {session_name} | ").chars().count() as u16;
+    for (position, index) in indexes.iter().enumerate() {
+        let name = names.get(position).map(String::as_str).unwrap_or("-");
+        let label = if *index == active_window {
+            format!("[{index}:{name}]")
+        } else {
+            format!("{index}:{name}")
+        };
+        width = width.saturating_add(label.chars().count() as u16);
+        if position + 1 < indexes.len() {
+            width = width.saturating_add(1);
+        }
+    }
+    width.saturating_add(3)
+}
 fn on_status_row(row: u16) -> bool {
     size().map(|(_, rows)| row == rows.saturating_sub(1)).unwrap_or(false)
 }
