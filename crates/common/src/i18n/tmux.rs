@@ -12,6 +12,10 @@ pub fn builtin_tmux_cli_examples() -> String {
     localized_message(MessageKey::BuiltinTmuxCliExamples, &[])
 }
 
+pub fn builtin_tmux_attach_help() -> String {
+    localized_message(MessageKey::BuiltinTmuxAttachHelp, &[])
+}
+
 pub fn builtin_tmux_session_list_entry_hint(
     name: &str,
     windows: u32,

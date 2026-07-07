@@ -166,6 +166,7 @@ builtin-tmux-cli-examples =
       - List sessions first: terman-tmux list-sessions
       - Name conflict: terman-tmux new -s demo
       - Reproduce conflict: terman-tmux new -s demo
+builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B x/& kill window | Ctrl-B , rename window | Ctrl-B n/p next/previous | Ctrl-B 0..9 select window | Ctrl-B ? help
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
 builtin-tmux-client-list-entry = {$session}: {$attached_clients} attached client(s)
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
