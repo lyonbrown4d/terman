@@ -63,6 +63,10 @@ pub(crate) fn footer_action_at(
         (FooterAction::Quit, button_width("F10", " Quit ".to_string())),
     ];
     let mut start = 0u16;
+    if let Some(pid) = kill_target {
+        for (_, width) in segments { start = start.saturating_add(width); }
+        return kill_prompt_action_at(column.saturating_sub(start), pid);
+    }
     for (action, width) in segments {
         let end = start.saturating_add(width);
         if column >= start && column < end {

@@ -102,6 +102,7 @@ fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
     MouseAction::Kill
 }
 fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
+    if context.kill_target.is_some() { return match handle_footer(column, row, &mut context) { MouseAction::Ignored => MouseAction::Handled, action => action }; }
     if *context.sort_menu_open {
         if let Some(mode) = sort_menu::mode_at(terminal_area(), column, row) {
             *context.sort_cursor = mode;
