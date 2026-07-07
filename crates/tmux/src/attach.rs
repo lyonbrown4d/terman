@@ -14,6 +14,8 @@ use crossterm::{
 };
 use interprocess::local_socket::prelude::*;
 
+const PREFIX_STATUS: &str = "tmux prefix | n next  p previous  0-9 select  d detach  C-b send-prefix";
+
 use crate::{
     args::target_session_arg,
     attach_keys::{
@@ -51,26 +53,25 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
     sync_terminal_size(endpoint)?;
     let _input_thread = spawn_terminal_event_forwarder(endpoint.clone(), client_id);
     let mut reader = BufReader::new(stream);
-    let mut stdout = io::stdout().lock();
     let mut status = query_status_line(endpoint).unwrap_or_else(|_| String::from("tmux"));
 
     loop {
         let Some(response) = read_attach_response(&mut reader)? else { return Ok(()); };
         match response {
             TmuxIpcResponse::Attached { replay } => {
-                write_output(&mut stdout, &replay)?;
+                write_output(&replay)?;
                 status = query_status_line(endpoint).unwrap_or(status);
-                render_status_line(&mut stdout, &status)?;
+                render_status_line(&status)?;
             }
             TmuxIpcResponse::Output { bytes } => {
                 let refresh = bytes.starts_with(b"\x1bc");
-                write_output(&mut stdout, &bytes)?;
+                write_output(&bytes)?;
                 if refresh { status = query_status_line(endpoint).unwrap_or(status); }
-                render_status_line(&mut stdout, &status)?;
+                render_status_line(&status)?;
             }
             TmuxIpcResponse::Resize { .. } => {
                 status = query_status_line(endpoint).unwrap_or(status);
-                render_status_line(&mut stdout, &status)?;
+                render_status_line(&status)?;
             }
             TmuxIpcResponse::Detached | TmuxIpcResponse::Exit { .. } => return Ok(()),
             TmuxIpcResponse::Rejected { reason } => return Err(Box::new(io::Error::new(io::ErrorKind::PermissionDenied, reason))),
@@ -98,7 +99,8 @@ fn read_attach_response(reader: &mut BufReader<LocalSocketStream>) -> io::Result
     serde_json::from_str(line.trim_end()).map(Some).map_err(json_io_error)
 }
 
-fn write_output(stdout: &mut dyn Write, bytes: &[u8]) -> io::Result<()> {
+fn write_output(bytes: &[u8]) -> io::Result<()> {
+    let mut stdout = io::stdout().lock();
     stdout.write_all(bytes)?;
     stdout.flush()
 }
@@ -117,10 +119,11 @@ fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String> {
     }
 }
 
-fn render_status_line(stdout: &mut impl Write, status: &str) -> io::Result<()> {
+fn render_status_line(status: &str) -> io::Result<()> {
     let (cols, rows) = size()?;
     let row = rows.saturating_sub(1);
     let text = fit_status_text(status, cols as usize);
+    let mut stdout = io::stdout().lock();
     execute!(
         stdout,
         SavePosition,
@@ -176,12 +179,18 @@ impl AttachInputMode {
             }
             if let Some(command) = tmux_prefix_command(&key) {
                 handle_prefix_command(endpoint, command)?;
+                let _ = render_current_status(endpoint);
                 return Ok(true);
             }
             send_input(endpoint, tmux_prefix_bytes())?;
+            let _ = render_current_status(endpoint);
             if is_tmux_prefix_key(&key) { return Ok(true); }
         }
-        if is_tmux_prefix_key(&key) { self.prefix_pending = true; return Ok(true); }
+        if is_tmux_prefix_key(&key) {
+            self.prefix_pending = true;
+            let _ = render_status_line(PREFIX_STATUS);
+            return Ok(true);
+        }
         if let Some(bytes) = key_event_bytes(&key) { send_input(endpoint, bytes)?; }
         Ok(true)
     }
@@ -211,6 +220,10 @@ fn neighbor_window_index(active_window: u32, indexes: &[u32], forward: bool) -> 
     indexes.get(next).copied()
 }
 
+fn render_current_status(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+    let status = query_status_line(endpoint)?;
+    render_status_line(&status)
+}
 fn send_input(endpoint: &TmuxIpcEndpoint, bytes: Vec<u8>) -> io::Result<()> { send_request(endpoint, TmuxIpcRequest::Input { bytes }) }
 fn send_resize(endpoint: &TmuxIpcEndpoint, cols: u16, rows: u16) -> io::Result<()> { send_request(endpoint, TmuxIpcRequest::Resize { cols, rows }) }
 fn content_rows(rows: u16) -> u16 { rows.saturating_sub(1).max(1) }
