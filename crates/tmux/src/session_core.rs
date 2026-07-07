@@ -16,6 +16,7 @@ pub(crate) enum TmuxSessionEvent {
 pub(crate) enum TmuxControlEvent {
     Input(Vec<u8>),
     Resize { cols: u16, rows: u16 },
+    NewWindow { index: u32, name: String, command: Option<String> },
     Terminate,
 }
 

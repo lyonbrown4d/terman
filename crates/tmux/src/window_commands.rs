@@ -124,7 +124,12 @@ pub(crate) fn select_builtin_tmux_window_command(args: &[String]) -> Result<(), 
 }
 fn request_builtin_tmux_windows_update(session: &BuiltinTmuxSession, windows: u32) {
     let endpoint = session_endpoint(session);
-    let _ = request_endpoint_response(&endpoint, TmuxIpcRequest::UpdateWindows { windows });
+    let index = windows.saturating_sub(1);
+    let _ = request_endpoint_response(&endpoint, TmuxIpcRequest::NewWindow {
+        index,
+        name: session.window_name(index),
+        command: None,
+    });
 }
 
 fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {

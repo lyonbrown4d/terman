@@ -60,7 +60,7 @@ pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Er
     let session_bus = TmuxSessionBus::new(config.windows);
     let (control_tx, control_rx) = mpsc::channel::<TmuxControlEvent>();
     let _session_service = TmuxSessionService::start(
-        session_name,
+        session_name.clone(),
         config.endpoint.clone(),
         config.cwd.clone(),
         session_bus.clone(),
@@ -68,21 +68,29 @@ pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Er
     )?;
 
     session_bus.publish_resize(config.cols, config.rows);
-    let mut active_window = TmuxWindowRuntime::spawn(
-        TmuxWindowRuntimeConfig {
-            session_name: config.session_name.clone(),
-            index: 0,
-            name: String::from("0"),
-            command: config.command,
-            cols: config.cols,
-            rows: config.rows,
-            login_shell: config.login_shell,
-        },
-        session_bus.clone(),
-    )?;
+    let mut windows = vec![spawn_window(
+        config.session_name.clone(),
+        0,
+        String::from("0"),
+        config.command,
+        config.cols,
+        config.rows,
+        config.login_shell,
+        &session_bus,
+    )?];
+    let mut active_window = 0;
 
-    let exit_code = run_control_loop(&mut active_window, &session_bus, control_rx);
-    active_window.join_output();
+    let exit_code = run_control_loop(
+        &mut windows,
+        &mut active_window,
+        &session_name,
+        config.login_shell,
+        &session_bus,
+        control_rx,
+    );
+    for window in &mut windows {
+        window.join_output();
+    }
 
     if exit_code == 0 {
         Ok(())
@@ -95,39 +103,58 @@ pub(crate) fn run_tmux_server(config: TmuxServerConfig) -> Result<(), Box<dyn Er
 }
 
 fn run_control_loop(
-    active_window: &mut TmuxWindowRuntime,
+    windows: &mut Vec<TmuxWindowRuntime>,
+    active_window: &mut u32,
+    session_name: &Arc<Mutex<String>>,
+    login_shell: bool,
     session_bus: &TmuxSessionBus,
     control_rx: mpsc::Receiver<TmuxControlEvent>,
 ) -> i32 {
     let mut terminate_requested = false;
+    let mut cols = 120;
+    let mut rows = 32;
     loop {
-        match active_window.try_exit_code() {
-            Ok(Some(code)) => {
-                session_bus.publish_exit(code);
-                return code;
-            }
-            Ok(None) => {}
-            Err(_) => {
-                session_bus.publish_exit(-1);
-                return -1;
-            }
+        if let Some(code) = handle_exited_window(windows, active_window, session_bus) {
+            return code;
         }
 
         while let Ok(control) = control_rx.try_recv() {
             match control {
                 TmuxControlEvent::Input(bytes) => {
-                    if active_window.write_input(&bytes).is_err() {
+                    if active_runtime(windows, *active_window)
+                        .and_then(|window| window.write_input(&bytes).ok())
+                        .is_none()
+                    {
                         return -1;
                     }
                 }
-                TmuxControlEvent::Resize { cols, rows } => {
-                    active_window.resize(cols, rows);
+                TmuxControlEvent::Resize { cols: next_cols, rows: next_rows } => {
+                    cols = next_cols;
+                    rows = next_rows;
+                    for window in windows.iter() {
+                        window.resize(cols, rows);
+                    }
                     session_bus.publish_resize(cols, rows);
+                }
+                TmuxControlEvent::NewWindow { index, name, command } => {
+                    if active_runtime(windows, index).is_none() {
+                        let session = current_session_name(session_name);
+                        match spawn_window(session, index, name, command, cols, rows, login_shell, session_bus) {
+                            Ok(window) => windows.push(window),
+                            Err(err) => publish_error(session_bus, err),
+                        }
+                    }
+                    session_bus.set_windows((index + 1).max(windows.len() as u32));
+                    if session_bus.select_window(index) {
+                        *active_window = index;
+                    }
                 }
                 TmuxControlEvent::Terminate => {
                     if !terminate_requested {
                         terminate_requested = true;
-                        active_window.kill();
+                        for window in windows.iter_mut() {
+                            window.kill();
+                        }
                     }
                 }
             }
@@ -137,12 +164,60 @@ fn run_control_loop(
     }
 }
 
-fn command_from_args(args: Vec<String>) -> Option<String> {
-    if args.is_empty() {
-        None
-    } else {
-        Some(args.join(" "))
+fn handle_exited_window(
+    windows: &mut Vec<TmuxWindowRuntime>,
+    active_window: &mut u32,
+    session_bus: &TmuxSessionBus,
+) -> Option<i32> {
+    let position = windows.iter_mut().position(|window| matches!(window.try_exit_code(), Ok(Some(_))))?;
+    let mut window = windows.remove(position);
+    let code = window.try_exit_code().ok().flatten().unwrap_or_default();
+    window.join_output();
+    if windows.is_empty() {
+        session_bus.publish_exit(code);
+        return Some(code);
     }
+    let next_position = position.min(windows.len() - 1);
+    *active_window = windows[next_position].index();
+    session_bus.set_windows(windows.len() as u32);
+    let _ = session_bus.select_window(*active_window);
+    None
+}
+
+fn active_runtime(windows: &mut [TmuxWindowRuntime], index: u32) -> Option<&mut TmuxWindowRuntime> {
+    windows.iter_mut().find(|window| window.index() == index)
+}
+
+fn spawn_window(
+    session_name: String,
+    index: u32,
+    name: String,
+    command: Option<String>,
+    cols: u16,
+    rows: u16,
+    login_shell: bool,
+    session_bus: &TmuxSessionBus,
+) -> Result<TmuxWindowRuntime, Box<dyn Error>> {
+    TmuxWindowRuntime::spawn(
+        TmuxWindowRuntimeConfig { session_name, index, name, command, cols, rows, login_shell },
+        session_bus.clone(),
+    )
+}
+
+fn current_session_name(session_name: &Arc<Mutex<String>>) -> String {
+    session_name
+        .lock()
+        .map(|name| name.clone())
+        .unwrap_or_else(|_| String::from("tmux"))
+}
+
+fn publish_error(bus: &TmuxSessionBus, err: Box<dyn Error>) {
+    let message = format!("\r\ntmux window failed: {err}\r\n");
+    bus.publish_transient_output(message.as_bytes());
+}
+
+fn command_from_args(args: Vec<String>) -> Option<String> {
+    if args.is_empty() { None } else { Some(args.join(" ")) }
 }
 
 fn current_tmux_cwd() -> String {

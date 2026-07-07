@@ -22,6 +22,7 @@ pub(crate) struct TmuxWindowRuntimeConfig {
 }
 
 pub(crate) struct TmuxWindowRuntime {
+    index: u32,
     child: Box<dyn Child + Send + Sync>,
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
@@ -50,11 +51,16 @@ impl TmuxWindowRuntime {
         let output_thread = Some(spawn_output_thread(reader, bus));
 
         Ok(Self {
+            index: config.index,
             child,
             master,
             writer,
             output_thread,
         })
+    }
+
+    pub(crate) fn index(&self) -> u32 {
+        self.index
     }
 
     pub(crate) fn write_input(&mut self, bytes: &[u8]) -> io::Result<()> {

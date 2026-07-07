@@ -123,7 +123,10 @@ fn handle_client(
             rename_session(session_name, name)?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
-        Ok(TmuxIpcRequest::UpdateWindows { windows }) => {
+        Ok(TmuxIpcRequest::NewWindow { index, name, command }) => {
+            send_control(control_tx, TmuxControlEvent::NewWindow { index, name, command })?;
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }        Ok(TmuxIpcRequest::UpdateWindows { windows }) => {
             bus.set_windows(windows);
             write_response(stream, &TmuxIpcResponse::Accepted)
         }

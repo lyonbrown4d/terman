@@ -87,6 +87,7 @@ pub(crate) enum TmuxIpcRequest {
     Quit,
     RenameSession { name: String },
     UpdateWindows { windows: u32 },
+    NewWindow { index: u32, name: String, command: Option<String> },
     SelectWindow { index: u32 },
     Resize { cols: u16, rows: u16 },
 }
