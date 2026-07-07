@@ -1,4 +1,7 @@
-use std::cmp::Ordering;
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+};
 
 use sysinfo::{Networks, System};
 
@@ -56,6 +59,8 @@ pub(crate) struct Snapshot {
 #[derive(Clone, Debug)]
 pub(crate) struct ProcessRow {
     pub(crate) pid: String,
+    pub(crate) parent_pid: Option<String>,
+    pub(crate) depth: usize,
     pub(crate) cpu: f32,
     pub(crate) memory: u64,
     pub(crate) name: String,
@@ -91,9 +96,9 @@ impl Metrics {
         self.networks.refresh(true);
     }
 
-    pub(crate) fn snapshot(&self, sort: SortMode, filter: &str) -> Snapshot {
+    pub(crate) fn snapshot(&self, sort: SortMode, filter: &str, tree: bool) -> Snapshot {
         let networks = self.network_rows();
-        let processes = self.process_rows(sort, filter);
+        let processes = self.process_rows(sort, filter, tree);
         let io = self.io_rows(filter);
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
@@ -115,17 +120,19 @@ impl Metrics {
         }
     }
 
-    fn process_rows(&self, sort: SortMode, filter: &str) -> Vec<ProcessRow> {
+    fn process_rows(&self, sort: SortMode, filter: &str, tree: bool) -> Vec<ProcessRow> {
         let mut rows: Vec<_> = self.system.processes().iter().map(|(pid, process)| {
             ProcessRow {
                 pid: pid.to_string(),
+                parent_pid: process.parent().map(|parent| parent.to_string()),
+                depth: 0,
                 cpu: process.cpu_usage(),
                 memory: process.memory(),
                 name: process.name().to_string_lossy().into_owned(),
             }
         }).filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), filter)).collect();
         rows.sort_by(|left, right| compare_process(left, right, sort));
-        rows
+        if tree { tree_rows(rows) } else { rows }
     }
 
     fn io_rows(&self, filter: &str) -> Vec<IoRow> {
@@ -157,6 +164,45 @@ impl Metrics {
             (right.received + right.transmitted).cmp(&(left.received + left.transmitted))
         });
         rows
+    }
+}
+
+fn tree_rows(rows: Vec<ProcessRow>) -> Vec<ProcessRow> {
+    let included: HashSet<_> = rows.iter().map(|row| row.pid.clone()).collect();
+    let mut roots = Vec::new();
+    let mut children: HashMap<String, Vec<ProcessRow>> = HashMap::new();
+    for row in rows {
+        if let Some(parent) = row.parent_pid.as_ref().filter(|parent| included.contains(*parent)) {
+            children.entry(parent.clone()).or_default().push(row);
+        } else {
+            roots.push(row);
+        }
+    }
+    let mut output = Vec::new();
+    let mut seen = HashSet::new();
+    for root in roots {
+        append_tree(root, 0, &mut children, &mut seen, &mut output);
+    }
+    output
+}
+
+fn append_tree(
+    mut row: ProcessRow,
+    depth: usize,
+    children: &mut HashMap<String, Vec<ProcessRow>>,
+    seen: &mut HashSet<String>,
+    output: &mut Vec<ProcessRow>,
+) {
+    if !seen.insert(row.pid.clone()) {
+        return;
+    }
+    row.depth = depth;
+    let pid = row.pid.clone();
+    output.push(row);
+    if let Some(child_rows) = children.remove(&pid) {
+        for child in child_rows {
+            append_tree(child, depth + 1, children, seen, output);
+        }
     }
 }
 

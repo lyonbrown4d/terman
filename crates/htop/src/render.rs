@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::{
     format::{format_bytes, format_duration, meter_fill},
-    metrics::{Snapshot, SortMode},
+    metrics::{ProcessRow, Snapshot, SortMode},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,6 +44,7 @@ pub(crate) fn draw(
     snapshot: &Snapshot,
     tab: Tab,
     sort: SortMode,
+    tree: bool,
     filter: &str,
     filtering: bool,
 ) {
@@ -54,11 +55,11 @@ pub(crate) fn draw(
     draw_header(frame, chunks[0], snapshot, tab);
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, filter),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, filter),
         Tab::Io => draw_io(frame, chunks[1], snapshot),
         Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
-    draw_footer(frame, chunks[2], sort, filter, filtering);
+    draw_footer(frame, chunks[2], sort, tree, filter, filtering);
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {
@@ -119,16 +120,21 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
         title_line("TOP PROCESSES"),
     ];
     for row in snapshot.processes.iter().take(overview_rows(area)) {
-        lines.push(process_line(row.pid.as_str(), row.cpu, row.memory, row.name.as_str()));
+        lines.push(process_line(row));
     }
     render_block(frame, area, "Overview", lines);
 }
 
-fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sort: SortMode, filter: &str) {
+fn draw_processes(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sort: SortMode, tree: bool, filter: &str) {
     let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
-    lines.push(plain_line(format!("Sort: {}  Filter: {}", sort.label(), filter_label(filter))));
+    lines.push(plain_line(format!(
+        "Sort: {}  View: {}  Filter: {}",
+        sort.label(),
+        view_label(tree),
+        filter_label(filter)
+    )));
     for row in snapshot.processes.iter().take(body_rows(area)) {
-        lines.push(process_line(row.pid.as_str(), row.cpu, row.memory, row.name.as_str()));
+        lines.push(process_line(row));
     }
     render_block(frame, area, "Processes", lines);
 }
@@ -162,9 +168,10 @@ fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
     render_block(frame, area, "Network", lines);
 }
 
-fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode, filter: &str, filtering: bool) {
+fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode, tree: bool, filter: &str, filtering: bool) {
     let line = Line::from(vec![
         key_span("F4"), value_span(format!(" Filter:{} ", filter_label(filter))),
+        key_span("F5"), value_span(format!(" {} ", view_label(tree))),
         key_span("F6"), value_span(format!(" Sort:{} ", sort.label())),
         key_span("F10"), value_span(" Quit ".to_string()),
         Span::styled(filter_prompt(filtering), Style::default().fg(Color::Gray)),
@@ -172,8 +179,22 @@ fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode, filter: &str, 
     frame.render_widget(Paragraph::new(line), area);
 }
 
-fn process_line(pid: &str, cpu: f32, memory: u64, name: &str) -> Line<'static> {
-    plain_line(format!("{pid:<10} {cpu:>5.1}   {:>8}   {name}", format_bytes(memory)))
+fn process_line(row: &ProcessRow) -> Line<'static> {
+    plain_line(format!(
+        "{:<10} {:>5.1}   {:>8}   {}",
+        row.pid,
+        row.cpu,
+        format_bytes(row.memory),
+        tree_name(row.depth, row.name.as_str())
+    ))
+}
+
+fn tree_name(depth: usize, name: &str) -> String {
+    if depth == 0 {
+        name.to_string()
+    } else {
+        format!("{}+- {}", "  ".repeat(depth.min(12)), name)
+    }
 }
 
 fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
@@ -216,6 +237,10 @@ fn filter_label(filter: &str) -> &str {
 
 fn filter_prompt(filtering: bool) -> &'static str {
     if filtering { " type filter, Enter apply, Esc cancel" } else { " / or F4 filter" }
+}
+
+fn view_label(tree: bool) -> &'static str {
+    if tree { "Tree" } else { "Flat" }
 }
 
 fn body_rows(area: Rect) -> usize {

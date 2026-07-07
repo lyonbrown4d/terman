@@ -42,20 +42,28 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut metrics = Metrics::new();
     let mut tab = Tab::Overview;
     let mut sort = SortMode::Cpu;
+    let mut tree = false;
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
 
     loop {
         metrics.refresh();
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
-        let snapshot = metrics.snapshot(sort, active_filter);
+        let snapshot = metrics.snapshot(sort, active_filter, tree);
         terminal.draw(|frame| {
-            render::draw(frame, &snapshot, tab, sort, active_filter, filter_input.is_some())
+            render::draw(frame, &snapshot, tab, sort, tree, active_filter, filter_input.is_some())
         })?;
         if args.once {
             return Ok(());
         }
-        if poll_until_refresh(args.refresh_ms, &mut tab, &mut sort, &mut filter, &mut filter_input)? {
+        if poll_until_refresh(
+            args.refresh_ms,
+            &mut tab,
+            &mut sort,
+            &mut tree,
+            &mut filter,
+            &mut filter_input,
+        )? {
             return Ok(());
         }
     }
@@ -65,6 +73,7 @@ fn poll_until_refresh(
     refresh_ms: u64,
     tab: &mut Tab,
     sort: &mut SortMode,
+    tree: &mut bool,
     filter: &mut String,
     filter_input: &mut Option<String>,
 ) -> io::Result<bool> {
@@ -79,6 +88,7 @@ fn poll_until_refresh(
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
                 Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
                 Event::Key(key) if sort_key(key.code) => *sort = sort.next(),
+                Event::Key(key) if tree_key(key.code) => *tree = !*tree,
                 Event::Key(key) => *tab = next_tab(*tab, key.code),
                 Event::Resize(_, _) => break,
                 _ => {}
@@ -121,6 +131,10 @@ fn filter_key(code: KeyCode) -> bool {
 
 fn sort_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('s') | KeyCode::F(6))
+}
+
+fn tree_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('t') | KeyCode::F(5))
 }
 
 fn next_tab(tab: Tab, code: KeyCode) -> Tab {
