@@ -16,6 +16,7 @@ use interprocess::local_socket::prelude::*;
 
 use super::{
     attach_actions::{AttachActionResult, handle_attach_action, sync_attach_terminal_size},
+    attach_mouse::{disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
     ipc_client::send_control_request,
 };
 use crate::{
@@ -28,12 +29,14 @@ struct AttachRawMode;
 impl AttachRawMode {
     fn enter() -> io::Result<Self> {
         terminal::enable_raw_mode()?;
+        enable_mouse_capture()?;
         Ok(Self)
     }
 }
 
 impl Drop for AttachRawMode {
     fn drop(&mut self) {
+        disable_mouse_capture();
         let _ = terminal::disable_raw_mode();
     }
 }
@@ -58,6 +61,7 @@ pub(super) fn attach_interactive(
     while running.load(Ordering::Acquire) {
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
+                Ok(Event::Mouse(mouse)) => handle_attach_mouse(&endpoint, mouse)?,
                 Ok(Event::Key(key)) => {
                     if let Some(action) = input_decoder.decode_key(key) {
                         match handle_attach_action(&endpoint, &client_id, action)? {
