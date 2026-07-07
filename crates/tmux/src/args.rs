@@ -29,6 +29,15 @@ pub(crate) fn rename_window_name_arg(args: &[String]) -> Option<String> {
     positional_after_command(args, &["rename-window", "renamew"])
 }
 
+pub(crate) fn new_window_name_arg(args: &[String]) -> Option<String> {
+    named_arg(args, "-n", "--window-name")
+}
+
+pub(crate) fn new_window_command_arg(args: &[String]) -> Option<String> {
+    let payload = new_window_command_args(args).join(" ");
+    if payload.trim().is_empty() { None } else { Some(payload) }
+}
+
 pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
     positional_payload_after_command(args, &["display-message", "display"])
 }
@@ -37,6 +46,49 @@ pub(crate) fn send_keys_args(args: &[String]) -> Vec<String> {
     positional_args_after_command(args, &["send-keys", "send"])
 }
 
+fn new_window_command_args(args: &[String]) -> Vec<String> {
+    let mut seen_command = false;
+    let mut skip_next = false;
+    let mut payload_started = false;
+    let mut payload = Vec::new();
+
+    for arg in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if !seen_command {
+            if matches!(arg.as_str(), "new-window" | "neww") {
+                seen_command = true;
+            }
+            continue;
+        }
+        if !payload_started && new_window_option_consumes_value(arg) {
+            skip_next = true;
+            continue;
+        }
+        if !payload_started && new_window_inline_option(arg) {
+            continue;
+        }
+        if !payload_started && arg.starts_with('-') {
+            continue;
+        }
+        payload_started = true;
+        payload.push(arg.clone());
+    }
+    payload
+}
+
+fn new_window_option_consumes_value(arg: &str) -> bool {
+    matches!(arg, "-t" | "--target-session" | "-n" | "--window-name")
+}
+
+fn new_window_inline_option(arg: &str) -> bool {
+    arg.starts_with("-t")
+        || arg.starts_with("--target-session=")
+        || arg.starts_with("-n")
+        || arg.starts_with("--window-name=")
+}
 fn positional_after_command(args: &[String], commands: &[&str]) -> Option<String> {
     positional_payload_after_command(args, commands).and_then(|payload| {
         payload
@@ -103,7 +155,7 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        display_message_arg, rename_session_name_arg, rename_window_name_arg, send_keys_args,
+        display_message_arg, new_window_command_arg, new_window_name_arg, rename_session_name_arg, rename_window_name_arg, send_keys_args,
         session_name_arg, target_session_arg, target_session_name_arg, target_window_index_arg,
     };
 
@@ -142,6 +194,12 @@ mod tests {
         );
     }
 
+    #[test]
+    fn parses_new_window_args() {
+        let args = ["neww".into(), "-tdev".into(), "-n".into(), "api".into(), "cargo".into(), "run".into()];
+        assert_eq!(new_window_name_arg(&args), Some(String::from("api")));
+        assert_eq!(new_window_command_arg(&args), Some(String::from("cargo run")));
+    }
     #[test]
     fn parses_send_keys_payload() {
         assert_eq!(

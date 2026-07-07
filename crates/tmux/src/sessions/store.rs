@@ -51,12 +51,19 @@ pub(crate) fn builtin_tmux_session_exists(name: &str) -> io::Result<bool> {
 }
 
 pub(crate) fn add_builtin_tmux_window(name: &str) -> io::Result<AddBuiltinTmuxWindow> {
+    add_builtin_tmux_window_with_name(name, None)
+}
+
+pub(crate) fn add_builtin_tmux_window_with_name(
+    name: &str,
+    window_name: Option<&str>,
+) -> io::Result<AddBuiltinTmuxWindow> {
     let Some((path, mut session)) = find_builtin_tmux_session(name)? else {
         return Ok(AddBuiltinTmuxWindow::SessionMissing);
     };
     ensure_window_model(&mut session);
     let next_index = session.window_indexes.iter().copied().max().unwrap_or(0) + 1;
-    let window_name = next_index.to_string();
+    let window_name = window_name.map(str::to_string).unwrap_or_else(|| next_index.to_string());
     session.window_indexes.push(next_index);
     session.window_names.push(window_name.clone());
     session.windows = session.window_indexes.len() as u32;

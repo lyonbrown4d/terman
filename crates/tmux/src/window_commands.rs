@@ -3,13 +3,13 @@ use std::{error::Error, io};
 use serde::Serialize;
 
 use crate::{
-    args::{rename_window_name_arg, target_session_name_arg, target_window_index_arg},
+    args::{new_window_command_arg, new_window_name_arg, rename_window_name_arg, target_session_name_arg, target_window_index_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     lifecycle::request_builtin_tmux_session_quit,
     service::request_endpoint_response,
     sessions::{
         AddBuiltinTmuxWindow, BuiltinTmuxSession, KillBuiltinTmuxWindow,
-        RenameBuiltinTmuxWindow, add_builtin_tmux_window, kill_builtin_tmux_window,
+        RenameBuiltinTmuxWindow, add_builtin_tmux_window_with_name, kill_builtin_tmux_window,
         load_builtin_tmux_sessions, rename_builtin_tmux_window,
     },
 };
@@ -45,10 +45,12 @@ pub(crate) fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn E
 
 pub(crate) fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
-    match add_builtin_tmux_window(&target)? {
+    let window_name = new_window_name_arg(args);
+    let command = new_window_command_arg(args);
+    match add_builtin_tmux_window_with_name(&target, window_name.as_deref())? {
         AddBuiltinTmuxWindow::Added { windows, index, name } => {
             if let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) {
-                request_builtin_tmux_new_window(&session, index, name);
+                request_builtin_tmux_new_window(&session, index, name, command);
             }
             println!("{}", terman_common::builtin_tmux_window_created_hint(&target, windows));
             Ok(())
@@ -155,8 +157,13 @@ fn request_builtin_tmux_window_rename(session: &BuiltinTmuxSession, index: u32, 
     let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::RenameWindow { index, name });
 }
 
-fn request_builtin_tmux_new_window(session: &BuiltinTmuxSession, index: u32, name: String) {
-    let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::NewWindow { index, name, command: None });
+fn request_builtin_tmux_new_window(
+    session: &BuiltinTmuxSession,
+    index: u32,
+    name: String,
+    command: Option<String>,
+) {
+    let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::NewWindow { index, name, command });
 }
 
 fn request_builtin_tmux_window_kill(session: &BuiltinTmuxSession, index: u32) {
