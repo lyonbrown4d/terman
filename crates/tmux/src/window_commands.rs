@@ -68,7 +68,12 @@ pub(crate) fn rename_builtin_tmux_window_command(args: &[String]) -> Result<(), 
         return Err(Box::new(io::Error::new(io::ErrorKind::InvalidInput, terman_common::builtin_tmux_window_name_required_hint())));
     };
     match rename_builtin_tmux_window(&target, window_index, &new_name)? {
-        RenameBuiltinTmuxWindow::Renamed => Ok(()),
+        RenameBuiltinTmuxWindow::Renamed => {
+            if let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) {
+                request_builtin_tmux_window_rename(&session, window_index as u32, new_name);
+            }
+            Ok(())
+        }
         RenameBuiltinTmuxWindow::SessionMissing => Err(session_not_found_error(&target)),
         RenameBuiltinTmuxWindow::WindowMissing => Err(window_not_found_error(&target, window_index)),
     }
@@ -90,6 +95,9 @@ pub(crate) fn select_builtin_tmux_window_command(args: &[String]) -> Result<(), 
     }
 }
 
+fn request_builtin_tmux_window_rename(session: &BuiltinTmuxSession, index: u32, name: String) {
+    let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::RenameWindow { index, name });
+}
 fn request_builtin_tmux_new_window(session: &BuiltinTmuxSession, index: u32, name: String) {
     let _ = request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::NewWindow { index, name, command: None });
 }

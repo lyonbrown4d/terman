@@ -106,6 +106,8 @@ fn handle_client(
                     windows: status.windows,
                     attached_clients: status.attached_clients,
                     active_window: status.active_window,
+                    window_indexes: status.window_indexes,
+                    window_names: status.window_names,
                     cwd: cwd.to_string(),
                 },
             )
@@ -119,7 +121,10 @@ fn handle_client(
             send_control(control_tx, TmuxControlEvent::Terminate)?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
-        Ok(TmuxIpcRequest::RenameSession { name }) => {
+        Ok(TmuxIpcRequest::RenameWindow { index, name }) => {
+            send_control(control_tx, TmuxControlEvent::RenameWindow { index, name })?;
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }        Ok(TmuxIpcRequest::RenameSession { name }) => {
             rename_session(session_name, name)?;
             write_response(stream, &TmuxIpcResponse::Accepted)
         }

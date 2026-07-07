@@ -82,14 +82,19 @@ fn run_control_loop(
                 TmuxControlEvent::NewWindow { index, name, command } => {
                     if active_runtime(windows, index).is_none() {
                         let session = current_session_name(session_name);
-                        match spawn_window(session, index, name, command, cols, rows, login_shell, session_bus) {
-                            Ok(window) => { windows.push(window); session_bus.add_window(index); }
+                        match spawn_window(session, index, name.clone(), command, cols, rows, login_shell, session_bus) {
+                            Ok(window) => { windows.push(window); session_bus.add_window(index, name); }
                             Err(err) => publish_error(session_bus, err),
                         }
                     }
                     if active_runtime(windows, index).is_some() && session_bus.select_window(index) { *active_window = index; }
                 }
-                TmuxControlEvent::KillWindow { index } => {
+                TmuxControlEvent::RenameWindow { index, name } => {
+                    if let Some(window) = active_runtime(windows, index) {
+                        window.rename(name.clone());
+                        let _ = session_bus.rename_window(index, name);
+                    }
+                }                TmuxControlEvent::KillWindow { index } => {
                     if let Some(window) = active_runtime(windows, index) {
                         window.kill();
                     }

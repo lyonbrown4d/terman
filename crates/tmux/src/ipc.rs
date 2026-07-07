@@ -86,6 +86,7 @@ pub(crate) enum TmuxIpcRequest {
     Ping,
     Quit,
     RenameSession { name: String },
+    RenameWindow { index: u32, name: String },
     UpdateWindows { windows: u32 },
     NewWindow { index: u32, name: String, command: Option<String> },
     KillWindow { index: u32 },
@@ -105,6 +106,8 @@ pub(crate) enum TmuxIpcResponse {
         windows: u32,
         attached_clients: u32,
         active_window: u32,
+        window_indexes: Vec<u32>,
+        window_names: Vec<String>,
         cwd: String,
     },
     Output { bytes: Vec<u8> },
@@ -168,6 +171,8 @@ mod tests {
                 windows: 1,
                 attached_clients: 0,
                 active_window: 0,
+                window_indexes: vec![0],
+                window_names: vec![String::from("0")],
                 cwd: String::from("/tmp"),
             },
             TmuxIpcResponse::Info {
@@ -175,6 +180,8 @@ mod tests {
                 windows: 1,
                 attached_clients: 0,
                 active_window: 0,
+                window_indexes: vec![0],
+                window_names: vec![String::from("0")],
                 cwd: String::from("/tmp"),
             }
         );

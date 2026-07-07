@@ -23,6 +23,7 @@ pub(crate) struct TmuxWindowRuntimeConfig {
 
 pub(crate) struct TmuxWindowRuntime {
     index: u32,
+    name: String,
     child: Box<dyn Child + Send + Sync>,
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
@@ -32,6 +33,7 @@ pub(crate) struct TmuxWindowRuntime {
 impl TmuxWindowRuntime {
     pub(crate) fn spawn(config: TmuxWindowRuntimeConfig, bus: TmuxSessionBus) -> Result<Self, Box<dyn Error>> {
         let index = config.index;
+        let name = config.name.clone();
         let pair = native_pty_system().openpty(PtySize {
             cols: config.cols,
             rows: config.rows,
@@ -50,11 +52,15 @@ impl TmuxWindowRuntime {
         let reader = master.try_clone_reader()?;
         let writer = master.take_writer()?;
         let output_thread = Some(spawn_output_thread(index, reader, bus));
-        Ok(Self { index, child, master, writer, output_thread })
+        Ok(Self { index, name, child, master, writer, output_thread })
     }
 
     pub(crate) fn index(&self) -> u32 {
         self.index
+    }
+
+    pub(crate) fn rename(&mut self, name: String) {
+        self.name = name;
     }
 
     pub(crate) fn write_input(&mut self, bytes: &[u8]) -> io::Result<()> {

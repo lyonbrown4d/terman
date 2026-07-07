@@ -17,6 +17,7 @@ pub(crate) enum TmuxControlEvent {
     Input(Vec<u8>),
     Resize { cols: u16, rows: u16 },
     NewWindow { index: u32, name: String, command: Option<String> },
+    RenameWindow { index: u32, name: String },
     KillWindow { index: u32 },
     Terminate,
 }
@@ -27,6 +28,8 @@ pub(crate) struct TmuxSessionStatus {
     pub(crate) attached_clients: u32,
     pub(crate) windows: u32,
     pub(crate) active_window: u32,
+    pub(crate) window_indexes: Vec<u32>,
+    pub(crate) window_names: Vec<String>,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
 }
@@ -43,6 +46,7 @@ struct TmuxSessionSubscriber {
 
 struct TmuxWindowReplay {
     index: u32,
+    name: String,
     replay: Vec<u8>,
 }
 
@@ -74,27 +78,18 @@ impl TmuxSessionSubscription {
 
 impl Drop for TmuxSessionSubscription {
     fn drop(&mut self) {
-        if !self.active {
-            return;
-        }
-        let Ok(mut state) = self.bus.inner.lock() else {
-            return;
-        };
+        if !self.active { return; }
+        let Ok(mut state) = self.bus.inner.lock() else { return; };
         state.attached_clients = state.attached_clients.saturating_sub(1);
     }
 }
 
 impl TmuxSessionBus {
     pub(crate) fn new(windows: u32) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(TmuxSessionState::new(windows))),
-        }
+        Self { inner: Arc::new(Mutex::new(TmuxSessionState::new(windows))) }
     }
 
-    pub(crate) fn subscribe_with_replay(
-        &self,
-        client_id: Option<String>,
-    ) -> (Vec<u8>, TmuxSessionSubscription) {
+    pub(crate) fn subscribe_with_replay(&self, client_id: Option<String>) -> (Vec<u8>, TmuxSessionSubscription) {
         let (tx, rx) = mpsc::channel();
         let mut active = false;
         let replay = if let Ok(mut state) = self.inner.lock() {
@@ -103,9 +98,7 @@ impl TmuxSessionBus {
             state.attached_clients = state.attached_clients.saturating_add(1);
             active = true;
             replay
-        } else {
-            Vec::new()
-        };
+        } else { Vec::new() };
         (replay, TmuxSessionSubscription { receiver: rx, bus: self.clone(), active })
     }
 
@@ -119,6 +112,8 @@ impl TmuxSessionBus {
             attached_clients: state.attached_clients,
             windows: state.windows.len().max(1) as u32,
             active_window: state.active_window,
+            window_indexes: state.windows.iter().map(|window| window.index).collect(),
+            window_names: state.windows.iter().map(|window| window.name.clone()).collect(),
             cols: state.cols,
             rows: state.rows,
         }).unwrap_or(TmuxSessionStatus {
@@ -126,15 +121,15 @@ impl TmuxSessionBus {
             attached_clients: 0,
             windows: 1,
             active_window: 0,
+            window_indexes: vec![0],
+            window_names: vec![String::from("0")],
             cols: None,
             rows: None,
         })
     }
 
     pub(crate) fn clear_replay(&self) {
-        if let Ok(mut state) = self.inner.lock() {
-            state.active_replay_mut().clear();
-        }
+        if let Ok(mut state) = self.inner.lock() { state.active_replay_mut().clear(); }
     }
 
     pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {
@@ -147,9 +142,7 @@ impl TmuxSessionBus {
     }
 
     pub(crate) fn publish_window_output(&self, index: u32, bytes: &[u8]) {
-        let Ok(mut state) = self.inner.lock() else {
-            return;
-        };
+        let Ok(mut state) = self.inner.lock() else { return; };
         state.append_window_output(index, bytes);
         if index == state.active_window {
             send_to_subscribers(&mut state, TmuxSessionEvent::Output(bytes.to_vec()));
@@ -157,43 +150,35 @@ impl TmuxSessionBus {
     }
 
     pub(crate) fn publish_resize(&self, cols: u16, rows: u16) {
-        self.publish(TmuxSessionEvent::Resize { cols, rows }, |state| {
-            state.cols = Some(cols);
-            state.rows = Some(rows);
-        });
+        self.publish(TmuxSessionEvent::Resize { cols, rows }, |state| { state.cols = Some(cols); state.rows = Some(rows); });
     }
 
     pub(crate) fn set_windows(&self, windows: u32) {
-        if let Ok(mut state) = self.inner.lock() {
-            state.set_window_count(windows.max(1));
-        }
+        if let Ok(mut state) = self.inner.lock() { state.set_window_count(windows.max(1)); }
     }
 
-    pub(crate) fn add_window(&self, index: u32) {
-        if let Ok(mut state) = self.inner.lock() {
-            state.ensure_window(index);
-        }
+    pub(crate) fn add_window(&self, index: u32, name: String) {
+        if let Ok(mut state) = self.inner.lock() { state.ensure_window(index, name); }
+    }
+
+    pub(crate) fn rename_window(&self, index: u32, name: String) -> bool {
+        let Ok(mut state) = self.inner.lock() else { return false; };
+        let Some(window) = state.windows.iter_mut().find(|window| window.index == index) else { return false; };
+        window.name = name;
+        true
     }
 
     pub(crate) fn remove_window(&self, index: u32) {
-        if let Ok(mut state) = self.inner.lock() {
-            state.remove_window(index);
-        }
+        if let Ok(mut state) = self.inner.lock() { state.remove_window(index); }
     }
 
     pub(crate) fn select_window(&self, index: u32) -> bool {
-        let Ok(mut state) = self.inner.lock() else {
-            return false;
-        };
-        if !state.has_window(index) {
-            return false;
-        }
+        let Ok(mut state) = self.inner.lock() else { return false; };
+        if !state.has_window(index) { return false; }
         state.active_window = index;
         let replay = state.active_replay().to_vec();
         send_to_subscribers(&mut state, TmuxSessionEvent::Output(b"\x1bc".to_vec()));
-        if !replay.is_empty() {
-            send_to_subscribers(&mut state, TmuxSessionEvent::Output(replay));
-        }
+        if !replay.is_empty() { send_to_subscribers(&mut state, TmuxSessionEvent::Output(replay)); }
         true
     }
 
@@ -203,18 +188,11 @@ impl TmuxSessionBus {
         }
     }
 
-    pub(crate) fn publish_detach(&self) {
-        self.publish(TmuxSessionEvent::Detach, |_| {});
-    }
-
-    pub(crate) fn publish_exit(&self, code: i32) {
-        self.publish(TmuxSessionEvent::Exit(code), |_| {});
-    }
+    pub(crate) fn publish_detach(&self) { self.publish(TmuxSessionEvent::Detach, |_| {}); }
+    pub(crate) fn publish_exit(&self, code: i32) { self.publish(TmuxSessionEvent::Exit(code), |_| {}); }
 
     fn publish(&self, event: TmuxSessionEvent, update: impl FnOnce(&mut TmuxSessionState)) {
-        let Ok(mut state) = self.inner.lock() else {
-            return;
-        };
+        let Ok(mut state) = self.inner.lock() else { return; };
         update(&mut state);
         send_to_subscribers(&mut state, event);
     }
@@ -232,7 +210,7 @@ impl TmuxSessionState {
     }
 
     fn active_replay_mut(&mut self) -> &mut Vec<u8> {
-        self.ensure_window(self.active_window);
+        self.ensure_window(self.active_window, self.active_window.to_string());
         self.windows.iter_mut().find(|window| window.index == self.active_window).map(|window| &mut window.replay).expect("active window exists")
     }
 
@@ -240,15 +218,15 @@ impl TmuxSessionState {
         self.windows.iter().any(|window| window.index == index)
     }
 
-    fn ensure_window(&mut self, index: u32) {
+    fn ensure_window(&mut self, index: u32, name: String) {
         if !self.has_window(index) {
-            self.windows.push(TmuxWindowReplay { index, replay: Vec::new() });
+            self.windows.push(TmuxWindowReplay { index, name, replay: Vec::new() });
             self.windows.sort_by_key(|window| window.index);
         }
     }
 
     fn append_window_output(&mut self, index: u32, bytes: &[u8]) {
-        self.ensure_window(index);
+        self.ensure_window(index, index.to_string());
         let replay = self.windows.iter_mut().find(|window| window.index == index).expect("window exists");
         replay.replay.extend_from_slice(bytes);
         if replay.replay.len() > MAX_REPLAY_BYTES {
@@ -258,9 +236,7 @@ impl TmuxSessionState {
     }
 
     fn set_window_count(&mut self, windows: u32) {
-        for index in 0..windows {
-            self.ensure_window(index);
-        }
+        for index in 0..windows { self.ensure_window(index, index.to_string()); }
         self.windows.retain(|window| window.index < windows);
         if !self.has_window(self.active_window) {
             self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
@@ -269,9 +245,7 @@ impl TmuxSessionState {
 
     fn remove_window(&mut self, index: u32) {
         self.windows.retain(|window| window.index != index);
-        if self.windows.is_empty() {
-            self.ensure_window(0);
-        }
+        if self.windows.is_empty() { self.ensure_window(0, String::from("0")); }
         if !self.has_window(self.active_window) {
             self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
         }
