@@ -1,24 +1,34 @@
 use std::{error::Error, io, thread, time::Duration};
 
+use serde::Serialize;
+
 use crate::{
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::{BuiltinTmuxSession, load_builtin_tmux_sessions, remove_builtin_tmux_session},
 };
 
+#[derive(Serialize)]
+struct TmuxSessionListJson {
+    schema_version: u16,
+    sessions: Vec<TmuxSessionJson>,
+}
+
+#[derive(Serialize)]
+struct TmuxSessionJson {
+    id: String,
+    name: String,
+    pid: Option<String>,
+    cwd: String,
+    command: Option<String>,
+    ipc_endpoint: Option<String>,
+    windows: u32,
+    attached_clients: u32,
+    window_names: Vec<String>,
+}
+
 pub(crate) fn list_builtin_tmux_sessions() -> Result<(), Box<dyn Error>> {
-    let sessions = load_builtin_tmux_sessions()?;
-    let mut live_sessions = Vec::new();
-
-    for session in sessions {
-        match query_session_info_with_retry(&session) {
-            Ok(status) => live_sessions.push(status),
-            Err(_) => {
-                let _ = remove_builtin_tmux_session(&session.name)?;
-            }
-        }
-    }
-
+    let live_sessions = load_live_builtin_tmux_sessions()?;
     if live_sessions.is_empty() {
         println!("{}", terman_common::builtin_tmux_no_sessions_hint());
         return Ok(());
@@ -28,13 +38,26 @@ pub(crate) fn list_builtin_tmux_sessions() -> Result<(), Box<dyn Error>> {
         println!(
             "{}",
             terman_common::builtin_tmux_session_list_entry_hint(
-                &session.name,
+                &session.record.name,
                 session.windows,
                 session.attached_clients,
             )
         );
     }
 
+    Ok(())
+}
+
+pub(crate) fn list_builtin_tmux_sessions_json() -> Result<(), Box<dyn Error>> {
+    let sessions = load_live_builtin_tmux_sessions()?
+        .into_iter()
+        .map(tmux_session_json)
+        .collect();
+    let payload = TmuxSessionListJson {
+        schema_version: 1,
+        sessions,
+    };
+    println!("{}", serde_json::to_string_pretty(&payload)?);
     Ok(())
 }
 
@@ -53,6 +76,22 @@ pub(crate) fn require_live_builtin_tmux_session(target: &str) -> Result<(), Box<
             Err(session_not_found_error(target))
         }
     }
+}
+
+fn load_live_builtin_tmux_sessions() -> io::Result<Vec<LiveTmuxSession>> {
+    let sessions = load_builtin_tmux_sessions()?;
+    let mut live_sessions = Vec::new();
+
+    for session in sessions {
+        match query_session_info_with_retry(&session) {
+            Ok(status) => live_sessions.push(status),
+            Err(_) => {
+                let _ = remove_builtin_tmux_session(&session.name)?;
+            }
+        }
+    }
+
+    Ok(live_sessions)
 }
 
 fn query_session_info_with_retry(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSession> {
@@ -79,14 +118,22 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
     let endpoint = session_endpoint(session);
     match request_endpoint_response(&endpoint, TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info {
+            session_name,
             windows,
             attached_clients,
-            ..
-        } => Ok(LiveTmuxSession {
-            name: session.name.clone(),
-            windows,
-            attached_clients,
-        }),
+            cwd,
+        } => {
+            let mut record = session.clone();
+            record.name = session_name;
+            record.cwd = cwd.clone();
+            record.windows = windows;
+            record.attached_clients = attached_clients;
+            Ok(LiveTmuxSession {
+                record,
+                windows,
+                attached_clients,
+            })
+        }
         TmuxIpcResponse::Rejected { reason } => {
             Err(io::Error::new(io::ErrorKind::PermissionDenied, reason))
         }
@@ -94,6 +141,27 @@ fn query_session_info(session: &BuiltinTmuxSession) -> io::Result<LiveTmuxSessio
             io::ErrorKind::InvalidData,
             terman_common::builtin_tmux_unexpected_info_response_hint(&format!("{response:?}")),
         )),
+    }
+}
+
+fn tmux_session_json(session: LiveTmuxSession) -> TmuxSessionJson {
+    let window_names = (0..session.windows)
+        .map(|index| session.record.window_name(index))
+        .collect();
+    TmuxSessionJson {
+        id: session
+            .record
+            .ipc_endpoint
+            .clone()
+            .unwrap_or_else(|| format!("tmux:{}", session.record.name)),
+        name: session.record.name,
+        pid: session.record.pid,
+        cwd: session.record.cwd,
+        command: session.record.command,
+        ipc_endpoint: session.record.ipc_endpoint,
+        windows: session.windows,
+        attached_clients: session.attached_clients,
+        window_names,
     }
 }
 
@@ -113,7 +181,7 @@ fn session_not_found_error(target: &str) -> Box<dyn Error> {
 }
 
 struct LiveTmuxSession {
-    name: String,
+    record: BuiltinTmuxSession,
     windows: u32,
     attached_clients: u32,
 }

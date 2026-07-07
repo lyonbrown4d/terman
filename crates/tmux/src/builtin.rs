@@ -25,7 +25,7 @@ use crate::{
         kill_builtin_tmux_window, load_builtin_tmux_sessions, rename_builtin_tmux_session,
         rename_builtin_tmux_window,
     },
-    status::{list_builtin_tmux_sessions, require_live_builtin_tmux_session},
+    status::{list_builtin_tmux_sessions, list_builtin_tmux_sessions_json, require_live_builtin_tmux_session},
 };
 
 pub(crate) fn try_run_builtin_tmux_command(
@@ -35,7 +35,11 @@ pub(crate) fn try_run_builtin_tmux_command(
 ) -> Result<bool, Box<dyn Error>> {
     match command {
         TmuxCommand::ListSessions => {
-            list_builtin_tmux_sessions()?;
+            if list_sessions_json_requested(args) {
+                list_builtin_tmux_sessions_json()?;
+            } else {
+                list_builtin_tmux_sessions()?;
+            }
             Ok(true)
         }
         TmuxCommand::ListClients => {
@@ -100,6 +104,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         _ => Ok(false),
     }
+}
+
+fn list_sessions_json_requested(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "--json")
 }
 
 fn list_builtin_tmux_windows(args: &[String]) -> Result<(), Box<dyn Error>> {
