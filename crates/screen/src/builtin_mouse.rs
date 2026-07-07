@@ -60,7 +60,7 @@ pub(crate) fn handle_builtin_mouse(
     if state.list_open()
         && !matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
     {
-        state.clear();
+        close_window_list(bus, state);
         return;
     }
     match event.kind {
@@ -105,9 +105,21 @@ fn select_or_forward(
         return;
     }
     state.clear();
-    if !list_open {
+    if list_open {
+        redraw_active_window(bus);
+    } else {
         forward_mouse_event(windows, *active_window, event);
     }
+}
+
+fn close_window_list(bus: &ScreenSessionBus, state: &mut ScreenMouseState) {
+    state.clear();
+    redraw_active_window(bus);
+}
+
+fn redraw_active_window(bus: &ScreenSessionBus) {
+    let replay = bus.hardcopy_snapshot(false);
+    publish_window_redraw(bus, &replay);
 }
 
 fn right_click(
@@ -214,6 +226,10 @@ fn publish_mouse_message(bus: &ScreenSessionBus, message: String) {
     let _ = stdout.write_all(message.as_bytes());
     let _ = stdout.flush();
 }
+
+
+
+
 
 
 
