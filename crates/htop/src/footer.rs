@@ -14,6 +14,7 @@ pub(crate) fn footer_line(
     searching: bool,
 ) -> Line<'static> {
     Line::from(vec![
+        key_span("F1"), value_span(" Help ".to_string()),
         key_span("F3"), value_span(format!(" Search:{} ", value_label(search))),
         key_span("F4"), value_span(format!(" Filter:{} ", value_label(filter))),
         key_span("F5"), value_span(format!(" {} ", view_label(tree))),

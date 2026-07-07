@@ -14,6 +14,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
     cli::HtopArgs,
+    help,
     metrics::{Metrics, ProcessRow, SortMode},
     render::{self, Tab},
 };
@@ -43,6 +44,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut tab = Tab::Overview;
     let mut sort = SortMode::Cpu;
     let mut tree = false;
+    let mut help_open = false;
     let mut selected = 0usize;
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
@@ -56,18 +58,22 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let snapshot = metrics.snapshot(sort, active_filter, tree);
         selected = clamp_selection(selected, snapshot.processes.len());
         terminal.draw(|frame| {
-            render::draw(
-                frame,
-                &snapshot,
-                tab,
-                sort,
-                tree,
-                selected,
-                active_filter,
-                filter_input.is_some(),
-                active_search,
-                search_input.is_some(),
-            )
+            if help_open {
+                help::draw(frame);
+            } else {
+                render::draw(
+                    frame,
+                    &snapshot,
+                    tab,
+                    sort,
+                    tree,
+                    selected,
+                    active_filter,
+                    filter_input.is_some(),
+                    active_search,
+                    search_input.is_some(),
+                );
+            }
         })?;
         if args.once {
             return Ok(());
@@ -77,6 +83,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut tab,
             &mut sort,
             &mut tree,
+            &mut help_open,
             &mut selected,
             snapshot.processes.as_slice(),
             &mut filter,
@@ -94,6 +101,7 @@ fn poll_until_refresh(
     tab: &mut Tab,
     sort: &mut SortMode,
     tree: &mut bool,
+    help_open: &mut bool,
     selected: &mut usize,
     processes: &[ProcessRow],
     filter: &mut String,
@@ -107,6 +115,7 @@ fn poll_until_refresh(
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
+                Event::Key(key) if handle_help_input(key.code, help_open) => {}
                 Event::Key(key) if handle_search_input(key.code, search, search_input, selected, processes) => {}
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
@@ -114,6 +123,7 @@ fn poll_until_refresh(
                 Event::Key(key) if navigation_key(key.code) => {
                     *selected = move_selection(*selected, processes.len(), key.code);
                 }
+                Event::Key(key) if help_key(key.code) => *help_open = true,
                 Event::Key(key) if search_key(key.code) => *search_input = Some(search.clone()),
                 Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
                 Event::Key(key) if sort_key(key.code) => *sort = sort.next(),
@@ -125,6 +135,16 @@ fn poll_until_refresh(
         }
     }
     Ok(false)
+}
+
+fn handle_help_input(code: KeyCode, help_open: &mut bool) -> bool {
+    if !*help_open {
+        return false;
+    }
+    if matches!(code, KeyCode::Esc | KeyCode::F(1)) {
+        *help_open = false;
+    }
+    true
 }
 
 fn handle_search_input(
@@ -198,6 +218,10 @@ fn process_matches_search(row: &ProcessRow, term: &str) -> bool {
 
 fn quit_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10))
+}
+
+fn help_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::F(1) | KeyCode::Char('h'))
 }
 
 fn search_key(code: KeyCode) -> bool {

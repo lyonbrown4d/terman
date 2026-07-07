@@ -23,3 +23,7 @@ pub fn builtin_htop_tab_network_hint() -> String {
 pub fn builtin_htop_help_hint() -> String {
     localized_message(MessageKey::BuiltinHtopHelp, &[])
 }
+
+pub fn builtin_htop_help_panel_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopHelpPanel, &[])
+}
