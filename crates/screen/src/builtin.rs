@@ -17,7 +17,7 @@ use crossterm::{
 
 use crate::{
     ScreenArgs,
-    builtin_mouse::{disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse},
+    builtin_mouse::{ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse},
     builtin_output::{drain_window_output, handle_window_exit, publish_error, publish_window_redraw},
     ipc::ScreenIpcEndpoint,
     service::ScreenSessionService,
@@ -88,6 +88,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         output_tx.clone(),
     )?];
     let mut active_window = 0;
+    let mut mouse_state = ScreenMouseState::default();
     let mut exit_code: Option<i32> = None;
 
     loop {
@@ -216,7 +217,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
                 Ok(Event::Mouse(mouse)) => {
-                    handle_builtin_mouse(&session_bus, &mut windows, &mut active_window, mouse);
+                    handle_builtin_mouse(&session_bus, &mut windows, &mut active_window, &mut mouse_state, mouse);
                 }
                 Ok(Event::Key(key)) => {
                     if let Some(bytes) = key_to_bytes(key) {
