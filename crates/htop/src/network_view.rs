@@ -8,11 +8,12 @@ use ratatui::{
 
 use crate::{format::format_bytes, model::Snapshot};
 
-pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize) {
     let mut lines = vec![title_line("INTERFACES")];
     lines.push(network_total_line(snapshot));
     let interface_rows = interface_limit(area, snapshot.sockets.len());
-    for row in snapshot.networks.iter().take(interface_rows) {
+    let interface_start = interface_start(snapshot, interface_rows, scroll);
+    for row in snapshot.networks.iter().skip(interface_start).take(interface_rows) {
         lines.push(plain_line(format!(
             "{:<20} rx/s {:>8}  tx/s {:>8}  total {:>10}/{:>10}",
             row.name,
@@ -24,7 +25,9 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
     }
     lines.push(title_line("CONNECTIONS"));
     lines.push(plain_line("Proto  Local                         Remote                        State          PID   Process".to_string()));
-    for row in snapshot.sockets.iter().take(connection_limit(area, interface_rows)) {
+    let connections = connection_limit(area, interface_rows);
+    let connection_start = scroll.min(snapshot.sockets.len().saturating_sub(connections));
+    for row in snapshot.sockets.iter().skip(connection_start).take(connections) {
         lines.push(plain_line(format!(
             "{:<5}  {:<29} {:<29} {:<13} {:<5} {}",
             row.protocol,
@@ -36,6 +39,10 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
         )));
     }
     render_block(frame, area, "Network", lines);
+}
+
+fn interface_start(snapshot: &Snapshot, visible: usize, scroll: usize) -> usize {
+    if snapshot.sockets.is_empty() { scroll.min(snapshot.networks.len().saturating_sub(visible)) } else { 0 }
 }
 
 fn network_total_line(snapshot: &Snapshot) -> Line<'static> {

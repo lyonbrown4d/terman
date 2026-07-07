@@ -33,6 +33,8 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) help_open: &'a mut bool,
     pub(crate) selected: &'a mut usize,
     pub(crate) detail_scroll: &'a mut usize,
+    pub(crate) io_scroll: &'a mut usize,
+    pub(crate) network_scroll: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
@@ -52,6 +54,12 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if sort_menu_scroll(&mut context, false) {
                 return MouseAction::Handled;
             }
+            if tab_scroll(&mut context, false) {
+                return MouseAction::Handled;
+            }
+            if tab_scroll(&mut context, true) {
+                return MouseAction::Handled;
+            }
             if detail_at(event.row, &context) {
                 *context.detail_scroll = (*context.detail_scroll).saturating_sub(1);
             } else {
@@ -61,6 +69,12 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         }
         MouseEventKind::ScrollDown => {
             if sort_menu_scroll(&mut context, true) {
+                return MouseAction::Handled;
+            }
+            if tab_scroll(&mut context, false) {
+                return MouseAction::Handled;
+            }
+            if tab_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
@@ -76,6 +90,11 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
     }
 }
 
+fn tab_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
+    let target = match *context.tab { Tab::Io => &mut *context.io_scroll, Tab::Network => &mut *context.network_scroll, _ => return false };
+    *target = if forward { target.saturating_add(1) } else { target.saturating_sub(1) };
+    true
+}
 fn sort_menu_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
     if !*context.sort_menu_open {
         return false;

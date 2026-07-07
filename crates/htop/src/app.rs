@@ -57,6 +57,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut kill_target: Option<String> = None;
     let mut selected = 0usize;
     let mut detail_scroll = 0usize;
+    let mut io_scroll = 0usize;
+    let mut network_scroll = 0usize;
     let mut refresh_ms = args.refresh_ms.max(100);
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
@@ -69,6 +71,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let active_search = search_input.as_deref().unwrap_or(&search);
         let snapshot = metrics.snapshot(sort, active_filter, tree);
         selected = clamp_selection(selected, snapshot.processes.len());
+        io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));
+        network_scroll = network_scroll.min(snapshot.networks.len().max(snapshot.sockets.len()).saturating_sub(1));
         terminal.draw(|frame| {
             if help_open {
                 help::draw(frame);
@@ -85,6 +89,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     active_search,
                     search_input.is_some(),
                     detail_scroll,
+                    io_scroll,
+                    network_scroll,
                     refresh_ms,
                     kill_target.as_deref(),
                 );
@@ -108,6 +114,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut kill_target,
             &mut selected,
             &mut detail_scroll,
+            &mut io_scroll,
+            &mut network_scroll,
             snapshot.processes.as_slice(),
             &mut filter,
             &mut filter_input,
@@ -131,6 +139,8 @@ fn poll_until_refresh(
     kill_target: &mut Option<String>,
     selected: &mut usize,
     detail_scroll: &mut usize,
+    io_scroll: &mut usize,
+    network_scroll: &mut usize,
     processes: &[ProcessRow],
     filter: &mut String,
     filter_input: &mut Option<String>,
@@ -153,6 +163,8 @@ fn poll_until_refresh(
                         help_open,
                         selected,
                         detail_scroll,
+                        io_scroll,
+                        network_scroll,
                         processes,
                         filter: filter_input.as_deref().unwrap_or(filter.as_str()),
                         search: search_input.as_deref().unwrap_or(search.as_str()),

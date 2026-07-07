@@ -57,6 +57,8 @@ pub(crate) fn draw(
     search: &str,
     searching: bool,
     detail_scroll: usize,
+    io_scroll: usize,
+    network_scroll: usize,
     refresh_ms: u64,
     kill_target: Option<&str>,
 ) {
@@ -68,8 +70,8 @@ pub(crate) fn draw(
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot, selected),
         Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll),
-        Tab::Io => draw_io(frame, chunks[1], snapshot),
-        Tab::Network => draw_network(frame, chunks[1], snapshot),
+        Tab::Io => draw_io(frame, chunks[1], snapshot, io_scroll),
+        Tab::Network => draw_network(frame, chunks[1], snapshot, network_scroll),
     }
     frame.render_widget(Paragraph::new(footer_line(sort, tree, filter, filtering, search, searching, refresh_ms, kill_target)), chunks[2]);
 }
@@ -179,9 +181,11 @@ fn draw_processes(
     render_block(frame, area, "Processes", lines);
 }
 
-fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
+fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize) {
     let mut lines = vec![title_line("PID        READ/s    WRITE/s   TOTAL R   TOTAL W   NAME")];
-    for row in snapshot.io.iter().take(body_rows(area)) {
+    let visible = body_rows(area);
+    let start = scroll.min(snapshot.io.len().saturating_sub(visible));
+    for row in snapshot.io.iter().skip(start).take(visible) {
         lines.push(plain_line(format!(
             "{:<10} {:>9} {:>9} {:>9} {:>9} {}",
             row.pid,
