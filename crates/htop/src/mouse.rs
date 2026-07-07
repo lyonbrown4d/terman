@@ -119,6 +119,15 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     MouseAction::Ignored
 }
 fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
+    if detail_at(row, &context) {
+        let details = process_detail_lines(context.processes.get(*context.selected)).len();
+        let rows = detail_rows(details).max(1);
+        let first = 8u16.saturating_add(visible_process_rows(*context.selected, context.processes) as u16 + 1);
+        let offset = row.saturating_sub(first) as usize;
+        let max = max_detail_scroll(&context);
+        *context.detail_scroll = if rows <= 1 { 0 } else { max.saturating_mul(offset) / (rows - 1) };
+        return MouseAction::Handled;
+    }
     let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
     if *context.selected != index { *context.detail_scroll = 0; }
     *context.selected = index; MouseAction::Handled
