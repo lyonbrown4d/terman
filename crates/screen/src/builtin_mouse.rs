@@ -15,28 +15,29 @@ use crate::{
 #[derive(Default)]
 pub(crate) struct ScreenMouseState {
     window_list_start: Option<u16>,
-    window_indexes: Vec<usize>,
+    window_entries: Vec<(usize, u16)>,
 }
 
 impl ScreenMouseState {
-    fn show_window_list(&mut self, start: u16, indexes: Vec<usize>) {
+    fn show_window_list(&mut self, start: u16, entries: Vec<(usize, u16)>) {
         self.window_list_start = Some(start);
-        self.window_indexes = indexes;
+        self.window_entries = entries;
     }
 
     fn clear(&mut self) {
         self.window_list_start = None;
-        self.window_indexes.clear();
+        self.window_entries.clear();
     }
 
     fn list_open(&self) -> bool {
         self.window_list_start.is_some()
     }
 
-    fn window_at(&self, row: u16) -> Option<usize> {
+    fn window_at(&self, row: u16, column: u16) -> Option<usize> {
         let start = self.window_list_start?;
         let offset = row.checked_sub(start)? as usize;
-        self.window_indexes.get(offset).copied()
+        let (index, width) = self.window_entries.get(offset).copied()?;
+        (column < width).then_some(index)
     }
 }
 
@@ -73,7 +74,7 @@ fn select_or_forward(
     event: MouseEvent,
 ) {
     let list_open = state.list_open();
-    if let Some(index) = state.window_at(event.row) {
+    if let Some(index) = state.window_at(event.row, event.column) {
         state.clear();
         if let Some(replay) = switch_screen_window(bus, windows, active_window, ScreenWindowSwitch::Select(index)) {
             publish_window_redraw(bus, &replay);
@@ -112,14 +113,15 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
     let rows = status.rows;
     let windows = status.windows;
     let start = list_start_row(anchor_row, rows, windows.len());
-    state.show_window_list(start, windows.iter().map(|window| window.index).collect());
     let mut message = String::new();
+    let mut entries = Vec::new();
     for (offset, window) in windows.into_iter().enumerate() {
         let row = start.saturating_add(offset as u16).saturating_add(1);
         let title = window.title.unwrap_or_else(|| format!("window-{}", window.index));
         let entry = terman_common::builtin_screen_control_windows_entry_hint(
             window.index, window.active, &title, window.replay_bytes, attach_clients, cols, rows,
         );
+        entries.push((window.index, entry_width(entry.as_str())));
         message.push_str(&format!("\x1b[{row};1H\x1b[2K"));
         if window.active {
             message.push_str("\x1b[7m");
@@ -129,7 +131,12 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
             message.push_str(&entry);
         }
     }
+    state.show_window_list(start, entries);
     publish_mouse_message(bus, message);
+}
+
+fn entry_width(entry: &str) -> u16 {
+    entry.chars().count().min(u16::MAX as usize) as u16
 }
 
 fn list_start_row(anchor_row: u16, rows: Option<u16>, len: usize) -> u16 {
