@@ -4,6 +4,8 @@ mod store;
 
 use std::{io, thread, time::Duration};
 
+use serde::Serialize;
+
 pub(crate) use store::{BuiltinScreenSession, BuiltinScreenSessionGuard, RenameBuiltinScreenSession};
 #[cfg(test)]
 pub(crate) use store::{
@@ -14,6 +16,29 @@ use crate::{ScreenArgs, ipc::ScreenIpcEndpoint};
 
 const RUNTIME_STATUS_ATTEMPTS: usize = 8;
 const RUNTIME_STATUS_RETRY_DELAY: Duration = Duration::from_millis(25);
+
+#[derive(Serialize)]
+struct BuiltinScreenSessionListJson {
+    schema_version: u16,
+    sessions: Vec<BuiltinScreenSessionJson>,
+}
+
+#[derive(Serialize)]
+struct BuiltinScreenSessionJson {
+    id: String,
+    name: String,
+    pid: String,
+    cwd: String,
+    command: String,
+    ipc_endpoint: Option<String>,
+    replay_bytes: usize,
+    attach_clients: usize,
+    cols: Option<u16>,
+    rows: Option<u16>,
+    scrollback_lines: usize,
+    active_window: usize,
+    windows: Vec<crate::ipc::ScreenWindowInfo>,
+}
 
 pub(crate) fn validate_screen_session_name(name: &str) -> io::Result<()> {
     if name.trim().is_empty() {
@@ -68,6 +93,21 @@ pub(crate) fn list_builtin_screen_sessions() -> io::Result<()> {
     Ok(())
 }
 
+
+pub(crate) fn list_builtin_screen_sessions_json() -> io::Result<()> {
+    let sessions = load_reachable_builtin_screen_sessions()?
+        .into_iter()
+        .map(json_session)
+        .collect();
+    let payload = BuiltinScreenSessionListJson {
+        schema_version: 1,
+        sessions,
+    };
+    let json = serde_json::to_string_pretty(&payload)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    println!("{json}");
+    Ok(())
+}
 pub(crate) fn wipe_builtin_screen_sessions() -> io::Result<()> {
     let removed = store::remove_stale_builtin_screen_session_records()?
         + remove_unreachable_builtin_screen_sessions()?;
@@ -105,6 +145,29 @@ pub(crate) fn sync_builtin_screen_session_manifest(
     status: &crate::session_core::ScreenSessionStatus,
 ) -> io::Result<()> {
     manifest::write_status_builtin_screen_session_manifest(session, status)
+}
+
+fn json_session(
+    (session, status): (BuiltinScreenSession, runtime::BuiltinScreenSessionRuntimeStatus),
+) -> BuiltinScreenSessionJson {
+    BuiltinScreenSessionJson {
+        id: session
+            .ipc_endpoint
+            .clone()
+            .unwrap_or_else(|| format!("screen:{}", session.name)),
+        name: session.name,
+        pid: session.pid,
+        cwd: session.cwd,
+        command: session.command,
+        ipc_endpoint: session.ipc_endpoint,
+        replay_bytes: status.replay_bytes,
+        attach_clients: status.attach_clients,
+        cols: status.cols,
+        rows: status.rows,
+        scrollback_lines: status.scrollback_lines,
+        active_window: status.active_window,
+        windows: status.windows,
+    }
 }
 fn load_reachable_builtin_screen_sessions(
 ) -> io::Result<Vec<(BuiltinScreenSession, runtime::BuiltinScreenSessionRuntimeStatus)>> {

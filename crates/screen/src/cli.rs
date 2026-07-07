@@ -41,6 +41,10 @@ pub struct ScreenArgs {
     #[arg(long, alias = "ls", conflicts_with_all = ["command", "wipe"])]
     pub list: bool,
 
+    /// Emit known screen sessions as JSON. Requires --list.
+    #[arg(long, requires = "list")]
+    pub json: bool,
+
     /// Remove stale screen session records.
     #[arg(
         long,
@@ -134,6 +138,7 @@ impl Default for ScreenArgs {
             detached: false,
             detach_existing: false,
             list: false,
+            json: false,
             wipe: false,
             window_selector: None,
             execute: None,

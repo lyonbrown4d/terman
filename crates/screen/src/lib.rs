@@ -25,7 +25,8 @@ use launcher::{
 use service::{request_screen_attach, request_screen_control_command};
 use server::run_screen_server;
 use sessions::{
-    list_builtin_screen_sessions, validate_screen_session_name, wipe_builtin_screen_sessions,
+    list_builtin_screen_sessions, list_builtin_screen_sessions_json, validate_screen_session_name,
+    wipe_builtin_screen_sessions,
 };
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -70,7 +71,11 @@ pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     }
 
     if args.list {
-        list_builtin_screen_sessions()?;
+        if args.json {
+            list_builtin_screen_sessions_json()?;
+        } else {
+            list_builtin_screen_sessions()?;
+        }
         return Ok(());
     }
 
