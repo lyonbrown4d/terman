@@ -13,6 +13,7 @@ use crate::{
     meter::meter_line,
     metrics::{ProcessRow, Snapshot, SortMode},
     process_detail::process_detail_lines,
+    process_status::status_summary_line,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -122,6 +123,7 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
             "{} / {}", format_bytes(snapshot.used_swap), format_bytes(snapshot.total_swap)
         )),
         plain_line(format!("Tasks: {} shown / {} total", snapshot.filtered_process_count, snapshot.process_count)),
+        status_summary_line(snapshot.processes.as_slice()),
         plain_line(format!(
             "Net: rx {} / tx {} per refresh",
             format_bytes(snapshot.received_per_refresh),
@@ -286,9 +288,9 @@ fn body_rows(area: Rect) -> usize {
 }
 
 fn overview_core_rows(area: Rect, count: usize) -> usize {
-    (area.height as usize).saturating_sub(15).min(count).min(8)
+    (area.height as usize).saturating_sub(16).min(count).min(8)
 }
 
 fn overview_process_rows(area: Rect, core_rows: usize) -> usize {
-    (area.height as usize).saturating_sub(13 + core_rows).min(5)
+    (area.height as usize).saturating_sub(14 + core_rows).min(5)
 }

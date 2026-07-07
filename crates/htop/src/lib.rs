@@ -9,6 +9,7 @@ mod help;
 mod metrics;
 mod meter;
 mod process_detail;
+mod process_status;
 mod render;
 
 pub use cli::{HtopArgs, run_with_binary_parse};
