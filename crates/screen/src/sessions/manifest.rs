@@ -10,7 +10,10 @@ use chrono::Utc;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::ipc::ScreenWindowInfo;
+use crate::{
+    ipc::ScreenWindowInfo,
+    session_core::{ScreenSessionStatus, ScreenWindowStatus},
+};
 
 use super::{
     runtime::BuiltinScreenSessionRuntimeStatus,
@@ -136,6 +139,38 @@ pub(crate) fn remove_builtin_screen_session_manifest(name: &str) -> io::Result<b
     }
 }
 
+pub(crate) fn write_status_builtin_screen_session_manifest(
+    session: &BuiltinScreenSession,
+    status: &ScreenSessionStatus,
+) -> io::Result<()> {
+    let path = builtin_screen_session_manifest_path(&session.name);
+    let existing = load_manifest(&path);
+    let now = Utc::now().to_rfc3339();
+    write_manifest(&BuiltinScreenSessionManifest {
+        schema_version: 1,
+        id: existing
+            .as_ref()
+            .map(|manifest| manifest.id.clone())
+            .unwrap_or_else(|| session_id(session)),
+        name: session.name.clone(),
+        pid: session.pid.clone(),
+        cwd: session.cwd.clone(),
+        command: session.command.clone(),
+        created_at: existing
+            .as_ref()
+            .map(|manifest| manifest.created_at.clone())
+            .unwrap_or_else(|| now.clone()),
+        updated_at: now,
+        ipc_endpoint: session.ipc_endpoint.clone(),
+        active_window: status.active_window,
+        attach_clients: status.attach_clients,
+        replay_bytes: status.replay_bytes,
+        cols: status.cols,
+        rows: status.rows,
+        scrollback_lines: status.scrollback_lines,
+        windows: status.windows.iter().map(window_status_manifest).collect(),
+    })
+}
 fn window_manifest(window: &ScreenWindowInfo) -> BuiltinScreenWindowManifest {
     BuiltinScreenWindowManifest {
         index: window.index,
@@ -145,6 +180,14 @@ fn window_manifest(window: &ScreenWindowInfo) -> BuiltinScreenWindowManifest {
     }
 }
 
+fn window_status_manifest(window: &ScreenWindowStatus) -> BuiltinScreenWindowManifest {
+    BuiltinScreenWindowManifest {
+        index: window.index,
+        title: window.title.clone(),
+        active: window.active,
+        replay_bytes: window.replay_bytes,
+    }
+}
 fn write_manifest(manifest: &BuiltinScreenSessionManifest) -> io::Result<()> {
     let path = builtin_screen_session_manifest_path(&manifest.name);
     if let Some(parent) = path.parent() {

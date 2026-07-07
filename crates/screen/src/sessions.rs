@@ -100,6 +100,12 @@ pub(crate) fn find_builtin_screen_session_for_attach(
     }
 }
 
+pub(crate) fn sync_builtin_screen_session_manifest(
+    session: &BuiltinScreenSession,
+    status: &crate::session_core::ScreenSessionStatus,
+) -> io::Result<()> {
+    manifest::write_status_builtin_screen_session_manifest(session, status)
+}
 fn load_reachable_builtin_screen_sessions(
 ) -> io::Result<Vec<(BuiltinScreenSession, runtime::BuiltinScreenSessionRuntimeStatus)>> {
     let mut reachable = Vec::new();
