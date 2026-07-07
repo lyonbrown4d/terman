@@ -13,7 +13,7 @@ use interprocess::local_socket::prelude::*;
 
 use crate::{
     args::target_session_arg,
-    attach_mouse::{disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
+    attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
     attach_keys::{
         is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
         tmux_prefix_command, TmuxPrefixCommand,
@@ -117,10 +117,11 @@ fn spawn_terminal_event_forwarder(endpoint: TmuxIpcEndpoint, client_id: String) 
 
 fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::Result<()> {
     let mut input_mode = AttachInputMode::default();
+    let mut mouse_state = AttachMouseState::default();
     loop {
         match read()? {
             Event::Key(key) => if !input_mode.handle_key(&endpoint, &client_id, key)? { return Ok(()); },
-            Event::Mouse(mouse) => handle_attach_mouse(&endpoint, mouse)?,
+            Event::Mouse(mouse) => handle_attach_mouse(&endpoint, &mut mouse_state, mouse)?,
             Event::Resize(cols, rows) => send_resize(&endpoint, cols, content_rows(rows))?,
             _ => {}
         }
@@ -158,7 +159,7 @@ impl AttachInputMode {
                     self.rename_input = Some(String::new());
                     let _ = render_status_line("tmux rename | ");
                 } else if matches!(command, TmuxPrefixCommand::ListWindows) {
-                    render_window_list_status(endpoint)?;
+                    let _ = render_window_list_status(endpoint)?;
                 } else if matches!(command, TmuxPrefixCommand::Help) {
                     let _ = render_status_line(&terman_common::builtin_tmux_attach_help());
                 } else if matches!(command, TmuxPrefixCommand::LastWindow) {
