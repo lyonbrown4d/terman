@@ -3,15 +3,13 @@ use crossterm::{
     terminal,
 };
 use ratatui::layout::Rect;
-
 use crate::{
     footer::{self, FooterAction},
-    model::{ProcessRow, SortMode},
+    model::{IoRow, ProcessRow, SortMode},
     process_detail::process_detail_lines,
     render::Tab,
     sort_menu,
 };
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MouseAction {
     Ignored,
@@ -23,7 +21,6 @@ pub(crate) enum MouseAction {
     DelaySlower,
     Quit,
 }
-
 pub(crate) struct MouseContext<'a> {
     pub(crate) tab: &'a mut Tab,
     pub(crate) sort: &'a mut SortMode,
@@ -36,12 +33,12 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) io_scroll: &'a mut usize,
     pub(crate) network_scroll: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
+    pub(crate) io: &'a [IoRow],
     pub(crate) cpu_core_count: usize,
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
     pub(crate) refresh_ms: u64,
 }
-
 pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> MouseAction {
     if *context.help_open {
         if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) {
@@ -49,7 +46,6 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         }
         return MouseAction::Handled;
     }
-
     match event.kind {
         MouseEventKind::ScrollUp => {
             if sort_menu_scroll(&mut context, false) {
@@ -84,7 +80,6 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         _ => MouseAction::Ignored,
     }
 }
-
 fn tab_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
     let target = match *context.tab { Tab::Io => &mut *context.io_scroll, Tab::Network => &mut *context.network_scroll, _ => return false };
     *target = if forward { target.saturating_add(1) } else { target.saturating_sub(1) };
@@ -116,24 +111,20 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         *context.sort_menu_open = false;
         return MouseAction::Handled;
     }
-
     match handle_footer(column, row, &mut context) {
         MouseAction::Ignored => {}
         action => return action,
     }
-
     if let Some(tab) = tab_at(column, row) {
         *context.tab = tab;
         return MouseAction::Handled;
     }
-
     if let Some(mode) = process_header_sort_at(*context.tab, column, row) {
         *context.sort = mode;
         *context.sort_cursor = mode;
         return MouseAction::Handled;
     }
-
-    if let Some(index) = process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count) {
+    if let Some(index) = row_process_at(row, &context) {
         if *context.selected != index {
             *context.detail_scroll = 0;
         }
@@ -142,7 +133,6 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     }
     MouseAction::Ignored
 }
-
 fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
     if row != terminal_area().height.saturating_sub(1) {
         return MouseAction::Ignored;
@@ -171,7 +161,6 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
     }
     MouseAction::Handled
 }
-
 fn tab_at(column: u16, row: u16) -> Option<Tab> {
     if row != 2 {
         return None;
@@ -192,7 +181,6 @@ fn tab_at(column: u16, row: u16) -> Option<Tab> {
     }
     None
 }
-
 fn process_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
     if tab != Tab::Processes || row != 5 {
         return None;
@@ -205,7 +193,18 @@ fn process_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
         45..=u16::MAX => Some(SortMode::Name),
     }
 }
-fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
+fn row_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
+    process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count).or_else(|| io_process_at(row, context))
+}
+fn io_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
+    if *context.tab != Tab::Io || context.io.is_empty() { return None; }
+    let first = 6u16; if row < first { return None; }
+    let visible = terminal_area().height.saturating_sub(9) as usize;
+    let offset = row.saturating_sub(first) as usize; if offset >= visible { return None; }
+    let start = (*context.io_scroll).min(context.io.len().saturating_sub(visible));
+    let pid = context.io.get(start + offset)?.pid.as_str();
+    context.processes.iter().position(|process| process.pid == pid)
+}fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
     if tab == Tab::Overview { return overview_process_at(row, processes, cores); }
     if tab != Tab::Processes || processes.is_empty() { return None; }
     let first_process_row = 7u16;
@@ -215,7 +214,6 @@ fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cor
     if offset >= visible { return None; }
     Some(visible_start(selected, visible, processes.len()) + offset).filter(|index| *index < processes.len())
 }
-
 fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
     let body = terminal_area().height.saturating_sub(5) as usize;
     let core_rows = body.saturating_sub(16).min(cores).min(8);
@@ -223,13 +221,11 @@ fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Opti
     let visible = body.saturating_sub(14 + core_rows).min(5);
     row.checked_sub(start).map(usize::from).filter(|index| *index < visible && *index < processes.len())
 }
-
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
     let body_rows = terminal_area().height.saturating_sub(9) as usize;
     let details = process_detail_lines(processes.get(selected)).len();
     body_rows.saturating_sub(detail_rows(details) + 1).max(1)
 }
-
 fn detail_at(row: u16, context: &MouseContext<'_>) -> bool {
     if *context.tab != Tab::Processes || context.processes.is_empty() {
         return false;
@@ -239,18 +235,15 @@ fn detail_at(row: u16, context: &MouseContext<'_>) -> bool {
     let end = first_detail_row.saturating_add(detail_rows(details) as u16);
     row >= first_detail_row && row < end
 }
-
 fn max_detail_scroll(context: &MouseContext<'_>) -> usize {
     let details = process_detail_lines(context.processes.get(*context.selected)).len();
     details.saturating_sub(detail_rows(details))
 }
-
 fn detail_rows(count: usize) -> usize {
     let body_rows = terminal_area().height.saturating_sub(9) as usize;
     let max_detail = body_rows.saturating_sub(4).max(1).min(10);
     count.max(1).min(max_detail)
 }
-
 fn move_selected(selected: &mut usize, detail_scroll: &mut usize, count: usize, down: bool) {
     let next = if down { move_down(*selected, count) } else { selected.saturating_sub(1) };
     if next != *selected {
@@ -258,7 +251,6 @@ fn move_selected(selected: &mut usize, detail_scroll: &mut usize, count: usize, 
     }
     *selected = next;
 }
-
 fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
     if visible == 0 || total <= visible || selected < visible {
         0
@@ -266,7 +258,6 @@ fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
         (selected + 1 - visible).min(total - visible)
     }
 }
-
 fn move_down(selected: usize, count: usize) -> usize {
     if count == 0 {
         0
@@ -274,17 +265,14 @@ fn move_down(selected: usize, count: usize) -> usize {
         (selected + 1).min(count - 1)
     }
 }
-
 fn terminal_area() -> Rect {
     let (width, height) = terminal::size().unwrap_or((80, 24));
     Rect::new(0, 0, width, height)
 }
-
 #[cfg(test)]
 mod tests {
     use super::tab_at;
     use crate::render::Tab;
-
     #[test]
     fn maps_tab_clicks() {
         assert_eq!(tab_at(1, 2), Some(Tab::Overview));
