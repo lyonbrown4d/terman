@@ -2,6 +2,7 @@
 members = [
     "crates/screen",
     "crates/tmux",
+    "crates/htop",
     "crates/common",
 ]
 resolver = "2"

@@ -1,6 +1,11 @@
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MessageKey {
     NativeToolNotFound,
+    BuiltinHtopCliAbout,
+    BuiltinHtopTabProcesses,
+    BuiltinHtopTabIo,
+    BuiltinHtopTabNetwork,
+    BuiltinHtopHelp,
     BuiltinTmuxNoSessions,
     BuiltinTmuxCliAbout,
     BuiltinTmuxCliExamples,
@@ -101,6 +106,11 @@ impl MessageKey {
     pub(crate) fn fluent_id(self) -> &'static str {
         match self {
             Self::NativeToolNotFound => "native-tool-not-found",
+            Self::BuiltinHtopCliAbout => "builtin-htop-cli-about",
+            Self::BuiltinHtopTabProcesses => "builtin-htop-tab-processes",
+            Self::BuiltinHtopTabIo => "builtin-htop-tab-io",
+            Self::BuiltinHtopTabNetwork => "builtin-htop-tab-network",
+            Self::BuiltinHtopHelp => "builtin-htop-help",
             Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
             Self::BuiltinTmuxCliAbout => "builtin-tmux-cli-about",
             Self::BuiltinTmuxCliExamples => "builtin-tmux-cli-examples",

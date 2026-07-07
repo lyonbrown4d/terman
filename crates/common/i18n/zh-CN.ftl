@@ -1,4 +1,9 @@
 native-tool-not-found = 当前平台未检测到 {$tool}。请安装本机 {$tool} 可执行文件，或在可用时使用内置实现。
+builtin-htop-cli-about = 跨平台 htop 风格终端监控工具。
+builtin-htop-tab-processes = 进程
+builtin-htop-tab-io = I/O
+builtin-htop-tab-network = 网络
+builtin-htop-help = Tab/左/右 切换标签，q/Esc 退出。
 builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
 builtin-screen-cli-about = 跨平台 screen 终端会话工具（自实现内置后端）。
 builtin-screen-cli-examples =
