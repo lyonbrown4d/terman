@@ -4,7 +4,7 @@ builtin-htop-tab-overview = 概览
 builtin-htop-tab-processes = 进程
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = 网络
-builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，F5/t 树视图，F6/s 排序菜单，F9 结束进程，F10/q/Esc 退出，+/- 调整刷新间隔。鼠标：点击标签/页脚/进程行，滚轮滚动列表或详情，右键进程行打开结束确认。
+builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，F5/t 树视图，F6/s 排序菜单，F9 结束进程，F10/q/Esc 退出，+/- 调整刷新间隔。鼠标：点击标签/页脚/进程行/表头，滚轮滚动列表、详情、I/O 或网络页，右键进程行打开结束确认。
 builtin-htop-help-panel =
     terman htop
 
@@ -19,8 +19,8 @@ builtin-htop-help-panel =
     F9：确认后结束选中进程。
     +/-：调整刷新间隔。
     F10、q 或 Esc：退出。
-    鼠标：点击标签、页脚动作和进程行。
-    鼠标滚轮：在列表中移动进程选择；在详情区滚动详情。
+    鼠标：点击标签、页脚动作、进程行和 Processes 表头。
+    鼠标滚轮：移动进程选择；在详情区、I/O 页或网络页滚动对应视图。
     右键进程行：打开结束进程确认。
 builtin-htop-sort-menu-title = 排序方式
 builtin-htop-sort-menu-help = 上/下选择，Enter 应用，Esc 取消。builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
