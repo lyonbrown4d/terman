@@ -136,7 +136,7 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
     lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
     lines.push(title_line("TOP PROCESSES"));
     for (index, row) in snapshot.processes.iter().take(overview_process_rows(area, core_rows)).enumerate() {
-        lines.push(process_line(row, index == selected));
+        lines.push(process_line(row, index == selected, snapshot.total_memory));
     }
     render_block(frame, area, "Overview", lines);
 }
@@ -153,7 +153,7 @@ fn draw_processes(
     let details = process_detail_lines(snapshot.processes.get(selected));
     let visible = body_rows(area).saturating_sub(details.len() + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
-    let mut lines = vec![title_line("PID        CPU%    MEM        NAME")];
+    let mut lines = vec![title_line("PID        CPU%  MEM%    MEM       TIME      NAME")];
     lines.push(plain_line(format!(
         "Sort: {}  View: {}  Sel: {}  Filter: {}",
         sort.label(),
@@ -162,7 +162,7 @@ fn draw_processes(
         filter_label(filter)
     )));
     for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
-        lines.push(process_line(row, start + offset == selected));
+        lines.push(process_line(row, start + offset == selected, snapshot.total_memory));
     }
     lines.push(title_line("DETAILS"));
     lines.extend(details);
@@ -198,12 +198,15 @@ fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
     render_block(frame, area, "Network", lines);
 }
 
-fn process_line(row: &ProcessRow, selected: bool) -> Line<'static> {
+fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) -> Line<'static> {
+    let memory_percent = if total_memory == 0 { 0.0 } else { row.memory as f64 * 100.0 / total_memory as f64 };
     let text = format!(
-        "{:<10} {:>5.1}   {:>8}   {}",
+        "{:<10} {:>5.1} {:>5.1} {:>8} {:>8} {}",
         row.pid,
         row.cpu,
+        memory_percent,
         format_bytes(row.memory),
+        format_duration(row.run_time),
         tree_name(row.depth, row.name.as_str())
     );
     if selected { selected_line(text) } else { plain_line(text) }
