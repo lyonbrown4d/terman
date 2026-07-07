@@ -10,6 +10,7 @@ use crate::{
     attach_keys::TmuxPrefixCommand,
     attach_status::{query_status_line, render_status_line},
     attach_window::{handle_window_command, select_window},
+    attach_window_list::render_window_list_status,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
 };
@@ -30,6 +31,10 @@ pub(crate) fn handle_attach_mouse(endpoint: &TmuxIpcEndpoint, event: MouseEvent)
         MouseEventKind::ScrollUp => select_relative_window(endpoint, false),
         MouseEventKind::ScrollDown => select_relative_window(endpoint, true),
         MouseEventKind::Down(MouseButton::Left) => select_clicked_window(endpoint, event.column),
+        MouseEventKind::Down(MouseButton::Right) => render_window_list_status(endpoint),
+        MouseEventKind::Down(MouseButton::Middle) => {
+            render_status_line(&terman_common::builtin_tmux_attach_help())
+        }
         _ => Ok(()),
     }
 }
