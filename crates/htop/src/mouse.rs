@@ -51,7 +51,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if sort_menu_scroll(&mut context, false) {
                 return MouseAction::Handled;
             }
-            if tab_scroll(&mut context, true) {
+            if tab_scroll(&mut context, false) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
@@ -65,7 +65,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
             if sort_menu_scroll(&mut context, true) {
                 return MouseAction::Handled;
             }
-            if tab_scroll(&mut context, true) {
+            if tab_scroll(&mut context, false) {
                 return MouseAction::Handled;
             }
             if detail_at(event.row, &context) {
@@ -93,7 +93,11 @@ fn sort_menu_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
     true
 }
 fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
-    let Some(index) = process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count) else {
+    if *context.sort_menu_open {
+        *context.sort_menu_open = false;
+        return MouseAction::Handled;
+    }
+    let Some(index) = row_process_at(row, &context) else {
         return MouseAction::Ignored;
     };
     if *context.selected != index {
