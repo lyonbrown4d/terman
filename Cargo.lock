@@ -1667,6 +1667,7 @@ dependencies = [
  "crossterm",
  "directories",
  "encoding_rs",
+ "fluxdi",
  "interprocess",
  "portable-pty",
  "serde",

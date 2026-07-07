@@ -9,6 +9,7 @@ chrono = { workspace = true }
 crossterm = { workspace = true }
 directories = { workspace = true }
 encoding_rs = { workspace = true }
+fluxdi = { workspace = true }
 interprocess = { workspace = true }
 portable-pty = { workspace = true }
 serde = { workspace = true }

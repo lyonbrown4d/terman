@@ -4,6 +4,7 @@ mod builtin;
 mod builtin_output;
 mod builtin_mouse;
 mod cli;
+mod di;
 mod ipc;
 mod launcher;
 mod pty;
@@ -32,6 +33,10 @@ use sessions::{
 };
 
 pub fn run(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
+    di::run(args)
+}
+
+pub(crate) fn run_command(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     if let Some(session_name) = &args.session_name {
         validate_screen_session_name(session_name)?;
     }
