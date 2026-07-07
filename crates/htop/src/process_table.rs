@@ -26,7 +26,8 @@ pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
     let time_end = res_end + TIME_WIDTH;
     match column {
         c if c < pid_end => Some(SortMode::Pid),
-        c if c < ppid_end || c < state_end => None,
+        c if c < ppid_end => Some(SortMode::ParentPid),
+        c if c < state_end => None,
         c if c < cpu_end => Some(SortMode::Cpu),
         c if c < mem_end || c < res_end => Some(SortMode::Memory),
         c if c < time_end => Some(SortMode::Time),
@@ -37,7 +38,7 @@ pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
 pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
     Line::from(vec![
         header_span(format!("{:<8}", "PID"), sort == SortMode::Pid),
-        header_span(format!("{:<8}", "PPID"), false),
+        header_span(format!("{:<8}", "PPID"), sort == SortMode::ParentPid),
         header_span(" S ".to_string(), false),
         header_span(format!("{:>5} ", "CPU%"), sort == SortMode::Cpu),
         header_span(format!("{:>5} ", "MEM%"), sort == SortMode::Memory),

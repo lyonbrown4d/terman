@@ -235,6 +235,7 @@ fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ord
         SortMode::Time => right.run_time.cmp(&left.run_time),
         SortMode::Io => compare_process_io(left, right),
         SortMode::Pid => left.pid.cmp(&right.pid),
+        SortMode::ParentPid => left.parent_pid.as_deref().unwrap_or("").cmp(right.parent_pid.as_deref().unwrap_or("")).then_with(|| left.pid.cmp(&right.pid)),
         SortMode::Name => left.name.to_lowercase().cmp(&right.name.to_lowercase()),
     }
 }
@@ -250,6 +251,7 @@ fn compare_process_io(left: &ProcessRow, right: &ProcessRow) -> Ordering {
 fn compare_io_row(left: &IoRow, right: &IoRow, sort: SortMode) -> Ordering {
     match sort {
         SortMode::Pid => left.pid.cmp(&right.pid),
+        SortMode::ParentPid => left.pid.cmp(&right.pid),
         SortMode::Name => left.name.to_lowercase().cmp(&right.name.to_lowercase()),
         _ => (right.read_rate + right.written_rate)
             .cmp(&(left.read_rate + left.written_rate))
