@@ -20,6 +20,7 @@ use crate::{
     attach_rename::handle_rename_input,
     attach_status::{query_status_line, render_status_line, KILL_CONFIRM_STATUS, PREFIX_STATUS},
     attach_window::{handle_window_command, kill_current_window},
+    attach_window_list::render_window_list_status,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::load_builtin_tmux_sessions,
@@ -154,6 +155,8 @@ impl AttachInputMode {
                 } else if matches!(command, TmuxPrefixCommand::RenameWindow) {
                     self.rename_input = Some(String::new());
                     let _ = render_status_line("tmux rename | ");
+                } else if matches!(command, TmuxPrefixCommand::ListWindows) {
+                    render_window_list_status(endpoint)?;
                 } else if matches!(command, TmuxPrefixCommand::Help) {
                     let _ = render_status_line(&terman_common::builtin_tmux_attach_help());
                 } else {

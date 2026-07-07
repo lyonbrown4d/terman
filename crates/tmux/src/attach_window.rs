@@ -20,7 +20,9 @@ pub(crate) fn handle_window_command(
         TmuxPrefixCommand::KillWindow => return kill_current_window(endpoint),
         TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
-        TmuxPrefixCommand::RenameWindow | TmuxPrefixCommand::Help => return Ok(()),
+        TmuxPrefixCommand::RenameWindow
+        | TmuxPrefixCommand::ListWindows
+        | TmuxPrefixCommand::Help => return Ok(()),
     };
     send_request(endpoint, TmuxIpcRequest::SelectWindow { index })
 }

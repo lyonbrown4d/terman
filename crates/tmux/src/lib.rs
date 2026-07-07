@@ -6,6 +6,7 @@ mod attach_keys;
 mod attach_rename;
 mod attach_status;
 mod attach_window;
+mod attach_window_list;
 mod builtin;
 mod capture;
 mod cli;

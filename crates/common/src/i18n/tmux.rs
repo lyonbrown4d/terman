@@ -152,3 +152,6 @@ pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
         &[("command", command)],
     )
 }
+pub fn builtin_tmux_attach_window_list(windows: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxAttachWindowList, &[("windows", windows)])
+}
