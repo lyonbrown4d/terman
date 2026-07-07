@@ -65,10 +65,21 @@ pub(crate) fn handle_mouse(event: MouseEvent, context: MouseContext<'_>) -> Mous
             MouseAction::Handled
         }
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
+        MouseEventKind::Down(MouseButton::Right) => right_click(event.row, context),
         _ => MouseAction::Ignored,
     }
 }
 
+fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
+    let Some(index) = process_at(*context.tab, row, *context.selected, context.processes) else {
+        return MouseAction::Ignored;
+    };
+    if *context.selected != index {
+        *context.detail_scroll = 0;
+    }
+    *context.selected = index;
+    MouseAction::Kill
+}
 fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     if *context.sort_menu_open {
         if let Some(mode) = sort_menu::mode_at(terminal_area(), column, row) {
