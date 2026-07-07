@@ -15,6 +15,7 @@ use crate::{
     },
     message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
+    pane_commands::list_builtin_tmux_panes,
     send_keys::send_builtin_tmux_keys,
     service::request_endpoint_response,
     sessions::{
@@ -82,6 +83,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::ListWindows => {
             list_builtin_tmux_windows(args)?;
+            Ok(true)
+        }
+        TmuxCommand::ListPanes => {
+            list_builtin_tmux_panes(args)?;
             Ok(true)
         }
         TmuxCommand::SelectWindow => {

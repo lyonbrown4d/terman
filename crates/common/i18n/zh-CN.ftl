@@ -171,6 +171,7 @@ builtin-tmux-attach-window-list = 窗口：{$windows}
 builtin-tmux-session-list-entry = {$name}：{$windows} 个窗口（已连接 {$attached_clients} 个客户端）
 builtin-tmux-client-list-entry = {$session}：已连接 {$attached_clients} 个客户端
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
+builtin-tmux-pane-list-entry = {$session}:{$window}.{$pane}: {$name} active={$active}
 builtin-tmux-session-killed = 已结束 tmux 会话 {$name}
 builtin-tmux-session-not-found = 未找到 tmux 会话 {$name}
 builtin-tmux-target-required = 请使用 -t <名称> 指定目标会话

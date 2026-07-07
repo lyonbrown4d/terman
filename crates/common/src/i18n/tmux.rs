@@ -155,3 +155,18 @@ pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
 pub fn builtin_tmux_attach_window_list(windows: &str) -> String {
     localized_message(MessageKey::BuiltinTmuxAttachWindowList, &[("windows", windows)])
 }
+pub fn builtin_tmux_pane_list_entry_hint(
+    session: &str,
+    window: u32,
+    pane: u32,
+    name: &str,
+    active: bool,
+) -> String {
+    let window = window.to_string();
+    let pane = pane.to_string();
+    let active = active.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxPaneListEntry,
+        &[("session", session), ("window", &window), ("pane", &pane), ("name", name), ("active", &active)],
+    )
+}

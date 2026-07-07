@@ -16,6 +16,7 @@ mod detach_client;
 mod ipc;
 mod lifecycle;
 mod new_session;
+mod pane_commands;
 mod launcher;
 mod message;
 mod pty;

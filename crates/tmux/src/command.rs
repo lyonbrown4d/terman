@@ -14,6 +14,7 @@ pub(crate) enum TmuxCommand {
     SendKeys,
     NewWindow,
     ListWindows,
+    ListPanes,
     SelectWindow,
     NextWindow,
     PreviousWindow,
@@ -40,6 +41,7 @@ impl TmuxCommand {
             Some("send-keys" | "send") => Self::SendKeys,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
+            Some("list-panes" | "listp") => Self::ListPanes,
             Some("select-window" | "selectw") => Self::SelectWindow,
             Some("next-window" | "next") => Self::NextWindow,
             Some("previous-window" | "previous" | "prev") => Self::PreviousWindow,
@@ -80,6 +82,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["send".into()]), TmuxCommand::SendKeys);
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
+        assert_eq!(TmuxCommand::parse(&["listp".into()]), TmuxCommand::ListPanes);
         assert_eq!(TmuxCommand::parse(&["selectw".into()]), TmuxCommand::SelectWindow);
         assert_eq!(TmuxCommand::parse(&["next".into()]), TmuxCommand::NextWindow);
         assert_eq!(TmuxCommand::parse(&["prev".into()]), TmuxCommand::PreviousWindow);

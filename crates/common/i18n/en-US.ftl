@@ -171,6 +171,7 @@ builtin-tmux-attach-window-list = windows: {$windows}
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
 builtin-tmux-client-list-entry = {$session}: {$attached_clients} attached client(s)
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
+builtin-tmux-pane-list-entry = {$session}:{$window}.{$pane}: {$name} active={$active}
 builtin-tmux-session-killed = killed tmux session {$name}
 builtin-tmux-session-not-found = tmux session {$name} not found
 builtin-tmux-target-required = specify a target session with -t <name>
