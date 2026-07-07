@@ -60,6 +60,7 @@ pub(crate) fn handle_builtin_mouse(
         MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => switch_with_mouse(bus, windows, active_window, state, ScreenWindowSwitch::Previous),
         MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => switch_with_mouse(bus, windows, active_window, state, ScreenWindowSwitch::Next),
         MouseEventKind::Down(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
+        MouseEventKind::Drag(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Down(MouseButton::Right) => publish_windows(bus, state, event.row),
         MouseEventKind::Down(MouseButton::Middle) => { state.clear(); publish_help(bus); }
         _ => forward_mouse_event(windows, *active_window, event),
