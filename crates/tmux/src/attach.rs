@@ -13,6 +13,7 @@ use interprocess::local_socket::prelude::*;
 
 use crate::{
     args::target_session_arg,
+    attach_mouse::{disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
     attach_keys::{
         is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
         tmux_prefix_command, TmuxPrefixCommand,
@@ -119,6 +120,7 @@ fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::
     loop {
         match read()? {
             Event::Key(key) => if !input_mode.handle_key(&endpoint, &client_id, key)? { return Ok(()); },
+            Event::Mouse(mouse) => handle_attach_mouse(&endpoint, mouse)?,
             Event::Resize(cols, rows) => send_resize(&endpoint, cols, content_rows(rows))?,
             _ => {}
         }
@@ -251,9 +253,16 @@ fn json_io_error(error: serde_json::Error) -> io::Error { io::Error::new(io::Err
 struct RawModeGuard;
 
 impl RawModeGuard {
-    fn enable() -> io::Result<Self> { enable_raw_mode()?; Ok(Self) }
+    fn enable() -> io::Result<Self> {
+        enable_raw_mode()?;
+        enable_mouse_capture()?;
+        Ok(Self)
+    }
 }
 
 impl Drop for RawModeGuard {
-    fn drop(&mut self) { let _ = disable_raw_mode(); }
+    fn drop(&mut self) {
+        disable_mouse_capture();
+        let _ = disable_raw_mode();
+    }
 }

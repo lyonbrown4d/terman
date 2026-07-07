@@ -1,0 +1,112 @@
+use std::io;
+
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture, MouseButton, MouseEvent, MouseEventKind},
+    execute,
+    terminal::size,
+};
+
+use crate::{
+    attach_keys::TmuxPrefixCommand,
+    attach_status::{query_status_line, render_status_line},
+    attach_window::{handle_window_command, select_window},
+    ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
+    service::request_endpoint_response,
+};
+
+pub(crate) fn enable_mouse_capture() -> io::Result<()> {
+    execute!(io::stdout(), EnableMouseCapture)
+}
+
+pub(crate) fn disable_mouse_capture() {
+    let _ = execute!(io::stdout(), DisableMouseCapture);
+}
+
+pub(crate) fn handle_attach_mouse(endpoint: &TmuxIpcEndpoint, event: MouseEvent) -> io::Result<()> {
+    if !on_status_row(event.row) {
+        return Ok(());
+    }
+    match event.kind {
+        MouseEventKind::ScrollUp => select_relative_window(endpoint, false),
+        MouseEventKind::ScrollDown => select_relative_window(endpoint, true),
+        MouseEventKind::Down(MouseButton::Left) => select_clicked_window(endpoint, event.column),
+        _ => Ok(()),
+    }
+}
+
+fn select_relative_window(endpoint: &TmuxIpcEndpoint, forward: bool) -> io::Result<()> {
+    let command = if forward {
+        TmuxPrefixCommand::NextWindow
+    } else {
+        TmuxPrefixCommand::PreviousWindow
+    };
+    handle_window_command(endpoint, command)?;
+    render_current_status(endpoint)
+}
+
+fn select_clicked_window(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<()> {
+    if let Some(index) = clicked_window_index(endpoint, column)? {
+        select_window(endpoint, index)?;
+        render_current_status(endpoint)?;
+    }
+    Ok(())
+}
+
+fn clicked_window_index(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<Option<u32>> {
+    match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
+        TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } => {
+            Ok(status_window_at(column, &session_name, active_window, &window_indexes, &window_names))
+        }
+        TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
+        response => Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")),
+        )),
+    }
+}
+
+fn status_window_at(
+    column: u16,
+    session_name: &str,
+    active_window: u32,
+    indexes: &[u32],
+    names: &[String],
+) -> Option<u32> {
+    let mut offset = format!("tmux {session_name} | ").chars().count() as u16;
+    for (position, index) in indexes.iter().enumerate() {
+        let name = names.get(position).map(String::as_str).unwrap_or("-");
+        let label = if *index == active_window {
+            format!("[{index}:{name}]")
+        } else {
+            format!("{index}:{name}")
+        };
+        let width = label.chars().count() as u16;
+        if column >= offset && column < offset.saturating_add(width) {
+            return Some(*index);
+        }
+        offset = offset.saturating_add(width + 1);
+    }
+    None
+}
+
+fn on_status_row(row: u16) -> bool {
+    size().map(|(_, rows)| row == rows.saturating_sub(1)).unwrap_or(false)
+}
+
+fn render_current_status(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+    let status = query_status_line(endpoint)?;
+    render_status_line(&status)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::status_window_at;
+
+    #[test]
+    fn maps_window_status_columns() {
+        let indexes = vec![0, 1];
+        let names = vec![String::from("zsh"), String::from("api")];
+        assert_eq!(status_window_at(11, "dev", 0, &indexes, &names), Some(0));
+        assert_eq!(status_window_at(19, "dev", 0, &indexes, &names), Some(1));
+    }
+}

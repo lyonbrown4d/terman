@@ -3,6 +3,7 @@ use std::{error::Error, io};
 mod args;
 mod attach;
 mod attach_keys;
+mod attach_mouse;
 mod attach_rename;
 mod attach_status;
 mod attach_window;
