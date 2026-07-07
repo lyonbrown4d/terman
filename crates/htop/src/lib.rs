@@ -4,6 +4,7 @@ mod app;
 mod cli;
 mod core_meter;
 mod format;
+mod footer;
 mod metrics;
 mod process_detail;
 mod render;

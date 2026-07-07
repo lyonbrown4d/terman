@@ -8,6 +8,7 @@ use ratatui::{
 
 use crate::{
     core_meter::core_meter_lines,
+    footer::footer_line,
     format::{format_bytes, format_duration, meter_fill},
     metrics::{ProcessRow, Snapshot, SortMode},
     process_detail::process_detail_lines,
@@ -50,6 +51,8 @@ pub(crate) fn draw(
     selected: usize,
     filter: &str,
     filtering: bool,
+    search: &str,
+    searching: bool,
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -62,7 +65,7 @@ pub(crate) fn draw(
         Tab::Io => draw_io(frame, chunks[1], snapshot),
         Tab::Network => draw_network(frame, chunks[1], snapshot),
     }
-    draw_footer(frame, chunks[2], sort, tree, filter, filtering);
+    frame.render_widget(Paragraph::new(footer_line(sort, tree, filter, filtering, search, searching)), chunks[2]);
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {
@@ -187,17 +190,6 @@ fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot) {
     render_block(frame, area, "Network", lines);
 }
 
-fn draw_footer(frame: &mut Frame<'_>, area: Rect, sort: SortMode, tree: bool, filter: &str, filtering: bool) {
-    let line = Line::from(vec![
-        key_span("F4"), value_span(format!(" Filter:{} ", filter_label(filter))),
-        key_span("F5"), value_span(format!(" {} ", view_label(tree))),
-        key_span("F6"), value_span(format!(" Sort:{} ", sort.label())),
-        key_span("F10"), value_span(" Quit ".to_string()),
-        Span::styled(filter_prompt(filtering), Style::default().fg(Color::Gray)),
-    ]);
-    frame.render_widget(Paragraph::new(line), area);
-}
-
 fn process_line(row: &ProcessRow, selected: bool) -> Line<'static> {
     let text = format!(
         "{:<10} {:>5.1}   {:>8}   {}",
@@ -235,13 +227,6 @@ fn meter_line(label: &str, value: f64, max: f64, width: usize, suffix: String) -
     ])
 }
 
-fn key_span(key: &'static str) -> Span<'static> {
-    Span::styled(format!(" {key} "), Style::default().fg(Color::Black).bg(Color::Cyan))
-}
-
-fn value_span(text: String) -> Span<'static> {
-    Span::styled(text, Style::default().fg(Color::White).bg(Color::Blue))
-}
 
 fn title_line(text: &'static str) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
@@ -259,9 +244,6 @@ fn filter_label(filter: &str) -> &str {
     if filter.is_empty() { "-" } else { filter }
 }
 
-fn filter_prompt(filtering: bool) -> &'static str {
-    if filtering { " type filter, Enter apply, Esc cancel" } else { " arrows select, PgUp/PgDn scroll" }
-}
 
 fn view_label(tree: bool) -> &'static str {
     if tree { "Tree" } else { "Flat" }

@@ -14,7 +14,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
     cli::HtopArgs,
-    metrics::{Metrics, SortMode},
+    metrics::{Metrics, ProcessRow, SortMode},
     render::{self, Tab},
 };
 
@@ -46,10 +46,13 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut selected = 0usize;
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
+    let mut search = String::new();
+    let mut search_input: Option<String> = None;
 
     loop {
         metrics.refresh();
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
+        let active_search = search_input.as_deref().unwrap_or(&search);
         let snapshot = metrics.snapshot(sort, active_filter, tree);
         selected = clamp_selection(selected, snapshot.processes.len());
         terminal.draw(|frame| {
@@ -62,6 +65,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                 selected,
                 active_filter,
                 filter_input.is_some(),
+                active_search,
+                search_input.is_some(),
             )
         })?;
         if args.once {
@@ -73,9 +78,11 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut sort,
             &mut tree,
             &mut selected,
-            snapshot.processes.len(),
+            snapshot.processes.as_slice(),
             &mut filter,
             &mut filter_input,
+            &mut search,
+            &mut search_input,
         )? {
             return Ok(());
         }
@@ -88,9 +95,11 @@ fn poll_until_refresh(
     sort: &mut SortMode,
     tree: &mut bool,
     selected: &mut usize,
-    process_count: usize,
+    processes: &[ProcessRow],
     filter: &mut String,
     filter_input: &mut Option<String>,
+    search: &mut String,
+    search_input: &mut Option<String>,
 ) -> io::Result<bool> {
     let refresh = Duration::from_millis(refresh_ms.max(100));
     let deadline = Instant::now() + refresh;
@@ -98,12 +107,14 @@ fn poll_until_refresh(
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
+                Event::Key(key) if handle_search_input(key.code, search, search_input, selected, processes) => {}
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
                 Event::Key(key) if navigation_key(key.code) => {
-                    *selected = move_selection(*selected, process_count, key.code);
+                    *selected = move_selection(*selected, processes.len(), key.code);
                 }
+                Event::Key(key) if search_key(key.code) => *search_input = Some(search.clone()),
                 Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
                 Event::Key(key) if sort_key(key.code) => *sort = sort.next(),
                 Event::Key(key) if tree_key(key.code) => *tree = !*tree,
@@ -114,6 +125,32 @@ fn poll_until_refresh(
         }
     }
     Ok(false)
+}
+
+fn handle_search_input(
+    code: KeyCode,
+    search: &mut String,
+    search_input: &mut Option<String>,
+    selected: &mut usize,
+    processes: &[ProcessRow],
+) -> bool {
+    let Some(input) = search_input.as_mut() else {
+        return false;
+    };
+    match code {
+        KeyCode::Enter => {
+            *search = input.trim().to_string();
+            *selected = find_next(*selected, processes, search.as_str());
+            *search_input = None;
+        }
+        KeyCode::Esc => *search_input = None,
+        KeyCode::Backspace => {
+            input.pop();
+        }
+        KeyCode::Char(ch) => input.push(ch),
+        _ => {}
+    }
+    true
 }
 
 fn handle_filter_input(
@@ -139,8 +176,32 @@ fn handle_filter_input(
     true
 }
 
+fn find_next(selected: usize, processes: &[ProcessRow], term: &str) -> usize {
+    let term = term.trim().to_lowercase();
+    if term.is_empty() || processes.is_empty() {
+        return selected;
+    }
+    for offset in 1..=processes.len() {
+        let index = (selected + offset) % processes.len();
+        if process_matches_search(&processes[index], term.as_str()) {
+            return index;
+        }
+    }
+    selected
+}
+
+fn process_matches_search(row: &ProcessRow, term: &str) -> bool {
+    row.pid.contains(term)
+        || row.name.to_lowercase().contains(term)
+        || row.command.to_lowercase().contains(term)
+}
+
 fn quit_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10))
+}
+
+fn search_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::F(3))
 }
 
 fn filter_key(code: KeyCode) -> bool {
