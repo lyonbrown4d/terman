@@ -13,6 +13,7 @@ mod cli;
 mod clients;
 mod command;
 mod detach_client;
+mod history;
 mod ipc;
 mod lifecycle;
 mod new_session;

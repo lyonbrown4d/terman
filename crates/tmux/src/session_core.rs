@@ -140,6 +140,13 @@ impl TmuxSessionBus {
         })
     }
 
+    pub(crate) fn clear_window_replay(&self, index: Option<u32>) -> bool {
+        let Ok(mut state) = self.inner.lock() else { return false; };
+        let index = index.unwrap_or(state.active_window);
+        let Some(window) = state.windows.iter_mut().find(|window| window.index == index) else { return false; };
+        window.replay.clear();
+        true
+    }
     pub(crate) fn clear_replay(&self) {
         if let Ok(mut state) = self.inner.lock() { state.active_replay_mut().clear(); }
     }

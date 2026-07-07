@@ -10,6 +10,7 @@ pub(crate) enum TmuxCommand {
     RenameSession,
     DisplayMessage,
     CapturePane,
+    ClearHistory,
     DetachClient,
     SendKeys,
     SendPrefix,
@@ -42,6 +43,7 @@ impl TmuxCommand {
             Some("rename-session") => Self::RenameSession,
             Some("display-message" | "display") => Self::DisplayMessage,
             Some("capture-pane" | "capturep") => Self::CapturePane,
+            Some("clear-history") => Self::ClearHistory,
             Some("detach-client" | "detach") => Self::DetachClient,
             Some("send-keys" | "send") => Self::SendKeys,
             Some("send-prefix") => Self::SendPrefix,
@@ -88,6 +90,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["rename-session".into()]), TmuxCommand::RenameSession);
         assert_eq!(TmuxCommand::parse(&["display".into()]), TmuxCommand::DisplayMessage);
         assert_eq!(TmuxCommand::parse(&["capturep".into()]), TmuxCommand::CapturePane);
+        assert_eq!(TmuxCommand::parse(&["clear-history".into()]), TmuxCommand::ClearHistory);
         assert_eq!(TmuxCommand::parse(&["detach".into()]), TmuxCommand::DetachClient);
         assert_eq!(TmuxCommand::parse(&["send".into()]), TmuxCommand::SendKeys);
         assert_eq!(TmuxCommand::parse(&["send-prefix".into()]), TmuxCommand::SendPrefix);

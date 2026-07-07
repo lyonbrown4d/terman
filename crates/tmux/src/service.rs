@@ -96,6 +96,21 @@ fn handle_client(
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
+        Ok(TmuxIpcRequest::ClearHistory { index }) => {
+            if bus.clear_window_replay(index) {
+                write_response(stream, &TmuxIpcResponse::Accepted)
+            } else {
+                write_response(
+                    stream,
+                    &TmuxIpcResponse::Rejected {
+                        reason: terman_common::builtin_tmux_window_not_found_hint(
+                            "current",
+                            index.unwrap_or_default() as usize,
+                        ),
+                    },
+                )
+            }
+        }
         Ok(TmuxIpcRequest::DisplayMessage { message }) => {
             let mut bytes = message.into_bytes();
             bytes.extend_from_slice(b"\r\n");

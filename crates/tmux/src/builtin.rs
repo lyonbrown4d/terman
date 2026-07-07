@@ -9,6 +9,7 @@ use crate::{
     },
     command::TmuxCommand,
     detach_client::detach_builtin_tmux_clients,
+    history::clear_builtin_tmux_history,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest},
     lifecycle::{
         kill_builtin_tmux_server, kill_builtin_tmux_session_command,
@@ -67,6 +68,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::CapturePane => {
             capture_builtin_tmux_pane(args)?;
+            Ok(true)
+        }
+        TmuxCommand::ClearHistory => {
+            clear_builtin_tmux_history(args)?;
             Ok(true)
         }
         TmuxCommand::DetachClient => {
