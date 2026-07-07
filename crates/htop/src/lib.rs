@@ -4,6 +4,7 @@ mod app;
 mod app_input;
 mod cli;
 mod core_meter;
+mod di;
 mod format;
 mod footer;
 mod help;
@@ -23,5 +24,5 @@ mod sort_menu;
 pub use cli::{HtopArgs, run_with_binary_parse};
 
 pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
-    app::run(args).await
+    di::run(args).await
 }
