@@ -29,6 +29,10 @@ impl ScreenMouseState {
         self.window_indexes.clear();
     }
 
+    fn list_open(&self) -> bool {
+        self.window_list_start.is_some()
+    }
+
     fn window_at(&self, row: u16) -> Option<usize> {
         let start = self.window_list_start?;
         let offset = row.checked_sub(start)? as usize;
@@ -68,6 +72,7 @@ fn select_or_forward(
     state: &mut ScreenMouseState,
     event: MouseEvent,
 ) {
+    let list_open = state.list_open();
     if let Some(index) = state.window_at(event.row) {
         state.clear();
         if let Some(replay) = switch_screen_window(bus, windows, active_window, ScreenWindowSwitch::Select(index)) {
@@ -76,7 +81,9 @@ fn select_or_forward(
         return;
     }
     state.clear();
-    forward_mouse_event(windows, *active_window, event);
+    if !list_open {
+        forward_mouse_event(windows, *active_window, event);
+    }
 }
 
 fn forward_mouse_event(windows: &mut [ScreenWindowRuntime], active_window: usize, event: MouseEvent) {
