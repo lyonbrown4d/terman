@@ -38,6 +38,9 @@ pub(crate) fn new_window_command_arg(args: &[String]) -> Option<String> {
     if payload.trim().is_empty() { None } else { Some(payload) }
 }
 
+pub(crate) fn kill_other_windows_arg(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "-a")
+}
 pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
     positional_payload_after_command(args, &["display-message", "display"])
 }

@@ -3,7 +3,7 @@ use std::{error::Error, io};
 use serde::Serialize;
 
 use crate::{
-    args::{new_window_command_arg, new_window_name_arg, rename_window_name_arg, target_session_name_arg, target_window_index_arg},
+    args::{kill_other_windows_arg, new_window_command_arg, new_window_name_arg, rename_window_name_arg, target_session_name_arg, target_window_index_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     lifecycle::request_builtin_tmux_session_quit,
     service::request_endpoint_response,
@@ -62,6 +62,9 @@ pub(crate) fn create_builtin_tmux_window(args: &[String]) -> Result<(), Box<dyn 
 pub(crate) fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
     let kill_index = target_window_index_arg(args).map(|index| index as u32);
+    if kill_other_windows_arg(args) {
+        return kill_other_builtin_tmux_windows(&target, kill_index);
+    }
     let session = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target);
     match kill_builtin_tmux_window(&target, kill_index)? {
         KillBuiltinTmuxWindow::Killed { windows, index } => {
@@ -83,6 +86,43 @@ pub(crate) fn kill_builtin_tmux_window_command(args: &[String]) -> Result<(), Bo
     }
 }
 
+fn kill_other_builtin_tmux_windows(
+    target: &str,
+    keep_index: Option<u32>,
+) -> Result<(), Box<dyn Error>> {
+    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
+        return Err(session_not_found_error(target));
+    };
+    let keep_index = match keep_index {
+        Some(index) => index,
+        None => active_window_index(&session)?,
+    };
+    let window_indexes = session.window_indices();
+    if !window_indexes.contains(&keep_index) {
+        return Err(window_not_found_error(target, keep_index as usize));
+    }
+    for index in window_indexes.into_iter().filter(|index| *index != keep_index) {
+        match kill_builtin_tmux_window(target, Some(index))? {
+            KillBuiltinTmuxWindow::Killed { windows, index } => {
+                request_builtin_tmux_window_kill(&session, index);
+                println!("{}", terman_common::builtin_tmux_window_killed_hint(target, windows));
+            }
+            KillBuiltinTmuxWindow::SessionMissing => return Err(session_not_found_error(target)),
+            KillBuiltinTmuxWindow::WindowMissing => return Err(window_not_found_error(target, index as usize)),
+            KillBuiltinTmuxWindow::SessionKilled => return Err(session_not_found_error(target)),
+        }
+    }
+    let _ = request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::SelectWindow { index: keep_index });
+    Ok(())
+}
+
+fn active_window_index(session: &BuiltinTmuxSession) -> Result<u32, Box<dyn Error>> {
+    match request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::Info)? {
+        TmuxIpcResponse::Info { active_window, .. } => Ok(active_window),
+        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+        response => Err(unexpected_response_error(response)),
+    }
+}
 pub(crate) fn rename_builtin_tmux_window_command(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_name_arg(args)?;
     let window_index = target_window_index_arg(args).unwrap_or(0);
