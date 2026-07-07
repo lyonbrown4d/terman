@@ -35,8 +35,8 @@ impl ScreenMouseState {
     }
 
     fn window_at(&self, row: u16, column: u16) -> Option<usize> {
-        let start = self.window_list_start?;
-        let offset = row.checked_sub(start)? as usize;
+        let first_row = self.window_list_start?.saturating_add(1);
+        let offset = row.checked_sub(first_row)? as usize;
         let (index, width) = self.window_entries.get(offset).copied()?;
         (column < width).then_some(index)
     }
@@ -208,3 +208,5 @@ fn publish_mouse_message(bus: &ScreenSessionBus, message: String) {
     let _ = stdout.write_all(message.as_bytes());
     let _ = stdout.flush();
 }
+
+
