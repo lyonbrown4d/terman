@@ -8,6 +8,29 @@ use crate::{
     model::{ProcessRow, SortMode},
 };
 
+const PID_WIDTH: u16 = 8;
+const STATE_WIDTH: u16 = 3;
+const CPU_WIDTH: u16 = 6;
+const MEM_WIDTH: u16 = 6;
+const RES_WIDTH: u16 = 9;
+const TIME_WIDTH: u16 = 10;
+
+pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
+    let pid_end = PID_WIDTH;
+    let state_end = pid_end + STATE_WIDTH;
+    let cpu_end = state_end + CPU_WIDTH;
+    let mem_end = cpu_end + MEM_WIDTH;
+    let res_end = mem_end + RES_WIDTH;
+    let time_end = res_end + TIME_WIDTH;
+    match column {
+        c if c < pid_end => Some(SortMode::Pid),
+        c if c < state_end => None,
+        c if c < cpu_end => Some(SortMode::Cpu),
+        c if c < mem_end || c < res_end => Some(SortMode::Memory),
+        c if c < time_end => Some(SortMode::Time),
+        _ => Some(SortMode::Name),
+    }
+}
 pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
     Line::from(vec![
         header_span(format!("{:<8}", "PID"), sort == SortMode::Pid),

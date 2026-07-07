@@ -1,3 +1,4 @@
+use crate::process_table;
 use crossterm::{
     event::{MouseButton, MouseEvent, MouseEventKind},
     terminal,
@@ -189,7 +190,7 @@ fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
     if row != 5 { return None; }
     let column = column.saturating_sub(1);
     match tab {
-        Tab::Processes => match column { 0..=10 => Some(SortMode::Pid), 11..=16 => Some(SortMode::Cpu), 17..=34 => Some(SortMode::Memory), 35..=44 => Some(SortMode::Time), _ => Some(SortMode::Name) },
+        Tab::Processes => process_table::sort_at_column(column),
         Tab::Io => match column { 0..=10 => Some(SortMode::Pid), 11..=54 => Some(SortMode::Io), _ => Some(SortMode::Name) },
         _ => None,
     }
