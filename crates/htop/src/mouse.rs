@@ -186,8 +186,9 @@ fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Op
 fn io_header_sort_at(column: u16) -> Option<SortMode> {
     match column {
         0..=10 => Some(SortMode::Pid),
-        11..=54 => Some(SortMode::Io),
-        _ => Some(SortMode::Name),
+        11..=50 => Some(SortMode::Io),
+        c if c >= 51 => Some(SortMode::Name),
+        _ => None,
     }
 }
 

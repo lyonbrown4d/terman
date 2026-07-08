@@ -70,7 +70,7 @@ pub(crate) fn draw(
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot, sort, selected),
         Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll),
-        Tab::Io => draw_io(frame, chunks[1], snapshot, io_scroll, selected),
+        Tab::Io => draw_io(frame, chunks[1], snapshot, sort, io_scroll, selected),
         Tab::Network => draw_network(frame, chunks[1], snapshot, sort, network_scroll, selected),
     }
     frame.render_widget(Paragraph::new(footer_line(sort, tree, filter, filtering, search, searching, refresh_ms, kill_target)), chunks[2]);

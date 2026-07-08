@@ -6,12 +6,19 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::{format::format_bytes, model::Snapshot};
+use crate::{format::format_bytes, model::{Snapshot, SortMode}};
 
 const IO_NAME_START: u16 = 51;
 
-pub(crate) fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize, selected: usize) {
-    let mut lines = vec![title_line("PID        READ/s    WRITE/s   TOTAL R   TOTAL W   NAME")];
+pub(crate) fn draw_io(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    snapshot: &Snapshot,
+    sort: SortMode,
+    scroll: usize,
+    selected: usize,
+) {
+    let mut lines = vec![io_header_line(sort)];
     let visible = body_rows(area);
     let selected_pid = snapshot.processes.get(selected).map(|row| row.pid.as_str());
     let start = scroll.min(snapshot.io.len().saturating_sub(visible));
@@ -31,6 +38,25 @@ pub(crate) fn draw_io(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, sc
     render_block(frame, area, "I/O", lines);
 }
 
+fn io_header_line(sort: SortMode) -> Line<'static> {
+    Line::from(vec![
+        header_span(format!("{:<10} ", "PID"), sort == SortMode::Pid),
+        header_span(format!("{:>9} ", "READ/s"), sort == SortMode::Io),
+        header_span(format!("{:>9} ", "WRITE/s"), sort == SortMode::Io),
+        header_span(format!("{:>9} ", "TOTAL R"), sort == SortMode::Io),
+        header_span(format!("{:>9} ", "TOTAL W"), sort == SortMode::Io),
+        header_span("NAME".to_string(), sort == SortMode::Name),
+    ])
+}
+
+fn header_span(text: String, active: bool) -> Span<'static> {
+    let style = if active {
+        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+    };
+    Span::styled(text, style)
+}
 fn io_name_cell(name: &str, table_width: u16) -> String {
     let width = table_width.saturating_sub(IO_NAME_START).max(1) as usize;
     terman_common::fit_terminal_text(terman_common::truncate_terminal_text(name, width).as_str(), width)
@@ -44,9 +70,6 @@ fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: V
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
 
-fn title_line(text: &'static str) -> Line<'static> {
-    Line::from(Span::styled(text, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
-}
 
 fn plain_line(text: String) -> Line<'static> {
     Line::from(Span::raw(text))
