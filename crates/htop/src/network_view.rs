@@ -15,8 +15,8 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
     let interface_start = interface_start(snapshot, interface_rows, scroll);
     for row in snapshot.networks.iter().skip(interface_start).take(interface_rows) {
         lines.push(plain_line(format!(
-            "{:<20} rx/s {:>8}  tx/s {:>8}  total {:>10}/{:>10}",
-            row.name,
+            "{} rx/s {:>8}  tx/s {:>8}  total {:>10}/{:>10}",
+            fit_cell(row.name.as_str(), 20),
             format_bytes(row.received),
             format_bytes(row.transmitted),
             format_bytes(row.total_received),
@@ -30,12 +30,12 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
     let connection_start = scroll.min(snapshot.sockets.len().saturating_sub(connections));
     for row in snapshot.sockets.iter().skip(connection_start).take(connections) {
         let text = format!(
-            "{:<5}  {:<29} {:<29} {:<13} {:<5} {}",
-            row.protocol,
-            trim(row.local.as_str(), 29),
-            trim(row.remote.as_str(), 29),
-            trim(row.state.as_str(), 13),
-            trim(row.pid.as_str(), 5),
+            "{}  {} {} {} {} {}",
+            fit_cell(row.protocol.as_str(), 5),
+            fit_cell(row.local.as_str(), 29),
+            fit_cell(row.remote.as_str(), 29),
+            fit_cell(row.state.as_str(), 13),
+            fit_cell(row.pid.as_str(), 5),
             row.process
         );
         let line = if selected_pid == Some(row.pid.as_str()) { selected_line(text) } else { plain_line(text) };
@@ -54,7 +54,7 @@ fn network_total_line(snapshot: &Snapshot) -> Line<'static> {
     let total_rx = snapshot.networks.iter().map(|row| row.total_received).sum();
     let total_tx = snapshot.networks.iter().map(|row| row.total_transmitted).sum();
     plain_line(format!(
-        "{:<20} rx/s {:>8}  tx/s {:>8}  total {:>10}/{:>10}",
+        "{} rx/s {:>8}  tx/s {:>8}  total {:>10}/{:>10}",
         "TOTAL",
         format_bytes(rx),
         format_bytes(tx),
@@ -90,6 +90,10 @@ fn plain_line(text: String) -> Line<'static> {
 fn selected_line(text: String) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Black).bg(Color::Green)))
 }
+fn fit_cell(value: &str, width: usize) -> String {
+    terman_common::fit_terminal_text(&trim(value, width), width)
+}
+
 fn trim(value: &str, max: usize) -> String {
     if terman_common::terminal_text_width(value) as usize <= max {
         return value.to_string();
