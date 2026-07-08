@@ -149,7 +149,7 @@ fn draw_overview(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, selecte
     lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
     lines.push(title_line("TOP PROCESSES"));
     for (index, row) in snapshot.processes.iter().take(overview_process_rows(area, core_rows, snapshot.cpu_cores.len())).enumerate() {
-        lines.push(process_line(row, index == selected, snapshot.total_memory));
+        lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2)));
     }
     render_block(frame, area, "Overview", lines);
 }
@@ -178,7 +178,7 @@ fn draw_processes(
         filter_label(filter)
     )));
     for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
-        lines.push(process_line(row, start + offset == selected, snapshot.total_memory));
+        lines.push(process_line(row, start + offset == selected, snapshot.total_memory, area.width.saturating_sub(2)));
     }
     lines.push(title_line("DETAILS"));
     lines.extend(details.into_iter().skip(detail_scroll).take(detail_visible));

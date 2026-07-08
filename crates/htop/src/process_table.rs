@@ -15,6 +15,7 @@ const CPU_WIDTH: u16 = 6;
 const MEM_WIDTH: u16 = 6;
 const RES_WIDTH: u16 = 9;
 const TIME_WIDTH: u16 = 10;
+const COMMAND_START: u16 = PID_WIDTH + PPID_WIDTH + STATE_WIDTH + CPU_WIDTH + MEM_WIDTH + RES_WIDTH + TIME_WIDTH;
 
 pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
     let pid_end = PID_WIDTH;
@@ -48,11 +49,11 @@ pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
     ])
 }
 
-pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64) -> Line<'static> {
+pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, table_width: u16) -> Line<'static> {
     let memory_percent = memory_percent(row.memory, total_memory);
     let state = status_char(row.status.as_str());
     let ppid = row.parent_pid.as_deref().unwrap_or("-");
-    let command = tree_name(row.depth, command_text(row));
+    let command = command_cell(tree_name(row.depth, command_text(row)).as_str(), table_width);
     let text = process_text(row, ppid, state.as_str(), memory_percent, command.as_str());
     if selected {
         return Line::from(Span::styled(text, selected_style()));
@@ -83,6 +84,29 @@ fn process_text(row: &ProcessRow, ppid: &str, state: &str, memory_percent: f64, 
         format_duration(row.run_time),
         command
     )
+}
+
+fn command_cell(command: &str, table_width: u16) -> String {
+    let width = table_width.saturating_sub(COMMAND_START).max(1) as usize;
+    terman_common::fit_terminal_text(truncate_terminal_text(command, width).as_str(), width)
+}
+
+fn truncate_terminal_text(value: &str, width: usize) -> String {
+    if terman_common::terminal_text_width(value) as usize <= width {
+        return value.to_string();
+    }
+    let marker = "...";
+    let body_width = width.saturating_sub(terman_common::terminal_text_width(marker) as usize);
+    let mut output = String::new();
+    for ch in value.chars() {
+        let next = format!("{output}{ch}");
+        if terman_common::terminal_text_width(&next) as usize > body_width {
+            break;
+        }
+        output.push(ch);
+    }
+    output.push_str(marker);
+    output
 }
 
 fn header_span(text: String, active: bool) -> Span<'static> {
@@ -134,4 +158,16 @@ fn usage_style(value: f64, max: f64) -> Style {
 
 fn selected_style() -> Style {
     Style::default().fg(Color::Black).bg(Color::Green)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::command_cell;
+
+    #[test]
+    fn clips_wide_command_to_table_width() {
+        let cell = command_cell("服务服务服务", 55);
+        assert_eq!(terman_common::terminal_text_width(&cell), 5);
+        assert!(cell.ends_with("..."));
+    }
 }
