@@ -4,6 +4,7 @@ use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use crate::{
     footer::{self, FooterAction},
     model::SortMode,
+    overview_layout,
     mouse_rows::{detail_at, detail_drag_scroll, max_detail_scroll, move_down, row_process_at, terminal_area},
     render::Tab,
     sort_menu,
@@ -114,7 +115,7 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         *context.tab = tab;
         return MouseAction::Handled;
     }
-    if let Some(mode) = table_header_sort_at(*context.tab, column, row) {
+    if let Some(mode) = table_header_sort_at(column, row, &context) {
         *context.sort = mode;
         *context.sort_cursor = mode;
         return MouseAction::Handled;
@@ -129,7 +130,7 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
 fn release_click(column: u16, row: u16, context: MouseContext<'_>) -> MouseAction {
     if context.kill_target.is_some() || *context.sort_menu_open { return MouseAction::Ignored; }
     if let Some(tab) = tab_at(column, row) { *context.tab = tab; return MouseAction::Handled; }
-    if let Some(mode) = table_header_sort_at(*context.tab, column, row) {
+    if let Some(mode) = table_header_sort_at(column, row, &context) {
         *context.sort = mode;
         *context.sort_cursor = mode;
         return MouseAction::Handled;
@@ -171,14 +172,23 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
     MouseAction::Handled
 }
 
-fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
-    if row != 6 { return None; }
+fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Option<SortMode> {
     let column = column.saturating_sub(1);
-    match tab {
-        Tab::Processes => process_table::sort_at_column(column),
-        Tab::Io => match column { 0..=10 => Some(SortMode::Pid), 11..=54 => Some(SortMode::Io), _ => Some(SortMode::Name) },
+    match *context.tab {
+        Tab::Overview if row == overview_header_row(context) => process_table::sort_at_column(column),
+        Tab::Processes if row == 6 => process_table::sort_at_column(column),
+        Tab::Io if row == 6 => match column {
+            0..=10 => Some(SortMode::Pid),
+            11..=54 => Some(SortMode::Io),
+            _ => Some(SortMode::Name),
+        },
         _ => None,
     }
+}
+
+fn overview_header_row(context: &MouseContext<'_>) -> u16 {
+    overview_layout::process_start_row(terminal_area().height, context.cpu_core_count)
+        .saturating_sub(1)
 }
 
 fn select_index(index: usize, context: MouseContext<'_>) {
