@@ -1,5 +1,7 @@
 use std::io;
 
+use crossterm::terminal::size;
+
 use crate::{
     attach_status::render_status_line,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
@@ -43,7 +45,8 @@ fn format_window_list_status(active_window: u32, indexes: &[u32], names: &[Strin
     let labels = window_labels(active_window, indexes, names);
     let windows = labels.iter().map(|(_, label)| label.as_str()).collect::<Vec<_>>().join(" ");
     let status = terman_common::builtin_tmux_attach_window_list(&windows);
-    let layout = layout_window_labels(&status, &labels);
+    let max_width = size().ok().map(|(cols, _)| cols);
+    let layout = layout_window_labels(&status, &labels, max_width);
     (status, layout)
 }
 
@@ -53,7 +56,7 @@ fn window_labels(active_window: u32, indexes: &[u32], names: &[String]) -> Vec<(
     }).collect()
 }
 
-fn layout_window_labels(status: &str, labels: &[(u32, String)]) -> TmuxWindowListLayout {
+fn layout_window_labels(status: &str, labels: &[(u32, String)], max_width: Option<u16>) -> TmuxWindowListLayout {
     let mut hits = Vec::new();
     let mut search_byte = 0;
     for (index, label) in labels {
@@ -62,10 +65,18 @@ fn layout_window_labels(status: &str, labels: &[(u32, String)]) -> TmuxWindowLis
         let end_byte = start_byte + label.len();
         let start = terman_common::terminal_text_width(&status[..start_byte]);
         let width = terman_common::terminal_text_width(label.as_str());
-        hits.push(TmuxWindowListHit { index: *index, start, end: start.saturating_add(width) });
+        let end = clipped_end(start, width, max_width);
+        if start < end {
+            hits.push(TmuxWindowListHit { index: *index, start, end });
+        }
         search_byte = end_byte;
     }
     TmuxWindowListLayout { hits }
+}
+
+fn clipped_end(start: u16, width: u16, max_width: Option<u16>) -> u16 {
+    let end = start.saturating_add(width);
+    max_width.map(|max| end.min(max)).unwrap_or(end)
 }
 
 fn format_window(index: u32, active_window: u32, name: Option<&String>) -> String {
