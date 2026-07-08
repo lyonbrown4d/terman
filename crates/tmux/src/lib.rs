@@ -25,6 +25,7 @@ mod refresh_client;
 mod message;
 mod pty;
 mod service;
+mod service_codec;
 mod send_keys;
 mod server;
 mod session_core;
