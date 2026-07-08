@@ -19,6 +19,7 @@ use crate::{
 pub(super) struct AttachMouseState {
     window_list_start: Option<u16>,
     window_entries: Vec<(usize, u16)>,
+    suppress_button_release: bool,
 }
 
 impl AttachMouseState {
@@ -34,6 +35,16 @@ impl AttachMouseState {
     fn show_window_list(&mut self, start: u16, entries: Vec<(usize, u16)>) {
         self.window_list_start = Some(start);
         self.window_entries = entries;
+    }
+
+    fn suppress_button_release(&mut self) {
+        self.suppress_button_release = true;
+    }
+
+    fn take_suppressed_button_release(&mut self) -> bool {
+        let suppress = self.suppress_button_release;
+        self.suppress_button_release = false;
+        suppress
     }
 
     fn window_at(&self, row: u16, column: u16) -> Option<usize> {
@@ -57,6 +68,9 @@ pub(super) fn handle_attach_mouse(
     state: &mut AttachMouseState,
     event: MouseEvent,
 ) -> io::Result<()> {
+    if matches!(event.kind, MouseEventKind::Up(_)) && state.take_suppressed_button_release() {
+        return Ok(());
+    }
     if state.list_open()
         && matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
     {
@@ -66,6 +80,9 @@ pub(super) fn handle_attach_mouse(
         return select_list_window(endpoint, state, event.row, event.column);
     }
     if state.list_open() {
+        if matches!(event.kind, MouseEventKind::Down(_) | MouseEventKind::Drag(_)) {
+            state.suppress_button_release();
+        }
         state.clear();
         return send_control_request(endpoint, ScreenIpcRequest::Redisplay);
     }
@@ -141,7 +158,7 @@ fn select_list_window(
     state.clear();
     match target {
         Some(index) => send_control_request(endpoint, ScreenIpcRequest::SelectWindow { index }),
-        None => Ok(()),
+        None => send_control_request(endpoint, ScreenIpcRequest::Redisplay),
     }
 }
 

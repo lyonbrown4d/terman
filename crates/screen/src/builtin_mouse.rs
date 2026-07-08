@@ -17,6 +17,7 @@ use crate::{
 pub(crate) struct ScreenMouseState {
     window_list_start: Option<u16>,
     window_entries: Vec<(usize, u16)>,
+    suppress_button_release: bool,
 }
 
 impl ScreenMouseState {
@@ -32,6 +33,16 @@ impl ScreenMouseState {
 
     fn list_open(&self) -> bool {
         self.window_list_start.is_some()
+    }
+
+    fn suppress_button_release(&mut self) {
+        self.suppress_button_release = true;
+    }
+
+    fn take_suppressed_button_release(&mut self) -> bool {
+        let suppress = self.suppress_button_release;
+        self.suppress_button_release = false;
+        suppress
     }
 
     fn window_at(&self, row: u16, column: u16) -> Option<usize> {
@@ -57,12 +68,18 @@ pub(crate) fn handle_builtin_mouse(
     state: &mut ScreenMouseState,
     event: MouseEvent,
 ) {
+    if matches!(event.kind, MouseEventKind::Up(_)) && state.take_suppressed_button_release() {
+        return;
+    }
     if state.list_open()
         && matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
     {
         return;
     }
     if state.list_open() && !matches!(event.kind, MouseEventKind::Up(MouseButton::Left)) {
+        if matches!(event.kind, MouseEventKind::Down(_) | MouseEventKind::Drag(_)) {
+            state.suppress_button_release();
+        }
         close_window_list(bus, state);
         return;
     }
@@ -73,6 +90,8 @@ pub(crate) fn handle_builtin_mouse(
         MouseEventKind::Drag(MouseButton::Left) => select_or_forward(bus, windows, active_window, state, event),
         MouseEventKind::Down(MouseButton::Right) => right_click(bus, windows, *active_window, state, event),
         MouseEventKind::Down(MouseButton::Middle) => middle_click(bus, windows, *active_window, state, event),
+        MouseEventKind::Up(MouseButton::Right) | MouseEventKind::Up(MouseButton::Middle)
+            if on_control_row(bus, event.row) => {}
         _ => forward_mouse_event(windows, *active_window, event),
     }
 }
