@@ -2,7 +2,7 @@ use std::io::{self, BufRead, BufReader, Write};
 
 use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse, ScreenWindowInfo};
 
-use super::store::BuiltinScreenSession;
+use super::records::BuiltinScreenSession;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct BuiltinScreenSessionRuntimeStatus {

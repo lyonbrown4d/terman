@@ -5,32 +5,26 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use serde::{Deserialize, Serialize};
-use sysinfo::{Pid, ProcessesToUpdate, System};
+use sysinfo::{ProcessesToUpdate, System};
 
-use super::paths::{builtin_screen_session_record_path, builtin_screen_sessions_dir};
+use super::{
+    paths::{builtin_screen_session_record_path, builtin_screen_sessions_dir},
+    records::{
+        BuiltinScreenSession, builtin_screen_session_is_alive,
+        parse_builtin_screen_session_record, serialize_session_record,
+    },
+};
 use crate::{ScreenArgs, ipc::ScreenIpcEndpoint, shell::default_shell};
+
 pub(crate) struct BuiltinScreenSessionGuard {
     session_name: Arc<Mutex<String>>,
 }
 
 impl Drop for BuiltinScreenSessionGuard {
     fn drop(&mut self) {
-        let Ok(session_name) = self.session_name.lock() else {
-            return;
-        };
+        let Ok(session_name) = self.session_name.lock() else { return; };
         let _ = remove_builtin_screen_session_record(&session_name);
     }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub(crate) struct BuiltinScreenSession {
-    pub(crate) name: String,
-    pub(crate) pid: String,
-    pub(crate) cwd: String,
-    pub(crate) command: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) ipc_endpoint: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,14 +39,10 @@ pub(crate) fn register_builtin_screen_session(
     endpoint: &ScreenIpcEndpoint,
     session_name_state: Option<Arc<Mutex<String>>>,
 ) -> io::Result<Option<BuiltinScreenSessionGuard>> {
-    let Some(session_name) = &args.session_name else {
-        return Ok(None);
-    };
+    let Some(session_name) = &args.session_name else { return Ok(None); };
 
     let path = builtin_screen_session_record_path(session_name);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
     let _ = remove_stale_builtin_screen_session_record(&path)?;
 
     let cwd = env::current_dir()
@@ -72,16 +62,7 @@ pub(crate) fn register_builtin_screen_session(
         .write(true)
         .create_new(true)
         .open(&path)
-        .map_err(|err| {
-            if err.kind() == io::ErrorKind::AlreadyExists {
-                io::Error::new(
-                    io::ErrorKind::AlreadyExists,
-                    terman_common::builtin_screen_session_exists_hint(session_name),
-                )
-            } else {
-                err
-            }
-        })?;
+        .map_err(|err| duplicate_session_error(err, session_name))?;
     file.write_all(format!("{record}\n").as_bytes())?;
     super::manifest::write_initial_builtin_screen_session_manifest(&session)?;
 
@@ -94,16 +75,12 @@ pub(crate) fn rename_builtin_screen_session(
     new_name: &str,
 ) -> io::Result<RenameBuiltinScreenSession> {
     let old_path = builtin_screen_session_record_path(old_name);
-    if !old_path.exists() {
-        return Ok(RenameBuiltinScreenSession::SourceMissing);
-    }
+    if !old_path.exists() { return Ok(RenameBuiltinScreenSession::SourceMissing); }
 
     let new_path = builtin_screen_session_record_path(new_name);
     if new_path.exists() {
         let _ = remove_stale_builtin_screen_session_record(&new_path)?;
-        if new_path.exists() {
-            return Ok(RenameBuiltinScreenSession::DestinationExists);
-        }
+        if new_path.exists() { return Ok(RenameBuiltinScreenSession::DestinationExists); }
     }
 
     let record = fs::read_to_string(&old_path)?;
@@ -115,15 +92,9 @@ pub(crate) fn rename_builtin_screen_session(
     };
     session.name = new_name.to_string();
 
-    if let Some(parent) = new_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    if let Some(parent) = new_path.parent() { fs::create_dir_all(parent)?; }
     let record = serialize_session_record(&session)?;
-    let mut file = match fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&new_path)
-    {
+    let mut file = match fs::OpenOptions::new().write(true).create_new(true).open(&new_path) {
         Ok(file) => file,
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
             return Ok(RenameBuiltinScreenSession::DestinationExists);
@@ -152,28 +123,20 @@ pub(crate) fn remove_builtin_screen_session_record(name: &str) -> io::Result<boo
 
 pub(crate) fn remove_stale_builtin_screen_session_records() -> io::Result<usize> {
     let dir = builtin_screen_sessions_dir();
-    if !dir.exists() {
-        return Ok(0);
-    }
+    if !dir.exists() { return Ok(0); }
 
     let mut removed = 0;
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
-        if !entry.file_type()?.is_file() {
-            continue;
-        }
-        if remove_stale_builtin_screen_session_record(&entry.path())? {
-            removed += 1;
-        }
+        if !entry.file_type()?.is_file() { continue; }
+        if remove_stale_builtin_screen_session_record(&entry.path())? { removed += 1; }
     }
 
     Ok(removed)
 }
 
 fn remove_stale_builtin_screen_session_record(path: &Path) -> io::Result<bool> {
-    if !path.exists() {
-        return Ok(false);
-    }
+    if !path.exists() { return Ok(false); }
 
     let mut system = System::new();
     system.refresh_processes(ProcessesToUpdate::All, true);
@@ -185,9 +148,7 @@ fn remove_stale_builtin_screen_session_record(path: &Path) -> io::Result<bool> {
         .map(|session| !builtin_screen_session_is_alive(session, &system))
         .unwrap_or(true);
 
-    if !stale {
-        return Ok(false);
-    }
+    if !stale { return Ok(false); }
 
     match fs::remove_file(path) {
         Ok(()) => {
@@ -203,9 +164,7 @@ fn remove_stale_builtin_screen_session_record(path: &Path) -> io::Result<bool> {
 
 pub(crate) fn load_alive_builtin_screen_sessions() -> io::Result<Vec<BuiltinScreenSession>> {
     let dir = builtin_screen_sessions_dir();
-    if !dir.exists() {
-        return Ok(Vec::new());
-    }
+    if !dir.exists() { return Ok(Vec::new()); }
 
     let mut system = System::new();
     system.refresh_processes(ProcessesToUpdate::All, true);
@@ -213,13 +172,9 @@ pub(crate) fn load_alive_builtin_screen_sessions() -> io::Result<Vec<BuiltinScre
     let mut sessions = Vec::new();
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
-        if !entry.file_type()?.is_file() {
-            continue;
-        }
+        if !entry.file_type()?.is_file() { continue; }
         let path = entry.path();
-        let Ok(record) = fs::read_to_string(&path) else {
-            continue;
-        };
+        let Ok(record) = fs::read_to_string(&path) else { continue; };
         if let Some(session) = parse_builtin_screen_session_record(&record) {
             if builtin_screen_session_is_alive(&session, &system) {
                 sessions.push(session);
@@ -233,23 +188,13 @@ pub(crate) fn load_alive_builtin_screen_sessions() -> io::Result<Vec<BuiltinScre
     Ok(sessions)
 }
 
-pub(crate) fn builtin_screen_session_is_alive(
-    session: &BuiltinScreenSession,
-    system: &System,
-) -> bool {
-    session
-        .pid
-        .parse::<u32>()
-        .ok()
-        .map(|pid| system.process(Pid::from_u32(pid)).is_some())
-        .unwrap_or(false)
-}
-
-pub(crate) fn parse_builtin_screen_session_record(record: &str) -> Option<BuiltinScreenSession> {
-    serde_json::from_str(record).ok()
-}
-
-fn serialize_session_record(session: &BuiltinScreenSession) -> io::Result<String> {
-    serde_json::to_string_pretty(session)
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+fn duplicate_session_error(err: io::Error, session_name: &str) -> io::Error {
+    if err.kind() == io::ErrorKind::AlreadyExists {
+        io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            terman_common::builtin_screen_session_exists_hint(session_name),
+        )
+    } else {
+        err
+    }
 }
