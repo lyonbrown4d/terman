@@ -91,13 +91,33 @@ fn selected_line(text: String) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Black).bg(Color::Green)))
 }
 fn trim(value: &str, max: usize) -> String {
-    if value.chars().count() <= max {
-        value.to_string()
-    } else {
-        value.chars().take(max.saturating_sub(3)).collect::<String>() + "..."
+    if terman_common::terminal_text_width(value) as usize <= max {
+        return value.to_string();
     }
+    let marker = "...";
+    let max_value = max.saturating_sub(terman_common::terminal_text_width(marker) as usize);
+    let mut output = String::new();
+    for ch in value.chars() {
+        let next = format!("{output}{ch}");
+        if terman_common::terminal_text_width(&next) as usize > max_value {
+            break;
+        }
+        output.push(ch);
+    }
+    output.push_str(marker);
+    output
 }
 
 fn body_rows(area: Rect) -> usize {
     area.height.saturating_sub(4) as usize
+}
+
+#[cfg(test)]
+mod tests {
+    use super::trim;
+
+    #[test]
+    fn trims_wide_values_by_terminal_width() {
+        assert_eq!(trim("服务服务服务服务", 7), "服务...");
+    }
 }
