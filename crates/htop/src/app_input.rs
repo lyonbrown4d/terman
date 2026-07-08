@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{model::ProcessRow, render::Tab};
 
@@ -34,6 +34,14 @@ pub(crate) fn adjust_refresh(refresh_ms: &mut u64, code: KeyCode) {
 
 pub(crate) fn quit_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('q') | KeyCode::Esc | KeyCode::F(10))
+}
+
+pub(crate) fn interrupt_key(key: &KeyEvent) -> bool {
+    match key.code {
+        KeyCode::Char('\u{3}') => true,
+        KeyCode::Char('c' | 'C') => key.modifiers.contains(KeyModifiers::CONTROL),
+        _ => false,
+    }
 }
 
 pub(crate) fn help_key(code: KeyCode) -> bool {
@@ -98,8 +106,9 @@ pub(crate) fn clamp_selection(selected: usize, count: usize) -> usize {
     if count == 0 { 0 } else { selected.min(count - 1) }
 }
 
-pub(crate) fn next_tab(tab: Tab, code: KeyCode) -> Tab {
-    match code {
+pub(crate) fn next_tab(tab: Tab, key: &KeyEvent) -> Tab {
+    match key.code {
+        KeyCode::Tab if key.modifiers.contains(KeyModifiers::SHIFT) => tab.previous(),
         KeyCode::Tab | KeyCode::Right => tab.next(),
         KeyCode::BackTab | KeyCode::Left => tab.previous(),
         KeyCode::Char('1') => Tab::Overview,

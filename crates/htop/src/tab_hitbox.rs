@@ -1,18 +1,20 @@
 use crate::render::Tab;
 
 const TAB_ROW: u16 = 3;
+const TAB_ROW_SLOP: u16 = 1;
+const TAB_COLUMN: u16 = 1;
 const TAB_PADDING: u16 = 2;
 const TAB_GAP: u16 = 1;
 
 type TabLabel = (Tab, String);
 
 pub(crate) fn tab_at(column: u16, row: u16) -> Option<Tab> {
-    if row != TAB_ROW {
+    if !tab_row(row) {
         return None;
     }
     tab_labels()
         .into_iter()
-        .scan(0u16, |offset, (tab, label)| {
+        .scan(TAB_COLUMN, |offset, (tab, label)| {
             let start = *offset;
             let width = tab_width(label.as_str());
             *offset = offset.saturating_add(width).saturating_add(TAB_GAP);
@@ -34,8 +36,13 @@ fn tab_width(label: &str) -> u16 {
     terman_common::terminal_text_width(label).saturating_add(TAB_PADDING)
 }
 
+fn tab_row(row: u16) -> bool {
+    row >= TAB_ROW.saturating_sub(TAB_ROW_SLOP)
+        && row <= TAB_ROW.saturating_add(TAB_ROW_SLOP)
+}
+
 fn column_in_span(column: u16, start: u16, width: u16) -> bool {
-    column >= start && column < start.saturating_add(width)
+    column >= start.saturating_sub(1) && column < start.saturating_add(width)
 }
 
 #[cfg(test)]

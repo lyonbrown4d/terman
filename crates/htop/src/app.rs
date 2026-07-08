@@ -4,13 +4,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
     app_terminal::TerminalGuard,
     app_input::{
-        adjust_refresh, clamp_selection, delay_key, filter_key, find_next, help_key, kill_key,
+        adjust_refresh, clamp_selection, delay_key, filter_key, find_next, help_key, interrupt_key, kill_key,
         move_selection, navigation_key, next_tab, quit_key, search_key, sort_key, tree_key,
     },
     cli::HtopArgs,
@@ -138,7 +138,7 @@ fn poll_until_refresh(
         if event::poll(Duration::from_millis(50))? {
             match event::read()? {
                 Event::Key(key) if key.kind == KeyEventKind::Release => {}
-                Event::Key(key) if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') => return Ok(true),
+                Event::Key(key) if interrupt_key(&key) => return Ok(true),
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Mouse(mouse_event) => {
                     let action = mouse::handle_mouse(mouse_event, MouseContext {
@@ -195,7 +195,7 @@ fn poll_until_refresh(
                     *sort_menu_open = true;
                 }
                 Event::Key(key) if tree_key(key.code) => *tree = !*tree,
-                Event::Key(key) => *tab = next_tab(*tab, key.code),
+                Event::Key(key) => *tab = next_tab(*tab, &key),
                 Event::Resize(_, _) => break,
                 _ => {}
             }
