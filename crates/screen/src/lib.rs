@@ -5,7 +5,6 @@ mod builtin_output;
 mod builtin_mouse;
 mod cli;
 mod di;
-mod display_width;
 mod ipc;
 mod launcher;
 mod pty;

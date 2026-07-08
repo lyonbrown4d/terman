@@ -8,7 +8,6 @@ use crossterm::{
 };
 
 use crate::{
-    display_width::fit_to_width,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
 };
@@ -33,7 +32,7 @@ pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String
 pub(crate) fn render_status_line(status: &str) -> io::Result<()> {
     let (cols, rows) = size()?;
     let row = rows.saturating_sub(1);
-    let text = fit_to_width(status, cols as usize);
+    let text = terman_common::fit_terminal_text(status, cols as usize);
     let mut stdout = io::stdout().lock();
     execute!(
         stdout,

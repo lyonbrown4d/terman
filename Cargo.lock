@@ -1641,6 +1641,7 @@ dependencies = [
  "sys-locale",
  "tokio",
  "unic-langid",
+ "unicode-width",
  "which",
 ]
 
@@ -1656,7 +1657,6 @@ dependencies = [
  "sysinfo",
  "terman-common",
  "tokio",
- "unicode-width",
 ]
 
 [[package]]
@@ -1676,7 +1676,6 @@ dependencies = [
  "sysinfo",
  "terman-common",
  "tokio",
- "unicode-width",
 ]
 
 [[package]]
@@ -1693,7 +1692,6 @@ dependencies = [
  "serde_json",
  "terman-common",
  "tokio",
- "unicode-width",
 ]
 
 [[package]]

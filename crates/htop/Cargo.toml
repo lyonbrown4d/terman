@@ -12,4 +12,3 @@ ratatui = { workspace = true }
 sysinfo = { workspace = true }
 terman-common = { workspace = true }
 tokio = { workspace = true }
-unicode-width = { workspace = true }

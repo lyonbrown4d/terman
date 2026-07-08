@@ -7,7 +7,6 @@ use crossterm::{
 };
 
 use crate::{
-    display_width::text_width,
     builtin_output::publish_window_redraw,
     session_core::ScreenSessionBus,
     terminal_mouse::mouse_event_bytes,
@@ -228,7 +227,7 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
 }
 
 fn entry_width(entry: &str) -> u16 {
-    text_width(entry)
+    terman_common::terminal_text_width(entry)
 }
 
 fn list_start_row(anchor_row: u16, rows: Option<u16>, len: usize) -> u16 {

@@ -10,3 +10,4 @@ sys-locale = { workspace = true }
 tokio = { workspace = true }
 unic-langid = { workspace = true }
 which = { workspace = true }
+unicode-width = { workspace = true }

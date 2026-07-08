@@ -11,7 +11,6 @@ use super::{
     ipc_client::{request_endpoint_response, send_control_request},
 };
 use crate::{
-    display_width::text_width,
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_mouse::mouse_event_bytes,
 };
@@ -169,7 +168,7 @@ fn list_start_row(anchor_row: u16, rows: Option<u16>, len: usize) -> u16 {
 }
 
 fn entry_width(entry: &str) -> u16 {
-    text_width(entry)
+    terman_common::terminal_text_width(entry)
 }
 
 fn on_control_row(row: u16) -> bool {

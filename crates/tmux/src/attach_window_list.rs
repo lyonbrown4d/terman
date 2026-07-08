@@ -2,7 +2,6 @@ use std::io;
 
 use crate::{
     attach_status::render_status_line,
-    display_width::text_width,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
 };
@@ -61,8 +60,8 @@ fn layout_window_labels(status: &str, labels: &[(u32, String)]) -> TmuxWindowLis
         let Some(relative) = status[search_byte..].find(label) else { continue; };
         let start_byte = search_byte + relative;
         let end_byte = start_byte + label.len();
-        let start = text_width(&status[..start_byte]);
-        let width = text_width(label.as_str());
+        let start = terman_common::terminal_text_width(&status[..start_byte]);
+        let width = terman_common::terminal_text_width(label.as_str());
         hits.push(TmuxWindowListHit { index: *index, start, end: start.saturating_add(width) });
         search_byte = end_byte;
     }

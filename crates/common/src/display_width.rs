@@ -1,10 +1,10 @@
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-pub(crate) fn text_width(text: &str) -> u16 {
+pub fn terminal_text_width(text: &str) -> u16 {
     UnicodeWidthStr::width(text).min(u16::MAX as usize) as u16
 }
 
-pub(crate) fn fit_to_width(text: &str, width: usize) -> String {
+pub fn fit_terminal_text(text: &str, width: usize) -> String {
     let mut output = String::new();
     let mut used = 0usize;
     for ch in text.chars() {

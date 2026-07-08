@@ -1,5 +1,3 @@
-use unicode_width::UnicodeWidthStr;
-
 use crate::render::Tab;
 
 const TAB_ROW: u16 = 3;
@@ -33,8 +31,7 @@ fn tab_labels() -> [TabLabel; 4] {
 }
 
 fn tab_width(label: &str) -> u16 {
-    let width = UnicodeWidthStr::width(label).saturating_add(TAB_PADDING as usize);
-    width.min(u16::MAX as usize) as u16
+    terman_common::terminal_text_width(label).saturating_add(TAB_PADDING)
 }
 
 fn column_in_span(column: u16, start: u16, width: u16) -> bool {
