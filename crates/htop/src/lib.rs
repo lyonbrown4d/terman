@@ -24,6 +24,7 @@ mod process_detail;
 mod process_rows;
 mod process_status;
 mod process_table;
+mod processes_view;
 mod render;
 mod sort_menu;
 mod tab_hitbox;
