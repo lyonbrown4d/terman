@@ -212,26 +212,9 @@ const IO_NAME_START: u16 = 51;
 
 fn io_name_cell(name: &str, table_width: u16) -> String {
     let width = table_width.saturating_sub(IO_NAME_START).max(1) as usize;
-    terman_common::fit_terminal_text(truncate_terminal_text(name, width).as_str(), width)
+    terman_common::fit_terminal_text(terman_common::truncate_terminal_text(name, width).as_str(), width)
 }
 
-fn truncate_terminal_text(value: &str, width: usize) -> String {
-    if terman_common::terminal_text_width(value) as usize <= width {
-        return value.to_string();
-    }
-    let marker = "...";
-    let body_width = width.saturating_sub(terman_common::terminal_text_width(marker) as usize);
-    let mut output = String::new();
-    for ch in value.chars() {
-        let next = format!("{output}{ch}");
-        if terman_common::terminal_text_width(&next) as usize > body_width {
-            break;
-        }
-        output.push(ch);
-    }
-    output.push_str(marker);
-    output
-}
 fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
     let block = Block::default()
         .title(title)
