@@ -1,8 +1,7 @@
 use std::io::{self, Write};
 
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, MouseButton, MouseEvent, MouseEventKind},
-    execute,
+    event::{MouseButton, MouseEvent, MouseEventKind},
     terminal::size,
 };
 
@@ -18,13 +17,7 @@ use crate::{
 
 pub(super) type AttachMouseState = MouseWindowListState;
 
-pub(super) fn enable_mouse_capture() -> io::Result<()> {
-    execute!(io::stdout(), EnableMouseCapture)
-}
-
-pub(super) fn disable_mouse_capture() {
-    let _ = execute!(io::stdout(), DisableMouseCapture);
-}
+pub(super) use terman_common::{disable_mouse_capture, enable_mouse_capture};
 
 pub(super) fn handle_attach_mouse(
     endpoint: &ScreenIpcEndpoint,
