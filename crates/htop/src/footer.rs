@@ -90,7 +90,7 @@ fn prompt_spans(filtering: bool, searching: bool, kill_target: Option<&str>) -> 
 }
 
 fn kill_prompt_action_at(column: u16, pid: &str) -> Option<FooterAction> {
-    let mut start = format!(" confirm kill pid {pid}: ").chars().count() as u16;
+    let mut start = terman_common::terminal_text_width(&format!(" confirm kill pid {pid}: "));
     let yes = button_width("Y", " Yes ".to_string());
     if column >= start && column < start.saturating_add(yes) { return Some(FooterAction::ConfirmKill); }
     start = start.saturating_add(yes);
@@ -98,7 +98,7 @@ fn kill_prompt_action_at(column: u16, pid: &str) -> Option<FooterAction> {
     if column >= start && column < start.saturating_add(no) { Some(FooterAction::CancelKill) } else { None }
 }
 fn button_width(key: &str, value: String) -> u16 {
-    key.chars().count() as u16 + 2 + value.chars().count() as u16
+    terman_common::terminal_text_width(key).saturating_add(2).saturating_add(terman_common::terminal_text_width(&value))
 }
 fn key_span(key: &'static str) -> Span<'static> {
     Span::styled(format!(" {key} "), Style::default().fg(Color::Black).bg(Color::Cyan))
@@ -126,4 +126,18 @@ fn prompt_text(filtering: bool, searching: bool, kill_target: Option<&str>) -> S
 
 fn view_label(tree: bool) -> &'static str {
     if tree { "Tree" } else { "Flat" }
+}
+#[cfg(test)]
+mod tests {
+    use super::{FooterAction, button_width, footer_action_at};
+    use crate::model::SortMode;
+
+    #[test]
+    fn maps_footer_actions_after_wide_search_text() {
+        let help = button_width("F1", " Help ".to_string());
+        let search = button_width("F3", " Search:服务 ".to_string());
+        let column = help.saturating_add(search).saturating_add(1);
+        let action = footer_action_at(column, SortMode::Cpu, false, "", "服务", 1000, None);
+        assert_eq!(action, Some(FooterAction::Filter));
+    }
 }
