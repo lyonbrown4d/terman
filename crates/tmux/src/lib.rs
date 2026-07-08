@@ -2,6 +2,7 @@ use std::{error::Error, io};
 
 mod args;
 mod attach;
+mod attach_input;
 mod attach_keys;
 mod attach_mouse;
 mod attach_rename;

@@ -6,22 +6,16 @@ use std::{
 };
 
 use crossterm::{
-    event::{read, Event, KeyCode, KeyEvent},
+    event::{read, Event},
     terminal::{disable_raw_mode, enable_raw_mode, size},
 };
 use interprocess::local_socket::prelude::*;
 
 use crate::{
     args::target_session_arg,
+    attach_input::AttachInputMode,
     attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
-    attach_keys::{
-        is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes, tmux_prefix_bytes,
-        tmux_prefix_command, TmuxPrefixCommand,
-    },
-    attach_rename::handle_rename_input,
-    attach_status::{query_status_line, render_status_line, KILL_CONFIRM_STATUS, PREFIX_STATUS},
-    attach_window::{current_active_window, handle_window_command, kill_current_window, select_window},
-    attach_window_list::render_window_list_status,
+    attach_status::{query_status_line, render_status_line},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::load_builtin_tmux_sessions,
@@ -105,7 +99,6 @@ fn write_output(bytes: &[u8]) -> io::Result<()> {
     stdout.flush()
 }
 
-
 fn sync_terminal_size(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let (cols, rows) = size()?;
     send_resize(endpoint, cols, content_rows(rows))
@@ -128,112 +121,10 @@ fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::
     }
 }
 
-#[derive(Default)]
-struct AttachInputMode { prefix_pending: bool, kill_pending: bool, rename_input: Option<String>, last_window: Option<u32> }
-
-impl AttachInputMode {
-    fn handle_key(&mut self, endpoint: &TmuxIpcEndpoint, client_id: &str, key: KeyEvent) -> io::Result<bool> {
-        if !is_key_press(&key) { return Ok(true); }
-        if let Some(input) = self.rename_input.as_mut() {
-            handle_rename_input(endpoint, &key, input)?;
-            if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
-                self.rename_input = None;
-            }
-            return Ok(true);
-        }
-        if self.kill_pending {
-            self.kill_pending = handle_kill_confirmation(endpoint, &key)?;
-            return Ok(true);
-        }
-        if self.prefix_pending {
-            self.prefix_pending = false;
-            if is_detach_key(&key) {
-                send_request(endpoint, TmuxIpcRequest::DetachClient { client_id: client_id.to_string() })?;
-                return Ok(false);
-            }
-            if let Some(command) = tmux_prefix_command(&key) {
-                if matches!(command, TmuxPrefixCommand::KillWindow) {
-                    self.kill_pending = true;
-                    let _ = render_status_line(KILL_CONFIRM_STATUS);
-                } else if matches!(command, TmuxPrefixCommand::RenameWindow) {
-                    self.rename_input = Some(String::new());
-                    let _ = render_status_line("tmux rename | ");
-                } else if matches!(command, TmuxPrefixCommand::ListWindows) {
-                    let _ = render_window_list_status(endpoint)?;
-                } else if matches!(command, TmuxPrefixCommand::Help) {
-                    let _ = render_status_line(&terman_common::builtin_tmux_attach_help());
-                } else if matches!(command, TmuxPrefixCommand::LastWindow) {
-                    self.select_last_window(endpoint)?;
-                } else {
-                    self.track_last_window(endpoint, command)?;
-                    handle_window_command(endpoint, command)?;
-                    let _ = render_current_status(endpoint);
-                }
-                return Ok(true);
-            }
-            send_input(endpoint, tmux_prefix_bytes())?;
-            let _ = render_current_status(endpoint);
-            if is_tmux_prefix_key(&key) { return Ok(true); }
-        }
-        if is_tmux_prefix_key(&key) {
-            self.prefix_pending = true;
-            let _ = render_status_line(PREFIX_STATUS);
-            return Ok(true);
-        }
-        if let Some(bytes) = key_event_bytes(&key) { send_input(endpoint, bytes)?; }
-        Ok(true)
-    }
-    fn select_last_window(&mut self, endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
-        let Some(index) = self.last_window else {
-            return render_current_status(endpoint);
-        };
-        let active_window = current_active_window(endpoint)?;
-        select_window(endpoint, index)?;
-        self.last_window = Some(active_window);
-        render_current_status(endpoint)
-    }
-
-    fn track_last_window(
-        &mut self,
-        endpoint: &TmuxIpcEndpoint,
-        command: TmuxPrefixCommand,
-    ) -> io::Result<()> {
-        if active_changing_command(command) {
-            self.last_window = Some(current_active_window(endpoint)?);
-        }
-        Ok(())
-    }}
-
-fn active_changing_command(command: TmuxPrefixCommand) -> bool {
-    matches!(
-        command,
-        TmuxPrefixCommand::CreateWindow
-            | TmuxPrefixCommand::NextWindow
-            | TmuxPrefixCommand::PreviousWindow
-            | TmuxPrefixCommand::SelectWindow(_)
-    )
+fn send_resize(endpoint: &TmuxIpcEndpoint, cols: u16, rows: u16) -> io::Result<()> {
+    send_request(endpoint, TmuxIpcRequest::Resize { cols, rows })
 }
 
-fn handle_kill_confirmation(endpoint: &TmuxIpcEndpoint, key: &KeyEvent) -> io::Result<bool> {
-    match key.code {
-        KeyCode::Char('y') | KeyCode::Char('Y') => {
-            kill_current_window(endpoint)?;
-            let _ = render_current_status(endpoint);
-            Ok(false)
-        }
-        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-            let _ = render_current_status(endpoint);
-            Ok(false)
-        }
-        _ => Ok(true),
-    }
-}
-fn render_current_status(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
-    let status = query_status_line(endpoint)?;
-    render_status_line(&status)
-}
-fn send_input(endpoint: &TmuxIpcEndpoint, bytes: Vec<u8>) -> io::Result<()> { send_request(endpoint, TmuxIpcRequest::Input { bytes }) }
-fn send_resize(endpoint: &TmuxIpcEndpoint, cols: u16, rows: u16) -> io::Result<()> { send_request(endpoint, TmuxIpcRequest::Resize { cols, rows }) }
 fn content_rows(rows: u16) -> u16 { rows.saturating_sub(1).max(1) }
 
 fn send_request(endpoint: &TmuxIpcEndpoint, request: TmuxIpcRequest) -> io::Result<()> {
