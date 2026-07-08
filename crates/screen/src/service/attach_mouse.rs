@@ -58,13 +58,16 @@ pub(super) fn handle_attach_mouse(
     event: MouseEvent,
 ) -> io::Result<()> {
     if state.list_open()
-        && matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
+        && matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
     {
+        return Ok(());
+    }
+    if state.list_open() && matches!(event.kind, MouseEventKind::Up(MouseButton::Left)) {
         return select_list_window(endpoint, state, event.row, event.column);
     }
     if state.list_open() {
         state.clear();
-        return Ok(());
+        return send_control_request(endpoint, ScreenIpcRequest::Redisplay);
     }
 
     let control_row = on_control_row(event.row);
@@ -171,8 +174,3 @@ fn select_previous_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
 fn select_next_window(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     send_control_request(endpoint, ScreenIpcRequest::NextWindow)
 }
-
-
-
-
-

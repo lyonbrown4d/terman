@@ -58,8 +58,11 @@ pub(crate) fn handle_builtin_mouse(
     event: MouseEvent,
 ) {
     if state.list_open()
-        && !matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
+        && matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left))
     {
+        return;
+    }
+    if state.list_open() && !matches!(event.kind, MouseEventKind::Up(MouseButton::Left)) {
         close_window_list(bus, state);
         return;
     }
@@ -226,12 +229,3 @@ fn publish_mouse_message(bus: &ScreenSessionBus, message: String) {
     let _ = stdout.write_all(message.as_bytes());
     let _ = stdout.flush();
 }
-
-
-
-
-
-
-
-
-
