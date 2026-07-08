@@ -15,6 +15,7 @@ mod clients;
 mod command;
 mod detach_client;
 mod di;
+mod display_width;
 mod history;
 mod ipc;
 mod lifecycle;

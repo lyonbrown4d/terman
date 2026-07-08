@@ -11,6 +11,7 @@ use crate::{
     attach_status::{query_status_line, render_status_line},
     attach_window::{handle_window_command, select_window},
     attach_window_list::{TmuxWindowListLayout, render_window_list_status},
+    display_width::text_width,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     terminal_mouse::mouse_event_bytes,
@@ -152,11 +153,11 @@ fn clicked_status_target(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<
 enum StatusClickTarget { Window(u32), Help }
 
 fn status_window_at(column: u16, session_name: &str, active_window: u32, indexes: &[u32], names: &[String]) -> Option<u32> {
-    let mut offset = format!("tmux {session_name} | ").chars().count() as u16;
+    let mut offset = text_width(&format!("tmux {session_name} | "));
     for (position, index) in indexes.iter().enumerate() {
         let name = names.get(position).map(String::as_str).unwrap_or("-");
         let label = if *index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") };
-        let width = label.chars().count() as u16;
+        let width = text_width(label.as_str());
         if column >= offset && column < offset.saturating_add(width) { return Some(*index); }
         offset = offset.saturating_add(width + 1);
     }
@@ -168,11 +169,11 @@ fn status_help_at(column: u16, session_name: &str, active_window: u32, indexes: 
 }
 
 fn status_prompt_start(session_name: &str, active_window: u32, indexes: &[u32], names: &[String]) -> u16 {
-    let mut width = format!("tmux {session_name} | ").chars().count() as u16;
+    let mut width = text_width(&format!("tmux {session_name} | "));
     for (position, index) in indexes.iter().enumerate() {
         let name = names.get(position).map(String::as_str).unwrap_or("-");
         let label = if *index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") };
-        width = width.saturating_add(label.chars().count() as u16);
+        width = width.saturating_add(text_width(label.as_str()));
         if position + 1 < indexes.len() { width = width.saturating_add(1); }
     }
     width.saturating_add(3)
@@ -196,5 +197,13 @@ mod tests {
         let names = vec![String::from("zsh"), String::from("api")];
         assert_eq!(status_window_at(11, "dev", 0, &indexes, &names), Some(0));
         assert_eq!(status_window_at(19, "dev", 0, &indexes, &names), Some(1));
+    }
+
+    #[test]
+    fn maps_unicode_window_status_columns() {
+        let indexes = vec![0, 1];
+        let names = vec![String::from("服务"), String::from("api")];
+        assert_eq!(status_window_at(11, "dev", 0, &indexes, &names), Some(0));
+        assert_eq!(status_window_at(20, "dev", 0, &indexes, &names), Some(1));
     }
 }

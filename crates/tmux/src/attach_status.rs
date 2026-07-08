@@ -4,10 +4,11 @@ use crossterm::{
     cursor::{MoveTo, RestorePosition, SavePosition},
     execute,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-    terminal::{size, Clear, ClearType},
+    terminal::{Clear, ClearType, size},
 };
 
 use crate::{
+    display_width::fit_to_width,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
 };
@@ -32,7 +33,7 @@ pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String
 pub(crate) fn render_status_line(status: &str) -> io::Result<()> {
     let (cols, rows) = size()?;
     let row = rows.saturating_sub(1);
-    let text = fit_status_text(status, cols as usize);
+    let text = fit_to_width(status, cols as usize);
     let mut stdout = io::stdout().lock();
     execute!(
         stdout,
@@ -46,11 +47,4 @@ pub(crate) fn render_status_line(status: &str) -> io::Result<()> {
         RestorePosition
     )?;
     stdout.flush()
-}
-
-fn fit_status_text(status: &str, width: usize) -> String {
-    let mut text = status.chars().take(width).collect::<String>();
-    let len = text.chars().count();
-    if len < width { text.push_str(&" ".repeat(width - len)); }
-    text
 }
