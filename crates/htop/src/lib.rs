@@ -1,6 +1,7 @@
 use std::error::Error;
 
 mod app;
+mod app_events;
 mod app_input;
 mod app_terminal;
 mod cli;
