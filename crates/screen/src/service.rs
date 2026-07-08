@@ -42,6 +42,7 @@ mod ipc_client;
 mod listener;
 mod listener_dispatch;
 mod listener_io;
+mod listener_responses;
 mod sessionname;
 
 pub(crate) use self::client::{request_screen_attach, request_screen_server_ready};
