@@ -7,6 +7,7 @@ mod cli;
 mod di;
 mod ipc;
 mod launcher;
+mod mouse_window_list;
 mod pty;
 mod pty_process;
 mod service;

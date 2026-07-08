@@ -8,50 +8,13 @@ use crossterm::{
 
 use crate::{
     builtin_output::publish_window_redraw,
+    mouse_window_list::MouseWindowListState,
     session_core::ScreenSessionBus,
     terminal_mouse::mouse_event_bytes,
     window_runtime::{ScreenWindowRuntime, ScreenWindowSwitch, switch_screen_window, write_active_window_input},
 };
 
-#[derive(Default)]
-pub(crate) struct ScreenMouseState {
-    window_list_start: Option<u16>,
-    window_entries: Vec<(usize, u16)>,
-    suppress_button_release: bool,
-}
-
-impl ScreenMouseState {
-    fn show_window_list(&mut self, start: u16, entries: Vec<(usize, u16)>) {
-        self.window_list_start = Some(start);
-        self.window_entries = entries;
-    }
-
-    fn clear(&mut self) {
-        self.window_list_start = None;
-        self.window_entries.clear();
-    }
-
-    fn list_open(&self) -> bool {
-        self.window_list_start.is_some()
-    }
-
-    fn suppress_button_release(&mut self) {
-        self.suppress_button_release = true;
-    }
-
-    fn take_suppressed_button_release(&mut self) -> bool {
-        let suppress = self.suppress_button_release;
-        self.suppress_button_release = false;
-        suppress
-    }
-
-    fn window_at(&self, row: u16, column: u16) -> Option<usize> {
-        let start = self.window_list_start?;
-        let offset = row.checked_sub(start)? as usize;
-        let (index, width) = self.window_entries.get(offset).copied()?;
-        (column < width).then_some(index)
-    }
-}
+pub(crate) type ScreenMouseState = MouseWindowListState;
 
 pub(crate) fn enable_mouse_capture() -> io::Result<()> {
     execute!(io::stdout(), EnableMouseCapture)
@@ -111,6 +74,7 @@ fn scroll_wheel(
         forward_mouse_event(windows, *active_window, event);
     }
 }
+
 fn select_or_forward(
     bus: &ScreenSessionBus,
     windows: &mut [ScreenWindowRuntime],
@@ -174,10 +138,12 @@ fn middle_click(
         forward_mouse_event(windows, active_window, event);
     }
 }
+
 fn on_control_row(bus: &ScreenSessionBus, row: u16) -> bool {
     let rows = bus.status_snapshot().rows.or_else(|| size().ok().map(|(_, rows)| rows));
     rows.map(|rows| row == rows.saturating_sub(1)).unwrap_or(false)
 }
+
 fn forward_mouse_event(windows: &mut [ScreenWindowRuntime], active_window: usize, event: MouseEvent) {
     if let Some(bytes) = mouse_event_bytes(event) {
         write_active_window_input(windows, active_window, &bytes);
