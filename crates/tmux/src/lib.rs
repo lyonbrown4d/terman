@@ -31,6 +31,7 @@ mod send_keys;
 mod server;
 mod session_core;
 mod session_model;
+mod session_state;
 mod sessions;
 mod status;
 mod shell;
