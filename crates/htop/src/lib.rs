@@ -20,6 +20,7 @@ mod mouse_context;
 mod mouse_rows;
 mod network;
 mod network_view;
+mod overview_layout;
 mod overview_view;
 mod process_detail;
 mod process_rows;

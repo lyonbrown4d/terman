@@ -3,6 +3,7 @@ use ratatui::layout::Rect;
 
 use crate::{
     model::ProcessRow,
+    overview_layout,
     mouse_context::MouseContext,
     process_detail::process_detail_lines,
     render::Tab,
@@ -91,12 +92,12 @@ fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cor
 }
 
 fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
-    let body = terminal_area().height.saturating_sub(6) as usize;
-    let core_rows = body.saturating_sub(16).min(cores).min(8);
-    let overflow_row = if cores > core_rows { 1usize } else { 0 };
-    let start = 17u16.saturating_add(core_rows as u16).saturating_add(overflow_row as u16);
-    let visible = body.saturating_sub(14 + core_rows + overflow_row);
-    row.checked_sub(start).map(usize::from).filter(|index| *index < visible && *index < processes.len())
+    let terminal = terminal_area();
+    let start = overview_layout::process_start_row(terminal.height, cores);
+    let visible = overview_layout::process_rows_for_terminal(terminal.height, cores);
+    row.checked_sub(start)
+        .map(usize::from)
+        .filter(|index| *index < visible && *index < processes.len())
 }
 
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
