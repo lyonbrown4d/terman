@@ -1,8 +1,7 @@
 use std::io;
 
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, MouseButton, MouseEvent, MouseEventKind},
-    execute,
+    event::{MouseButton, MouseEvent, MouseEventKind},
     terminal::size,
 };
 
@@ -35,13 +34,7 @@ impl AttachMouseState {
     }
 }
 
-pub(crate) fn enable_mouse_capture() -> io::Result<()> {
-    execute!(io::stdout(), EnableMouseCapture)
-}
-
-pub(crate) fn disable_mouse_capture() {
-    let _ = execute!(io::stdout(), DisableMouseCapture);
-}
+pub(crate) use terman_common::{disable_mouse_capture, enable_mouse_capture};
 
 pub(crate) fn handle_attach_mouse(
     endpoint: &TmuxIpcEndpoint,

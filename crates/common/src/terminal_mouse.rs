@@ -1,4 +1,17 @@
-use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use std::io;
+
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture, KeyModifiers, MouseButton, MouseEvent, MouseEventKind},
+    execute,
+};
+
+pub fn enable_mouse_capture() -> io::Result<()> {
+    execute!(io::stdout(), EnableMouseCapture)
+}
+
+pub fn disable_mouse_capture() {
+    let _ = execute!(io::stdout(), DisableMouseCapture);
+}
 
 pub fn mouse_event_bytes(event: MouseEvent) -> Option<Vec<u8>> {
     let (code, suffix) = match event.kind {
