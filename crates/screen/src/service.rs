@@ -1,6 +1,7 @@
 mod attach;
 mod attach_actions;
 mod attach_buffer;
+mod attach_hardcopy;
 mod attach_mouse;
 mod attach_number;
 mod attach_output;
