@@ -11,6 +11,7 @@ mod pty;
 mod pty_process;
 mod service;
 mod server;
+mod server_manifest;
 mod session_core;
 mod screen_exchange;
 mod sessions;

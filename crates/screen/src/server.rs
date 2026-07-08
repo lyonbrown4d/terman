@@ -12,10 +12,8 @@ use crate::{
     ipc::ScreenIpcEndpoint,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
-    sessions::{
-        BuiltinScreenSession, register_builtin_screen_session, sync_builtin_screen_session_manifest,
-    },
-    shell::default_shell,
+    server_manifest::sync_session_manifest,
+    sessions::register_builtin_screen_session,
     window_runtime::{
         ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, apply_default_window_log,
         kill_active_window, kill_windows, new_screen_window_title, next_screen_window_index,
@@ -216,40 +214,6 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
             terman_common::builtin_screen_internal_server_exited_hint(exit_code),
         )))
     }
-}
-
-fn sync_session_manifest(
-    args: &ScreenArgs,
-    endpoint_name: &str,
-    session_name_state: &Arc<Mutex<String>>,
-    bus: &ScreenSessionBus,
-) {
-    let Ok(session) = server_session_record(args, endpoint_name, session_name_state) else {
-        return;
-    };
-    let status = bus.status_snapshot();
-    let _ = sync_builtin_screen_session_manifest(&session, &status);
-}
-
-fn server_session_record(
-    args: &ScreenArgs,
-    endpoint_name: &str,
-    session_name_state: &Arc<Mutex<String>>,
-) -> io::Result<BuiltinScreenSession> {
-    let name = session_name_state
-        .lock()
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "screen session name lock poisoned"))?
-        .clone();
-    let cwd = std::env::current_dir()
-        .map(|path| path.to_string_lossy().to_string())
-        .unwrap_or_else(|_| String::from("<unknown>"));
-    Ok(BuiltinScreenSession {
-        name,
-        pid: std::process::id().to_string(),
-        cwd,
-        command: args.command.clone().unwrap_or_else(default_shell),
-        ipc_endpoint: Some(endpoint_name.to_string()),
-    })
 }
 
 fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
