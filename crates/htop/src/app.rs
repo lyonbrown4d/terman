@@ -4,15 +4,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossterm::{
-    cursor::{Hide, Show},
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers},
-    execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
-};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
+    app_terminal::TerminalGuard,
     app_input::{
         adjust_refresh, clamp_selection, delay_key, filter_key, find_next, help_key, kill_key,
         move_selection, navigation_key, next_tab, quit_key, search_key, sort_key, tree_key,
@@ -25,23 +21,6 @@ use crate::{
     render::{self, Tab},
     sort_menu::{self, SortMenuAction},
 };
-
-struct TerminalGuard;
-
-impl TerminalGuard {
-    fn enter() -> io::Result<Self> {
-        enable_raw_mode()?;
-        execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture, Hide)?;
-        Ok(Self)
-    }
-}
-
-impl Drop for TerminalGuard {
-    fn drop(&mut self) {
-        let _ = execute!(io::stdout(), Show, DisableMouseCapture, LeaveAlternateScreen);
-        let _ = disable_raw_mode();
-    }
-}
 
 pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let _guard = TerminalGuard::enter()?;
