@@ -36,6 +36,7 @@ mod sessions;
 mod status;
 mod shell;
 mod terminal_mouse;
+mod window_command_support;
 mod window_commands;
 mod window_runtime;
 
