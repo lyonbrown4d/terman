@@ -1,20 +1,18 @@
 pub(crate) use crate::mouse_context::MouseContext;
 use crate::process_table;
-use crossterm::{
-    event::{MouseButton, MouseEvent, MouseEventKind},
-    terminal,
-};
-use ratatui::layout::Rect;
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use crate::{
     footer::{self, FooterAction},
-    model::{ProcessRow, SortMode},
-    process_detail::process_detail_lines,
+    model::SortMode,
+    mouse_rows::{detail_at, detail_drag_scroll, max_detail_scroll, move_down, row_process_at, terminal_area},
     render::Tab,
-    tab_hitbox::tab_at,
     sort_menu,
+    tab_hitbox::tab_at,
 };
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MouseAction { Ignored, Handled, Search, Filter, Kill, ConfirmKill, CancelKill, DelayFaster, DelaySlower, Quit }
+
 pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> MouseAction {
     if *context.help_open {
         if matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Down(MouseButton::Middle)) {
@@ -22,38 +20,18 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         }
         return MouseAction::Handled;
     }
-    if context.kill_target.is_some() { return if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) { click(event.column, event.row, context) } else { MouseAction::Handled }; }
+    if context.kill_target.is_some() {
+        return if matches!(event.kind, MouseEventKind::Down(MouseButton::Left)) {
+            click(event.column, event.row, context)
+        } else {
+            MouseAction::Handled
+        };
+    }
     match event.kind {
-        MouseEventKind::ScrollUp => {
-            if sort_menu_scroll(&mut context, false) {
-                return MouseAction::Handled;
-            }
-            if tab_scroll(&mut context, false) {
-                return MouseAction::Handled;
-            }
-            if detail_at(event.row, &context) {
-                *context.detail_scroll = (*context.detail_scroll).saturating_sub(1);
-            } else {
-                move_selected(context.selected, context.detail_scroll, context.processes.len(), false);
-            }
-            MouseAction::Handled
-        }
-        MouseEventKind::ScrollDown => {
-            if sort_menu_scroll(&mut context, true) {
-                return MouseAction::Handled;
-            }
-            if tab_scroll(&mut context, true) {
-                return MouseAction::Handled;
-            }
-            if detail_at(event.row, &context) {
-                *context.detail_scroll = move_down(*context.detail_scroll, max_detail_scroll(&context));
-            } else {
-                move_selected(context.selected, context.detail_scroll, context.processes.len(), true);
-            }
-            MouseAction::Handled
-        }
-        MouseEventKind::ScrollLeft => { if sort_menu_scroll(&mut context, false) { return MouseAction::Handled; } *context.tab = (*context.tab).previous(); MouseAction::Handled }
-        MouseEventKind::ScrollRight => { if sort_menu_scroll(&mut context, true) { return MouseAction::Handled; } *context.tab = (*context.tab).next(); MouseAction::Handled }
+        MouseEventKind::ScrollUp => scroll(event.row, context, false),
+        MouseEventKind::ScrollDown => scroll(event.row, context, true),
+        MouseEventKind::ScrollLeft => switch_or_scroll_menu(&mut context, false),
+        MouseEventKind::ScrollRight => switch_or_scroll_menu(&mut context, true),
         MouseEventKind::Down(MouseButton::Left) => click(event.column, event.row, context),
         MouseEventKind::Up(MouseButton::Left) => release_click(event.column, event.row, context),
         MouseEventKind::Drag(MouseButton::Left) => drag_select(event.row, context),
@@ -62,34 +40,64 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
         _ => MouseAction::Ignored,
     }
 }
+
+fn scroll(row: u16, mut context: MouseContext<'_>, down: bool) -> MouseAction {
+    if sort_menu_scroll(&mut context, down) || tab_scroll(&mut context, down) {
+        return MouseAction::Handled;
+    }
+    if detail_at(row, &context) {
+        *context.detail_scroll = if down {
+            move_down(*context.detail_scroll, max_detail_scroll(&context))
+        } else {
+            (*context.detail_scroll).saturating_sub(1)
+        };
+    } else {
+        move_selected(context.selected, context.detail_scroll, context.processes.len(), down);
+    }
+    MouseAction::Handled
+}
+
+fn switch_or_scroll_menu(context: &mut MouseContext<'_>, forward: bool) -> MouseAction {
+    if sort_menu_scroll(context, forward) {
+        return MouseAction::Handled;
+    }
+    *context.tab = if forward { (*context.tab).next() } else { (*context.tab).previous() };
+    MouseAction::Handled
+}
+
 fn tab_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
-    let target = match *context.tab { Tab::Io => &mut *context.io_scroll, Tab::Network => &mut *context.network_scroll, _ => return false };
+    let target = match *context.tab {
+        Tab::Io => &mut *context.io_scroll,
+        Tab::Network => &mut *context.network_scroll,
+        _ => return false,
+    };
     *target = if forward { target.saturating_add(1) } else { target.saturating_sub(1) };
     true
 }
+
 fn sort_menu_scroll(context: &mut MouseContext<'_>, forward: bool) -> bool {
-    if !*context.sort_menu_open {
-        return false;
-    }
+    if !*context.sort_menu_open { return false; }
     sort_menu::move_cursor(context.sort_cursor, forward);
     true
 }
+
 fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
     if *context.sort_menu_open {
         *context.sort_menu_open = false;
         return MouseAction::Handled;
     }
-    let Some(index) = row_process_at(row, &context) else {
-        return MouseAction::Ignored;
-    };
-    if *context.selected != index {
-        *context.detail_scroll = 0;
-    }
-    *context.selected = index;
+    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
+    select_index(index, context);
     MouseAction::Kill
 }
+
 fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
-    if context.kill_target.is_some() { return match handle_footer(column, row, &mut context) { MouseAction::Ignored => MouseAction::Handled, action => action }; }
+    if context.kill_target.is_some() {
+        return match handle_footer(column, row, &mut context) {
+            MouseAction::Ignored => MouseAction::Handled,
+            action => action,
+        };
+    }
     if *context.sort_menu_open {
         if let Some(mode) = sort_menu::mode_at(terminal_area(), column, row) {
             *context.sort_cursor = mode;
@@ -112,47 +120,38 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         return MouseAction::Handled;
     }
     if let Some(index) = row_process_at(row, &context) {
-        if *context.selected != index {
-            *context.detail_scroll = 0;
-        }
-        *context.selected = index;
+        select_index(index, context);
         return MouseAction::Handled;
     }
     MouseAction::Ignored
 }
+
 fn release_click(column: u16, row: u16, context: MouseContext<'_>) -> MouseAction {
     if context.kill_target.is_some() || *context.sort_menu_open { return MouseAction::Ignored; }
     if let Some(tab) = tab_at(column, row) { *context.tab = tab; return MouseAction::Handled; }
-    if let Some(mode) = table_header_sort_at(*context.tab, column, row) { *context.sort = mode; *context.sort_cursor = mode; return MouseAction::Handled; }
-    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; }; if *context.selected != index { *context.detail_scroll = 0; }
-    *context.selected = index; MouseAction::Handled
-}
-fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
-    if detail_at(row, &context) {
-        let details = process_detail_lines(context.processes.get(*context.selected)).len();
-        let rows = detail_rows(details).max(1);
-        let first = 8u16.saturating_add(visible_process_rows(*context.selected, context.processes) as u16 + 1);
-        let offset = row.saturating_sub(first) as usize;
-        let max = max_detail_scroll(&context);
-        *context.detail_scroll = if rows <= 1 { 0 } else { max.saturating_mul(offset) / (rows - 1) };
+    if let Some(mode) = table_header_sort_at(*context.tab, column, row) {
+        *context.sort = mode;
+        *context.sort_cursor = mode;
         return MouseAction::Handled;
     }
-    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; }; if *context.selected != index { *context.detail_scroll = 0; }
-    *context.selected = index; MouseAction::Handled
+    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
+    select_index(index, context);
+    MouseAction::Handled
 }
-fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
-    if row != terminal_area().height.saturating_sub(1) {
-        return MouseAction::Ignored;
+
+fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
+    if detail_at(row, &context) {
+        *context.detail_scroll = detail_drag_scroll(row, &context);
+        return MouseAction::Handled;
     }
-    match footer::footer_action_at(
-        column,
-        *context.sort,
-        *context.tree,
-        context.filter,
-        context.search,
-        context.refresh_ms,
-        context.kill_target,
-    ) {
+    let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
+    select_index(index, context);
+    MouseAction::Handled
+}
+
+fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
+    if row != terminal_area().height.saturating_sub(1) { return MouseAction::Ignored; }
+    match footer::footer_action_at(column, *context.sort, *context.tree, context.filter, context.search, context.refresh_ms, context.kill_target) {
         Some(FooterAction::Help) => *context.help_open = true,
         Some(FooterAction::Search) => return MouseAction::Search,
         Some(FooterAction::Filter) => return MouseAction::Filter,
@@ -171,6 +170,7 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
     }
     MouseAction::Handled
 }
+
 fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
     if row != 6 { return None; }
     let column = column.saturating_sub(1);
@@ -180,91 +180,14 @@ fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
         _ => None,
     }
 }
-fn row_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
-    process_at(*context.tab, row, *context.selected, context.processes, context.cpu_core_count).or_else(|| io_process_at(row, context)).or_else(|| network_process_at(row, context))
+
+fn select_index(index: usize, context: MouseContext<'_>) {
+    if *context.selected != index { *context.detail_scroll = 0; }
+    *context.selected = index;
 }
-fn network_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
-    if *context.tab != Tab::Network || context.sockets.is_empty() { return None; }
-    let body = terminal_area().height.saturating_sub(10) as usize;
-    let interfaces = 4usize.min(body.saturating_sub(6));
-    let visible = body.saturating_sub(interfaces + 4);
-    let first = 10u16.saturating_add(interfaces as u16);
-    let offset = row.checked_sub(first)? as usize; if offset >= visible { return None; }
-    let start = (*context.network_scroll).min(context.sockets.len().saturating_sub(visible));
-    let pid = context.sockets.get(start + offset)?.pid.as_str();
-    if pid.is_empty() || pid == "-" { return None; }
-    context.processes.iter().position(|process| process.pid == pid)
-}fn io_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
-    if *context.tab != Tab::Io || context.io.is_empty() { return None; }
-    let first = 7u16; if row < first { return None; }
-    let visible = terminal_area().height.saturating_sub(10) as usize;
-    let offset = row.saturating_sub(first) as usize; if offset >= visible { return None; }
-    let start = (*context.io_scroll).min(context.io.len().saturating_sub(visible));
-    let pid = context.io.get(start + offset)?.pid.as_str();
-    context.processes.iter().position(|process| process.pid == pid)
-}fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
-    if tab == Tab::Overview { return overview_process_at(row, processes, cores); }
-    if tab != Tab::Processes || processes.is_empty() { return None; }
-    let first_process_row = 8u16;
-    if row < first_process_row { return None; }
-    let visible = visible_process_rows(selected, processes);
-    let offset = row.saturating_sub(first_process_row) as usize;
-    if offset >= visible { return None; }
-    Some(visible_start(selected, visible, processes.len()) + offset).filter(|index| *index < processes.len())
-}
-fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
-    let body = terminal_area().height.saturating_sub(6) as usize;
-    let core_rows = body.saturating_sub(16).min(cores).min(8);
-    let overflow_row = if cores > core_rows { 1usize } else { 0 };
-    let start = 17u16.saturating_add(core_rows as u16).saturating_add(overflow_row as u16);
-    let visible = body.saturating_sub(14 + core_rows + overflow_row);
-    row.checked_sub(start).map(usize::from).filter(|index| *index < visible && *index < processes.len())
-}
-fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {
-    let body_rows = terminal_area().height.saturating_sub(10) as usize;
-    let details = process_detail_lines(processes.get(selected)).len();
-    body_rows.saturating_sub(detail_rows(details) + 1).max(1)
-}
-fn detail_at(row: u16, context: &MouseContext<'_>) -> bool {
-    if *context.tab != Tab::Processes || context.processes.is_empty() {
-        return false;
-    }
-    let first_detail_row = 8u16.saturating_add(visible_process_rows(*context.selected, context.processes) as u16 + 1);
-    let details = process_detail_lines(context.processes.get(*context.selected)).len();
-    let end = first_detail_row.saturating_add(detail_rows(details) as u16);
-    row >= first_detail_row && row < end
-}
-fn max_detail_scroll(context: &MouseContext<'_>) -> usize {
-    let details = process_detail_lines(context.processes.get(*context.selected)).len();
-    details.saturating_sub(detail_rows(details))
-}
-fn detail_rows(count: usize) -> usize {
-    let body_rows = terminal_area().height.saturating_sub(10) as usize;
-    let max_detail = body_rows.saturating_sub(4).max(1).min(10);
-    count.max(1).min(max_detail)
-}
+
 fn move_selected(selected: &mut usize, detail_scroll: &mut usize, count: usize, down: bool) {
     let next = if down { move_down(*selected, count) } else { selected.saturating_sub(1) };
-    if next != *selected {
-        *detail_scroll = 0;
-    }
+    if next != *selected { *detail_scroll = 0; }
     *selected = next;
-}
-fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
-    if visible == 0 || total <= visible || selected < visible {
-        0
-    } else {
-        (selected + 1 - visible).min(total - visible)
-    }
-}
-fn move_down(selected: usize, count: usize) -> usize {
-    if count == 0 {
-        0
-    } else {
-        (selected + 1).min(count - 1)
-    }
-}
-fn terminal_area() -> Rect {
-    let (width, height) = terminal::size().unwrap_or((80, 24));
-    Rect::new(0, 0, width, height)
 }
