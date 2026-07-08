@@ -24,6 +24,7 @@ use crate::{
     model::{IoRow, ProcessRow, SocketRow, SortMode},
     mouse::{self, MouseContext},
     render::{self, Tab},
+    selected_scroll::keep_selected_visible,
     sort_menu,
 };
 
@@ -60,6 +61,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));
         network_scroll = network_scroll
             .min(snapshot.networks.len().max(snapshot.sockets.len()).saturating_sub(1));
+        keep_selected_visible(tab, &snapshot, selected, &mut io_scroll, &mut network_scroll);
         terminal.draw(|frame| {
             if help_open {
                 help::draw(frame);

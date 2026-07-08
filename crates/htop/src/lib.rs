@@ -28,6 +28,7 @@ mod process_status;
 mod process_table;
 mod processes_view;
 mod render;
+mod selected_scroll;
 mod sort_menu;
 mod tab_hitbox;
 
