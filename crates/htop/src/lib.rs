@@ -20,6 +20,7 @@ mod mouse_rows;
 mod network;
 mod network_view;
 mod process_detail;
+mod process_rows;
 mod process_status;
 mod process_table;
 mod render;
