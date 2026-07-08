@@ -1,25 +1,17 @@
-use std::{
-    collections::BTreeMap,
-    error::Error,
-    io,
-    sync::{Arc, Mutex, mpsc},
-    thread,
-    time::Duration,
-};
+use std::{error::Error, io, sync::{Arc, Mutex, mpsc}, thread, time::Duration};
 
 use crate::{
     ScreenArgs,
     ipc::ScreenIpcEndpoint,
+    server_control::{
+        ServerControlDefaults, drain_server_controls, drain_server_window_output,
+        handle_server_window_exit,
+    },
+    server_manifest::sync_session_manifest,
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
-    server_manifest::sync_session_manifest,
     sessions::register_builtin_screen_session,
-    window_runtime::{
-        ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, apply_default_window_log,
-        kill_active_window, kill_windows, new_screen_window_title, next_screen_window_index,
-        renumber_screen_window, resize_windows, spawn_screen_window_runtime,
-        switch_screen_window, take_exited_window, write_active_window_input,
-    },
+    window_runtime::{ScreenWindowOutput, spawn_screen_window_runtime},
 };
 
 pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
@@ -36,8 +28,7 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(session_name));
     let endpoint_name = endpoint.raw_name().to_string();
-    let _session_record =
-        register_builtin_screen_session(&args, &endpoint, Some(session_name_state.clone()))?;
+    let _session_record = register_builtin_screen_session(&args, &endpoint, Some(session_name_state.clone()))?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
     let _session_service = ScreenSessionService::start(
@@ -47,22 +38,19 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
         control_tx,
     )?;
 
-    let cols = args.cols.unwrap_or(120);
-    let rows = args.rows.unwrap_or(32);
-    session_bus.publish_resize(cols, rows);
+    let size = (args.cols.unwrap_or(120), args.rows.unwrap_or(32));
+    session_bus.publish_resize(size.0, size.1);
 
-    let mut default_cwd = std::env::current_dir().ok();
-    let mut default_env = BTreeMap::<String, Option<String>>::new();
-    let mut default_scrollback_lines = session_bus.status_snapshot().scrollback_lines;
+    let mut defaults = ServerControlDefaults::new(session_bus.status_snapshot().scrollback_lines);
     let (output_tx, output_rx) = mpsc::channel::<ScreenWindowOutput>();
     let mut windows = vec![spawn_screen_window_runtime(
         &args,
         0,
         args.command.clone(),
-        default_cwd.as_deref(),
-        &default_env,
-        cols,
-        rows,
+        defaults.cwd.as_deref(),
+        &defaults.env,
+        size.0,
+        size.1,
         output_tx.clone(),
     )?];
     let mut active_window = 0;
@@ -70,8 +58,8 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
     sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
 
     let exit_code = loop {
-        drain_window_output(&session_bus, &output_rx);
-        if let Some(code) = handle_window_exit(
+        drain_server_window_output(&session_bus, &output_rx);
+        if let Some(code) = handle_server_window_exit(
             &args,
             endpoint_name.as_str(),
             &session_name_state,
@@ -83,125 +71,19 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
             break code;
         }
 
-        while let Ok(control) = control_rx.try_recv() {
-            match control {
-                ScreenControlEvent::Input(bytes) => {
-                    write_active_window_input(&mut windows, active_window, &bytes);
-                }
-                ScreenControlEvent::SetDefaultCwd { path } => {
-                    default_cwd = Some(path);
-                }
-                ScreenControlEvent::SetEnv { name, value } => {
-                    default_env.insert(name, Some(value));
-                }
-                ScreenControlEvent::UnsetEnv { name } => {
-                    default_env.insert(name, None);
-                }
-                ScreenControlEvent::SetDefaultScrollback { lines } => {
-                    default_scrollback_lines = lines;
-                }
-                ScreenControlEvent::NewWindow { command } => {
-                    let index = next_screen_window_index(&windows);
-                    let title = new_screen_window_title(command.as_deref(), &default_env);
-                    match spawn_screen_window_runtime(
-                        &args,
-                        index,
-                        command.clone(),
-                        default_cwd.as_deref(),
-                        &default_env,
-                        cols,
-                        rows,
-                        output_tx.clone(),
-                    ) {
-                        Ok(window) => {
-                            session_bus.add_window_with_scrollback(
-                                index,
-                                title,
-                                default_scrollback_lines,
-                            );
-                            if let Err(err) = apply_default_window_log(&session_bus, &default_env) {
-                                publish_error(&session_bus, err);
-                            }
-                            windows.push(window);
-                            if let Some(replay) = switch_screen_window(
-                                &session_bus,
-                                &windows,
-                                &mut active_window,
-                                ScreenWindowSwitch::Select(index),
-                            ) {
-                                publish_window_redraw(&session_bus, &replay);
-                            }
-                            sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                        }
-                        Err(err) => publish_error(&session_bus, err),
-                    }
-                }
-                ScreenControlEvent::SelectWindow { index } => {
-                    if let Some(replay) = switch_screen_window(
-                        &session_bus,
-                        &windows,
-                        &mut active_window,
-                        ScreenWindowSwitch::Select(index),
-                    ) {
-                        publish_window_redraw(&session_bus, &replay);
-                        sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                    }
-                }
-                ScreenControlEvent::NextWindow => {
-                    if let Some(replay) = switch_screen_window(
-                        &session_bus,
-                        &windows,
-                        &mut active_window,
-                        ScreenWindowSwitch::Next,
-                    ) {
-                        publish_window_redraw(&session_bus, &replay);
-                        sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                    }
-                }
-                ScreenControlEvent::PreviousWindow => {
-                    if let Some(replay) = switch_screen_window(
-                        &session_bus,
-                        &windows,
-                        &mut active_window,
-                        ScreenWindowSwitch::Previous,
-                    ) {
-                        publish_window_redraw(&session_bus, &replay);
-                        sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                    }
-                }
-                ScreenControlEvent::LastWindow => {
-                    if let Some(replay) = switch_screen_window(
-                        &session_bus,
-                        &windows,
-                        &mut active_window,
-                        ScreenWindowSwitch::Last,
-                    ) {
-                        publish_window_redraw(&session_bus, &replay);
-                        sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                    }
-                }
-                ScreenControlEvent::KillWindow => {
-                    kill_active_window(&mut windows, active_window);
-                }
-                ScreenControlEvent::NumberWindow { source, index } => {
-                    if renumber_screen_window(&mut windows, source, index, &mut active_window) {
-                        session_bus.renumber_window(source, index);
-                        sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                    }
-                }
-                ScreenControlEvent::Resize { cols, rows } => {
-                    resize_windows(&windows, cols, rows);
-                    session_bus.publish_resize(cols, rows);
-                    sync_session_manifest(&args, endpoint_name.as_str(), &session_name_state, &session_bus);
-                }
-                ScreenControlEvent::Terminate => {
-                    if !terminate_requested {
-                        terminate_requested = true;
-                        kill_windows(&mut windows);
-                    }
-                }
-            }
-        }
+        drain_server_controls(
+            &args,
+            endpoint_name.as_str(),
+            &session_name_state,
+            &session_bus,
+            &control_rx,
+            &output_tx,
+            &mut windows,
+            &mut active_window,
+            &mut defaults,
+            size,
+            &mut terminate_requested,
+        );
 
         thread::sleep(Duration::from_millis(16));
     };
@@ -214,45 +96,4 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
             terman_common::builtin_screen_internal_server_exited_hint(exit_code),
         )))
     }
-}
-
-fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
-    bus.publish_transient_output(b"\x1bc");
-    if !replay.is_empty() {
-        bus.publish_transient_output(replay);
-    }
-}
-
-fn drain_window_output(bus: &ScreenSessionBus, rx: &mpsc::Receiver<ScreenWindowOutput>) {
-    while let Ok(output) = rx.try_recv() {
-        bus.publish_window_output(output.index, &output.bytes);
-    }
-}
-
-fn handle_window_exit(
-    args: &ScreenArgs,
-    endpoint_name: &str,
-    session_name_state: &Arc<Mutex<String>>,
-    bus: &ScreenSessionBus,
-    windows: &mut Vec<ScreenWindowRuntime>,
-    active_window: &mut usize,
-) -> Option<i32> {
-    let exit = take_exited_window(windows)?;
-    let removal = bus.remove_window(exit.index)?;
-    if removal.last_window {
-        return Some(exit.code);
-    }
-    if let Some(index) = removal.active_window {
-        *active_window = index;
-    }
-    if removal.redraw {
-        publish_window_redraw(bus, &removal.replay);
-    }
-    sync_session_manifest(args, endpoint_name, session_name_state, bus);
-    None
-}
-
-fn publish_error(bus: &ScreenSessionBus, err: Box<dyn Error>) {
-    let message = format!("\r\nscreen window failed: {err}\r\n");
-    bus.publish_transient_output(message.as_bytes());
 }
