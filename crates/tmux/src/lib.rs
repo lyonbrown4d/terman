@@ -27,6 +27,7 @@ mod message;
 mod pty;
 mod service;
 mod service_codec;
+mod service_handlers;
 mod send_keys;
 mod server;
 mod session_core;

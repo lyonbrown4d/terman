@@ -1,15 +1,16 @@
 use std::{
-    io::{self, BufRead, BufReader},
+    io,
     sync::{Arc, Mutex, mpsc},
     thread,
 };
 
-use interprocess::local_socket::prelude::*;
+use interprocess::local_socket::traits::ListenerExt;
 
 use crate::{
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
-    service_codec::{read_response, write_request, write_response},
-    session_core::{TmuxControlEvent, TmuxSessionBus, TmuxSessionEvent},
+    service_codec::{read_response, write_request},
+    service_handlers::handle_client,
+    session_core::{TmuxControlEvent, TmuxSessionBus},
 };
 
 #[allow(dead_code)]
@@ -29,9 +30,7 @@ impl TmuxSessionService {
         let listener = endpoint.listener_options()?.create_sync()?;
         let handle = thread::spawn(move || {
             for stream in listener.incoming() {
-                let Ok(mut stream) = stream else {
-                    continue;
-                };
+                let Ok(mut stream) = stream else { continue; };
                 let client_bus = bus.clone();
                 let client_control_tx = control_tx.clone();
                 let client_session_name = session_name.clone();
@@ -60,197 +59,6 @@ pub(crate) fn request_endpoint_response(
     let mut stream = endpoint.connect_options()?.connect_sync()?;
     write_request(&mut stream, &request)?;
     read_response(stream)
-}
-
-fn handle_client(
-    stream: &mut LocalSocketStream,
-    session_name: &Arc<Mutex<String>>,
-    cwd: &str,
-    bus: &TmuxSessionBus,
-    control_tx: &mpsc::Sender<TmuxControlEvent>,
-) -> io::Result<()> {
-    let mut request = String::new();
-    {
-        let mut reader = BufReader::new(&mut *stream);
-        reader.read_line(&mut request)?;
-    }
-
-    match serde_json::from_str::<TmuxIpcRequest>(request.trim_end()) {
-        Ok(TmuxIpcRequest::Attach { client_id }) => stream_attach(stream, bus, client_id),
-        Ok(TmuxIpcRequest::Detach) => write_response(stream, &TmuxIpcResponse::Accepted),
-        Ok(TmuxIpcRequest::DetachClient { client_id }) => {
-            bus.detach_client(&client_id);
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::CapturePane { index }) => match bus.window_replay_snapshot(index) {
-            Some(bytes) => write_response(stream, &TmuxIpcResponse::Captured { bytes }),
-            None => write_response(
-                stream,
-                &TmuxIpcResponse::Rejected {
-                    reason: terman_common::builtin_tmux_window_not_found_hint(
-                        "current",
-                        index.unwrap_or_default() as usize,
-                    ),
-                },
-            ),
-        },        Ok(TmuxIpcRequest::DetachAll) => {
-            bus.publish_detach();
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::ClearHistory { index }) => {
-            if bus.clear_window_replay(index) {
-                write_response(stream, &TmuxIpcResponse::Accepted)
-            } else {
-                write_response(
-                    stream,
-                    &TmuxIpcResponse::Rejected {
-                        reason: terman_common::builtin_tmux_window_not_found_hint(
-                            "current",
-                            index.unwrap_or_default() as usize,
-                        ),
-                    },
-                )
-            }
-        }
-        Ok(TmuxIpcRequest::DisplayMessage { message }) => {
-            let mut bytes = message.into_bytes();
-            bytes.extend_from_slice(b"\r\n");
-            bus.publish_transient_output(&bytes);
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::Info) => {
-            let status = bus.status_snapshot();
-            write_response(
-                stream,
-                &TmuxIpcResponse::Info {
-                    session_name: current_session_name(session_name)?,
-                    windows: status.windows,
-                    attached_clients: status.attached_clients,
-                    active_window: status.active_window,
-                    window_indexes: status.window_indexes,
-                    window_names: status.window_names,
-                    cwd: cwd.to_string(),
-                },
-            )
-        }
-        Ok(TmuxIpcRequest::Input { bytes }) => {
-            send_control(control_tx, TmuxControlEvent::Input(bytes))?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::Ping) => write_response(stream, &TmuxIpcResponse::Accepted),
-        Ok(TmuxIpcRequest::Quit) => {
-            send_control(control_tx, TmuxControlEvent::Terminate)?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::RenameWindow { index, name }) => {
-            send_control(control_tx, TmuxControlEvent::RenameWindow { index, name })?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }        Ok(TmuxIpcRequest::RenameSession { name }) => {
-            rename_session(session_name, name)?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::KillWindow { index }) => {
-            send_control(control_tx, TmuxControlEvent::KillWindow { index })?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }        Ok(TmuxIpcRequest::NewWindow { index, name, command }) => {
-            send_control(control_tx, TmuxControlEvent::NewWindow { index, name, command })?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }        Ok(TmuxIpcRequest::UpdateWindows { windows }) => {
-            bus.set_windows(windows);
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Ok(TmuxIpcRequest::SelectWindow { index }) => {
-            if bus.select_window(index) {
-                send_control(control_tx, TmuxControlEvent::SelectWindow { index })?;
-                write_response(stream, &TmuxIpcResponse::Accepted)
-            } else {
-                write_response(
-                    stream,
-                    &TmuxIpcResponse::Rejected {
-                        reason: terman_common::builtin_tmux_window_not_found_hint(
-                            "current",
-                            index as usize,
-                        ),
-                    },
-                )
-            }
-        }
-        Ok(TmuxIpcRequest::LastWindow) => {
-            if let Some(index) = bus.select_last_window() {
-                send_control(control_tx, TmuxControlEvent::SelectWindow { index })?;
-                write_response(stream, &TmuxIpcResponse::Accepted)
-            } else {
-                write_response(
-                    stream,
-                    &TmuxIpcResponse::Rejected {
-                        reason: terman_common::builtin_tmux_window_not_found_hint("last", 0),
-                    },
-                )
-            }
-        }
-        Ok(TmuxIpcRequest::Resize { cols, rows }) => {
-            send_control(control_tx, TmuxControlEvent::Resize { cols, rows })?;
-            write_response(stream, &TmuxIpcResponse::Accepted)
-        }
-        Err(err) => write_response(
-            stream,
-            &TmuxIpcResponse::Rejected {
-                reason: err.to_string(),
-            },
-        ),
-    }
-}
-
-fn current_session_name(session_name: &Arc<Mutex<String>>) -> io::Result<String> {
-    session_name
-        .lock()
-        .map(|name| name.clone())
-        .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))
-}
-
-fn rename_session(session_name: &Arc<Mutex<String>>, name: String) -> io::Result<()> {
-    let mut session_name = session_name
-        .lock()
-        .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
-    *session_name = name;
-    Ok(())
-}
-
-fn stream_attach(
-    stream: &mut LocalSocketStream,
-    bus: &TmuxSessionBus,
-    client_id: Option<String>,
-) -> io::Result<()> {
-    let (replay, events) = bus.subscribe_with_replay(client_id);
-    write_response(stream, &TmuxIpcResponse::Attached { replay })?;
-
-    while let Ok(event) = events.recv() {
-        let response = match event {
-            TmuxSessionEvent::Output(bytes) => TmuxIpcResponse::Output { bytes },
-            TmuxSessionEvent::Resize { cols, rows } => TmuxIpcResponse::Resize { cols, rows },
-            TmuxSessionEvent::Detach => TmuxIpcResponse::Detached,
-            TmuxSessionEvent::Exit(code) => TmuxIpcResponse::Exit { code },
-        };
-        let should_close = matches!(
-            response,
-            TmuxIpcResponse::Detached | TmuxIpcResponse::Exit { .. }
-        );
-        write_response(stream, &response)?;
-        if should_close {
-            break;
-        }
-    }
-
-    Ok(())
-}
-
-fn send_control(
-    control_tx: &mpsc::Sender<TmuxControlEvent>,
-    event: TmuxControlEvent,
-) -> io::Result<()> {
-    control_tx
-        .send(event)
-        .map_err(|err| io::Error::new(io::ErrorKind::BrokenPipe, err.to_string()))
 }
 
 #[cfg(test)]
