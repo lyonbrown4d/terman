@@ -11,6 +11,7 @@ mod format;
 mod footer;
 mod help;
 mod io_view;
+mod interrupt;
 mod metrics;
 mod meter;
 mod model;

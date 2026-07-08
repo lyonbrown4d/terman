@@ -8,7 +8,6 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
-    app_terminal::TerminalGuard,
     app_events::{
         confirm_mouse_kill, handle_filter_input, handle_help_input, handle_kill_input,
         handle_search_input, handle_sort_menu_input, selected_process_pid,
@@ -17,8 +16,10 @@ use crate::{
         adjust_refresh, clamp_selection, delay_key, filter_key, help_key, interrupt_key, kill_key,
         move_selection, navigation_key, next_tab, quit_key, search_key, sort_key, tree_key,
     },
+    app_terminal::TerminalGuard,
     cli::HtopArgs,
     help,
+    interrupt::InterruptFlag,
     metrics::Metrics,
     model::{IoRow, ProcessRow, SocketRow, SortMode},
     mouse::{self, MouseContext},
@@ -47,6 +48,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut filter_input: Option<String> = None;
     let mut search = String::new();
     let mut search_input: Option<String> = None;
+    let interrupt = InterruptFlag::new();
+    interrupt.listen_for_ctrl_c();
 
     loop {
         metrics.refresh();
@@ -55,7 +58,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let snapshot = metrics.snapshot(sort, active_filter, tree);
         selected = clamp_selection(selected, snapshot.processes.len());
         io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));
-        network_scroll = network_scroll.min(snapshot.networks.len().max(snapshot.sockets.len()).saturating_sub(1));
+        network_scroll = network_scroll
+            .min(snapshot.networks.len().max(snapshot.sockets.len()).saturating_sub(1));
         terminal.draw(|frame| {
             if help_open {
                 help::draw(frame);
@@ -86,6 +90,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
         if poll_until_refresh(
+            &interrupt,
             &mut metrics,
             &mut refresh_ms,
             &mut tab,
@@ -114,6 +119,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
 }
 
 fn poll_until_refresh(
+    interrupt: &InterruptFlag,
     metrics: &mut Metrics,
     refresh_ms: &mut u64,
     tab: &mut Tab,
@@ -136,13 +142,19 @@ fn poll_until_refresh(
     search: &mut String,
     search_input: &mut Option<String>,
 ) -> io::Result<bool> {
+    if interrupt.interrupted() {
+        return Ok(true);
+    }
     let refresh = Duration::from_millis((*refresh_ms).max(100));
     let deadline = Instant::now() + refresh;
     while Instant::now() < deadline {
+        if interrupt.interrupted() {
+            return Ok(true);
+        }
         if event::poll(Duration::from_millis(50))? {
-            match event::read()? {
-                Event::Key(key) if key.kind == KeyEventKind::Release => {}
+            let redraw = match event::read()? {
                 Event::Key(key) if interrupt_key(&key) => return Ok(true),
+                Event::Key(key) if key.kind == KeyEventKind::Release => false,
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Mouse(mouse_event) => {
                     let action = mouse::handle_mouse(mouse_event, MouseContext {
@@ -169,39 +181,79 @@ fn poll_until_refresh(
                         mouse::MouseAction::Quit => return Ok(true),
                         mouse::MouseAction::Search => *search_input = Some(search.clone()),
                         mouse::MouseAction::Filter => *filter_input = Some(filter.clone()),
-                        mouse::MouseAction::Kill => *kill_target = selected_process_pid(processes, *selected),
+                        mouse::MouseAction::Kill => {
+                            *kill_target = selected_process_pid(processes, *selected);
+                        }
                         mouse::MouseAction::ConfirmKill => confirm_mouse_kill(metrics, kill_target),
                         mouse::MouseAction::CancelKill => *kill_target = None,
-                        mouse::MouseAction::DelayFaster => adjust_refresh(refresh_ms, KeyCode::Char('+')),
-                        mouse::MouseAction::DelaySlower => adjust_refresh(refresh_ms, KeyCode::Char('-')),
+                        mouse::MouseAction::DelayFaster => {
+                            adjust_refresh(refresh_ms, KeyCode::Char('+'));
+                        }
+                        mouse::MouseAction::DelaySlower => {
+                            adjust_refresh(refresh_ms, KeyCode::Char('-'));
+                        }
                         _ => {}
                     }
+                    action != mouse::MouseAction::Ignored
                 }
-                Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => {}
-                Event::Key(key) if handle_help_input(key.code, help_open) => {}
-                Event::Key(key) if handle_sort_menu_input(key.code, sort, sort_menu_open, sort_cursor) => {}
-                Event::Key(key) if handle_search_input(key.code, search, search_input, selected, processes) => {}
-                Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => {}
-                Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => filter.clear(),
+                Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => true,
+                Event::Key(key) if handle_help_input(key.code, help_open) => true,
+                Event::Key(key) if handle_sort_menu_input(key.code, sort, sort_menu_open, sort_cursor) => true,
+                Event::Key(key) if handle_search_input(key.code, search, search_input, selected, processes) => true,
+                Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => true,
+                Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => {
+                    filter.clear();
+                    true
+                }
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
                 Event::Key(key) if navigation_key(key.code) => {
                     let next = move_selection(*selected, processes.len(), key.code);
-                    if next != *selected { *detail_scroll = 0; }
+                    if next != *selected {
+                        *detail_scroll = 0;
+                    }
                     *selected = next;
+                    true
                 }
-                Event::Key(key) if delay_key(key.code) => adjust_refresh(refresh_ms, key.code),
-                Event::Key(key) if kill_key(key.code) => *kill_target = selected_process_pid(processes, *selected),
-                Event::Key(key) if help_key(key.code) => *help_open = true,
-                Event::Key(key) if search_key(key.code) => *search_input = Some(search.clone()),
-                Event::Key(key) if filter_key(key.code) => *filter_input = Some(filter.clone()),
+                Event::Key(key) if delay_key(key.code) => {
+                    adjust_refresh(refresh_ms, key.code);
+                    true
+                }
+                Event::Key(key) if kill_key(key.code) => {
+                    *kill_target = selected_process_pid(processes, *selected);
+                    true
+                }
+                Event::Key(key) if help_key(key.code) => {
+                    *help_open = true;
+                    true
+                }
+                Event::Key(key) if search_key(key.code) => {
+                    *search_input = Some(search.clone());
+                    true
+                }
+                Event::Key(key) if filter_key(key.code) => {
+                    *filter_input = Some(filter.clone());
+                    true
+                }
                 Event::Key(key) if sort_key(key.code) => {
                     *sort_cursor = *sort;
                     *sort_menu_open = true;
+                    true
                 }
-                Event::Key(key) if tree_key(key.code) => *tree = !*tree,
-                Event::Key(key) => *tab = next_tab(*tab, &key),
-                Event::Resize(_, _) => break,
-                _ => {}
+                Event::Key(key) if tree_key(key.code) => {
+                    *tree = !*tree;
+                    true
+                }
+                Event::Key(key) => {
+                    let next = next_tab(*tab, &key);
+                    let changed = next != *tab;
+                    *tab = next;
+                    changed
+                }
+                Event::Resize(_, _) => true,
+                _ => false,
+            };
+            if redraw {
+                return Ok(false);
             }
         }
     }

@@ -24,7 +24,7 @@ sys-locale = "0.3.2"
 sysinfo = "0.39.5"
 netstat2 = "0.11.2"
 terman-common = { path = "crates/common" }
-tokio = { version = "1.52.3", features = ["macros", "process", "rt", "time"] }
+tokio = { version = "1.52.3", features = ["macros", "process", "rt", "signal", "time"] }
 unicode-width = "0.2.2"
 unic-langid = "0.9.6"
 which = "8.0.4"
