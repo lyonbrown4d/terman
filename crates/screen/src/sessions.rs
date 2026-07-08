@@ -1,4 +1,5 @@
 mod manifest;
+mod paths;
 mod runtime;
 mod store;
 
@@ -8,9 +9,9 @@ use serde::Serialize;
 
 pub(crate) use store::{BuiltinScreenSession, BuiltinScreenSessionGuard, RenameBuiltinScreenSession};
 #[cfg(test)]
-pub(crate) use store::{
-    builtin_screen_session_is_alive, parse_builtin_screen_session_record, sanitize_session_file_name,
-};
+pub(crate) use paths::sanitize_session_file_name;
+#[cfg(test)]
+pub(crate) use store::{builtin_screen_session_is_alive, parse_builtin_screen_session_record};
 
 use crate::{ScreenArgs, ipc::ScreenIpcEndpoint};
 

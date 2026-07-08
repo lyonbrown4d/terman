@@ -17,7 +17,8 @@ use crate::{
 
 use super::{
     runtime::BuiltinScreenSessionRuntimeStatus,
-    store::{BuiltinScreenSession, sanitize_session_file_name},
+    paths::sanitize_session_file_name,
+    store::BuiltinScreenSession,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
