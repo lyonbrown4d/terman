@@ -10,7 +10,7 @@ use crate::{
     attach_keys::TmuxPrefixCommand,
     attach_status::{query_status_line, render_status_line},
     attach_window::{handle_window_command, select_window},
-    attach_window_list::{TmuxWindowListLayout, render_window_list_status},
+    attach_window_list::{render_window_list_status, TmuxWindowListLayout},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     terminal_mouse::mouse_event_bytes,
@@ -134,11 +134,12 @@ fn select_dragged_window(endpoint: &TmuxIpcEndpoint, state: &mut AttachMouseStat
     Ok(())
 }
 fn clicked_status_target(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<Option<StatusClickTarget>> {
+    let max_width = size().ok().map(|(cols, _)| cols);
     match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
         TmuxIpcResponse::Info { session_name, active_window, window_indexes, window_names, .. } => {
-            if let Some(index) = status_window_at(column, &session_name, active_window, &window_indexes, &window_names) {
+            if let Some(index) = status_window_at(column, &session_name, active_window, &window_indexes, &window_names, max_width) {
                 Ok(Some(StatusClickTarget::Window(index)))
-            } else if status_help_at(column, &session_name, active_window, &window_indexes, &window_names) {
+            } else if status_help_at(column, &session_name, active_window, &window_indexes, &window_names, max_width) {
                 Ok(Some(StatusClickTarget::Help))
             } else {
                 Ok(None)
@@ -151,20 +152,31 @@ fn clicked_status_target(endpoint: &TmuxIpcEndpoint, column: u16) -> io::Result<
 
 enum StatusClickTarget { Window(u32), Help }
 
-fn status_window_at(column: u16, session_name: &str, active_window: u32, indexes: &[u32], names: &[String]) -> Option<u32> {
+fn status_window_at(
+    column: u16,
+    session_name: &str,
+    active_window: u32,
+    indexes: &[u32],
+    names: &[String],
+    max_width: Option<u16>,
+) -> Option<u32> {
+    if max_width.is_some_and(|max| column >= max) {
+        return None;
+    }
     let mut offset = terman_common::terminal_text_width(&format!("tmux {session_name} | "));
     for (position, index) in indexes.iter().enumerate() {
         let name = names.get(position).map(String::as_str).unwrap_or("-");
         let label = if *index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") };
-        let width = terman_common::terminal_text_width(label.as_str());
-        if column >= offset && column < offset.saturating_add(width) { return Some(*index); }
-        offset = offset.saturating_add(width + 1);
+        let end = clipped_end(offset, terman_common::terminal_text_width(label.as_str()), max_width);
+        if column >= offset && column < end { return Some(*index); }
+        offset = offset.saturating_add(terman_common::terminal_text_width(label.as_str()) + 1);
     }
     None
 }
 
-fn status_help_at(column: u16, session_name: &str, active_window: u32, indexes: &[u32], names: &[String]) -> bool {
-    column >= status_prompt_start(session_name, active_window, indexes, names)
+fn status_help_at(column: u16, session_name: &str, active_window: u32, indexes: &[u32], names: &[String], max_width: Option<u16>) -> bool {
+    let start = status_prompt_start(session_name, active_window, indexes, names);
+    column >= start && max_width.map(|max| start < max && column < max).unwrap_or(true)
 }
 
 fn status_prompt_start(session_name: &str, active_window: u32, indexes: &[u32], names: &[String]) -> u16 {
@@ -176,6 +188,11 @@ fn status_prompt_start(session_name: &str, active_window: u32, indexes: &[u32], 
         if position + 1 < indexes.len() { width = width.saturating_add(1); }
     }
     width.saturating_add(3)
+}
+
+fn clipped_end(start: u16, width: u16, max_width: Option<u16>) -> u16 {
+    let end = start.saturating_add(width);
+    max_width.map(|max| end.min(max)).unwrap_or(end)
 }
 
 fn on_status_row(row: u16) -> bool {
@@ -194,15 +211,23 @@ mod tests {
     fn maps_window_status_columns() {
         let indexes = vec![0, 1];
         let names = vec![String::from("zsh"), String::from("api")];
-        assert_eq!(status_window_at(11, "dev", 0, &indexes, &names), Some(0));
-        assert_eq!(status_window_at(19, "dev", 0, &indexes, &names), Some(1));
+        assert_eq!(status_window_at(11, "dev", 0, &indexes, &names, None), Some(0));
+        assert_eq!(status_window_at(19, "dev", 0, &indexes, &names, None), Some(1));
     }
 
     #[test]
     fn maps_unicode_window_status_columns() {
         let indexes = vec![0, 1];
         let names = vec![String::from("服务"), String::from("api")];
-        assert_eq!(status_window_at(11, "dev", 0, &indexes, &names), Some(0));
-        assert_eq!(status_window_at(20, "dev", 0, &indexes, &names), Some(1));
+        assert_eq!(status_window_at(11, "dev", 0, &indexes, &names, None), Some(0));
+        assert_eq!(status_window_at(20, "dev", 0, &indexes, &names, None), Some(1));
+    }
+
+    #[test]
+    fn clamps_window_status_columns_to_visible_width() {
+        let indexes = vec![0, 1];
+        let names = vec![String::from("服务服务服务"), String::from("api")];
+        assert_eq!(status_window_at(18, "dev", 0, &indexes, &names, Some(18)), None);
+        assert_eq!(status_window_at(17, "dev", 0, &indexes, &names, Some(18)), Some(0));
     }
 }
