@@ -6,9 +6,16 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::{format::format_bytes, model::Snapshot};
+use crate::{format::format_bytes, model::{Snapshot, SortMode}};
 
-pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, scroll: usize, selected: usize) {
+pub(crate) fn draw_network(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    snapshot: &Snapshot,
+    sort: SortMode,
+    scroll: usize,
+    selected: usize,
+) {
     let mut lines = vec![title_line("INTERFACES")];
     lines.push(network_total_line(snapshot));
     let interface_rows = interface_limit(area, snapshot.sockets.len());
@@ -24,7 +31,7 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
         )));
     }
     lines.push(title_line("CONNECTIONS"));
-    lines.push(plain_line("Proto  Local                         Remote                        State          PID   Process".to_string()));
+    lines.push(connection_header_line(sort));
     let connections = connection_limit(area, interface_rows);
     let selected_pid = snapshot.processes.get(selected).map(|row| row.pid.as_str());
     let connection_start = scroll.min(snapshot.sockets.len().saturating_sub(connections));
@@ -44,6 +51,25 @@ pub(crate) fn draw_network(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapsho
     render_block(frame, area, "Network", lines);
 }
 
+fn connection_header_line(sort: SortMode) -> Line<'static> {
+    Line::from(vec![
+        header_span("Proto  ".to_string(), false),
+        header_span("Local                         ".to_string(), false),
+        header_span("Remote                        ".to_string(), false),
+        header_span("State          ".to_string(), sort == SortMode::State),
+        header_span("PID   ".to_string(), sort == SortMode::Pid),
+        header_span("Process".to_string(), sort == SortMode::Name),
+    ])
+}
+
+fn header_span(text: String, active: bool) -> Span<'static> {
+    let style = if active {
+        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+    };
+    Span::styled(text, style)
+}
 fn interface_start(snapshot: &Snapshot, visible: usize, scroll: usize) -> usize {
     if snapshot.sockets.is_empty() { scroll.min(snapshot.networks.len().saturating_sub(visible)) } else { 0 }
 }

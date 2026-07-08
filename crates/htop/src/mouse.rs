@@ -193,9 +193,9 @@ fn io_header_sort_at(column: u16) -> Option<SortMode> {
 
 fn network_header_sort_at(column: u16) -> Option<SortMode> {
     match column {
-        68..=82 => Some(SortMode::State),
-        83..=89 => Some(SortMode::Pid),
-        c if c >= 90 => Some(SortMode::Name),
+        67..=81 => Some(SortMode::State),
+        82..=87 => Some(SortMode::Pid),
+        c if c >= 88 => Some(SortMode::Name),
         _ => None,
     }
 }
