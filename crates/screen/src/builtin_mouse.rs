@@ -212,6 +212,7 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
         let entry = terman_common::builtin_screen_control_windows_entry_hint(
             window.index, window.active, &title, window.replay_bytes, attach_clients, cols, rows,
         );
+        let entry = visible_entry(entry.as_str(), cols);
         entries.push((window.index, entry_width(entry.as_str())));
         message.push_str(&format!("\x1b[{row};1H\x1b[2K"));
         if window.active {
@@ -224,6 +225,13 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
     }
     state.show_window_list(start, entries);
     publish_mouse_message(bus, message);
+}
+
+fn visible_entry(entry: &str, cols: Option<u16>) -> String {
+    match cols {
+        Some(cols) => terman_common::truncate_terminal_text(entry, cols as usize),
+        None => entry.to_string(),
+    }
 }
 
 fn entry_width(entry: &str) -> u16 {

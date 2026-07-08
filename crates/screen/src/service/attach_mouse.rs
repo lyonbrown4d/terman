@@ -126,6 +126,7 @@ fn show_window_list(
                 let entry = terman_common::builtin_screen_control_windows_entry_hint(
                     window.index, window.active, &window.title, window.replay_bytes, attach_clients, cols, rows,
                 );
+                let entry = visible_entry(entry.as_str(), cols);
                 entries.push((window.index, entry_width(&entry)));
                 stdout.write_all(format!("\x1b[{row};1H\x1b[2K").as_bytes())?;
                 if window.active {
@@ -165,6 +166,13 @@ fn select_list_window(
 fn list_start_row(anchor_row: u16, rows: Option<u16>, len: usize) -> u16 {
     let len = len.max(1) as u16;
     rows.map(|rows| anchor_row.min(rows.saturating_sub(len))).unwrap_or(anchor_row)
+}
+
+fn visible_entry(entry: &str, cols: Option<u16>) -> String {
+    match cols {
+        Some(cols) => terman_common::truncate_terminal_text(entry, cols as usize),
+        None => entry.to_string(),
+    }
 }
 
 fn entry_width(entry: &str) -> u16 {
