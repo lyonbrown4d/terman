@@ -1,13 +1,13 @@
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 use netstat2::{
     get_sockets_info, AddressFamilyFlags, ProtocolFlags, ProtocolSocketInfo,
 };
 use sysinfo::System;
 
-use crate::model::SocketRow;
+use crate::model::{SocketRow, SortMode};
 
-pub(crate) fn socket_rows(system: &System) -> Vec<SocketRow> {
+pub(crate) fn socket_rows(system: &System, sort: SortMode) -> Vec<SocketRow> {
     let names = process_names(system);
     let flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
     let protocols = ProtocolFlags::TCP | ProtocolFlags::UDP;
@@ -18,15 +18,23 @@ pub(crate) fn socket_rows(system: &System) -> Vec<SocketRow> {
         .into_iter()
         .map(|socket| socket_row(socket.protocol_socket_info, socket.associated_pids, &names))
         .collect();
-    rows.sort_by(|left, right| {
-        left.protocol
-            .cmp(&right.protocol)
-            .then_with(|| left.local.cmp(&right.local))
-            .then_with(|| left.remote.cmp(&right.remote))
-    });
+    rows.sort_by(|left, right| compare_socket(left, right, sort));
+
     rows
 }
 
+fn compare_socket(left: &SocketRow, right: &SocketRow, sort: SortMode) -> Ordering {
+    match sort {
+        SortMode::Pid => left.pid.cmp(&right.pid),
+        SortMode::State => left.state.cmp(&right.state).then_with(|| left.pid.cmp(&right.pid)),
+        SortMode::Name => left.process.to_lowercase().cmp(&right.process.to_lowercase()),
+        _ => left
+            .protocol
+            .cmp(&right.protocol)
+            .then_with(|| left.local.cmp(&right.local))
+            .then_with(|| left.remote.cmp(&right.remote)),
+    }
+}
 fn process_names(system: &System) -> HashMap<String, String> {
     system
         .processes()

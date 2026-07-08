@@ -177,11 +177,25 @@ fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Op
     match *context.tab {
         Tab::Overview if row == overview_header_row(context) => process_table::sort_at_column(column),
         Tab::Processes if row == 6 => process_table::sort_at_column(column),
-        Tab::Io if row == 6 => match column {
-            0..=10 => Some(SortMode::Pid),
-            11..=54 => Some(SortMode::Io),
-            _ => Some(SortMode::Name),
-        },
+        Tab::Io if row == 6 => io_header_sort_at(column),
+        Tab::Network if row == network_header_row() => network_header_sort_at(column),
+        _ => None,
+    }
+}
+
+fn io_header_sort_at(column: u16) -> Option<SortMode> {
+    match column {
+        0..=10 => Some(SortMode::Pid),
+        11..=54 => Some(SortMode::Io),
+        _ => Some(SortMode::Name),
+    }
+}
+
+fn network_header_sort_at(column: u16) -> Option<SortMode> {
+    match column {
+        68..=82 => Some(SortMode::State),
+        83..=89 => Some(SortMode::Pid),
+        c if c >= 90 => Some(SortMode::Name),
         _ => None,
     }
 }
@@ -189,6 +203,12 @@ fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Op
 fn overview_header_row(context: &MouseContext<'_>) -> u16 {
     overview_layout::process_start_row(terminal_area().height, context.cpu_core_count)
         .saturating_sub(1)
+}
+
+fn network_header_row() -> u16 {
+    let body = terminal_area().height.saturating_sub(10) as usize;
+    let interfaces = 4usize.min(body.saturating_sub(6));
+    9u16.saturating_add(interfaces as u16)
 }
 
 fn select_index(index: usize, context: MouseContext<'_>) {

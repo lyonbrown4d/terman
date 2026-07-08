@@ -37,7 +37,7 @@ impl Metrics {
         let networks = self.network_rows();
         let processes = process_rows(&self.system, sort, filter, tree);
         let io = io_rows(&self.system, sort, filter);
-        let sockets = socket_rows(&self.system);
+        let sockets = socket_rows(&self.system, sort);
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
         Snapshot {
