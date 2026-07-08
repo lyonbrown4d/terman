@@ -19,6 +19,7 @@ use crate::{
 #[derive(Default)]
 pub(crate) struct AttachMouseState {
     window_list: Option<TmuxWindowListLayout>,
+    suppress_left_release: bool,
 }
 
 impl AttachMouseState {
@@ -26,6 +27,12 @@ impl AttachMouseState {
     fn set_window_list(&mut self, layout: TmuxWindowListLayout) { self.window_list = Some(layout); }
     fn window_at(&self, column: u16) -> Option<u32> { self.window_list.as_ref()?.window_at(column) }
     fn list_open(&self) -> bool { self.window_list.is_some() }
+    fn suppress_left_release(&mut self) { self.suppress_left_release = true; }
+    fn take_suppressed_left_release(&mut self) -> bool {
+        let suppress = self.suppress_left_release;
+        self.suppress_left_release = false;
+        suppress
+    }
 }
 
 pub(crate) fn enable_mouse_capture() -> io::Result<()> {
@@ -41,8 +48,16 @@ pub(crate) fn handle_attach_mouse(
     state: &mut AttachMouseState,
     event: MouseEvent,
 ) -> io::Result<()> {
+    if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
+        && state.take_suppressed_left_release()
+    {
+        return Ok(());
+    }
     if !on_status_row(event.row) {
         if state.list_open() {
+            if matches!(event.kind, MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Drag(MouseButton::Left)) {
+                state.suppress_left_release();
+            }
             state.clear();
             return render_current_status(endpoint);
         }
@@ -52,8 +67,9 @@ pub(crate) fn handle_attach_mouse(
     match event.kind {
         MouseEventKind::ScrollUp | MouseEventKind::ScrollLeft => select_relative_window(endpoint, state, false),
         MouseEventKind::ScrollDown | MouseEventKind::ScrollRight => select_relative_window(endpoint, state, true),
-        MouseEventKind::Down(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left) => select_clicked_window(endpoint, state, event.column),
-        MouseEventKind::Drag(MouseButton::Left) => select_dragged_window(endpoint, state, event.column),
+        MouseEventKind::Down(MouseButton::Left) => { state.suppress_left_release(); select_clicked_window(endpoint, state, event.column) }
+        MouseEventKind::Up(MouseButton::Left) => select_clicked_window(endpoint, state, event.column),
+        MouseEventKind::Drag(MouseButton::Left) => { state.suppress_left_release(); select_dragged_window(endpoint, state, event.column) }
         MouseEventKind::Down(MouseButton::Right) => show_window_list(endpoint, state),
         MouseEventKind::Down(MouseButton::Middle) => { state.clear(); render_status_line(&terman_common::builtin_tmux_attach_help()) }
         _ => Ok(()),
