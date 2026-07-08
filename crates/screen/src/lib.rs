@@ -3,6 +3,7 @@ use std::error::Error;
 mod builtin;
 mod builtin_output;
 mod builtin_mouse;
+mod builtin_runtime;
 mod cli;
 mod di;
 mod ipc;
