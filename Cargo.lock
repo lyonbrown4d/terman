@@ -1656,6 +1656,7 @@ dependencies = [
  "sysinfo",
  "terman-common",
  "tokio",
+ "unicode-width",
 ]
 
 [[package]]

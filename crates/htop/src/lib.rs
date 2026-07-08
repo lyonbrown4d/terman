@@ -20,6 +20,7 @@ mod process_status;
 mod process_table;
 mod render;
 mod sort_menu;
+mod tab_hitbox;
 
 pub use cli::{HtopArgs, run_with_binary_parse};
 

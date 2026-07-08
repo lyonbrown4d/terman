@@ -10,6 +10,7 @@ use crate::{
     model::{ProcessRow, SortMode},
     process_detail::process_detail_lines,
     render::Tab,
+    tab_hitbox::tab_at,
     sort_menu,
 };
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -170,26 +171,6 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
     }
     MouseAction::Handled
 }
-fn tab_at(column: u16, row: u16) -> Option<Tab> {
-    if row != 3 {
-        return None;
-    }
-    let labels = [
-        (Tab::Overview, terman_common::builtin_htop_tab_overview_hint()),
-        (Tab::Processes, terman_common::builtin_htop_tab_processes_hint()),
-        (Tab::Io, terman_common::builtin_htop_tab_io_hint()),
-        (Tab::Network, terman_common::builtin_htop_tab_network_hint()),
-    ];
-    let mut offset = 0u16;
-    for (tab, label) in labels {
-        let width = label.chars().count() as u16 + 2;
-        if column >= offset && column < offset.saturating_add(width) {
-            return Some(tab);
-        }
-        offset = offset.saturating_add(width + 1);
-    }
-    None
-}
 fn table_header_sort_at(tab: Tab, column: u16, row: u16) -> Option<SortMode> {
     if row != 6 { return None; }
     let column = column.saturating_sub(1);
@@ -286,14 +267,4 @@ fn move_down(selected: usize, count: usize) -> usize {
 fn terminal_area() -> Rect {
     let (width, height) = terminal::size().unwrap_or((80, 24));
     Rect::new(0, 0, width, height)
-}
-#[cfg(test)]
-mod tests {
-    use super::tab_at;
-    use crate::render::Tab;
-    #[test]
-    fn maps_tab_clicks() {
-        assert_eq!(tab_at(1, 3), Some(Tab::Overview));
-        assert_eq!(tab_at(0, 0), None);
-    }
 }
