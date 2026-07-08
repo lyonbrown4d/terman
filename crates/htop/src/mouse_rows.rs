@@ -81,7 +81,7 @@ fn io_process_at(row: u16, context: &MouseContext<'_>) -> Option<usize> {
 }
 
 fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
-    if tab == Tab::Overview { return overview_process_at(row, processes, cores); }
+    if tab == Tab::Overview { return overview_process_at(row, selected, processes, cores); }
     if tab != Tab::Processes || processes.is_empty() { return None; }
     if row < FIRST_PROCESS_ROW { return None; }
     let visible = visible_process_rows(selected, processes);
@@ -91,13 +91,14 @@ fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cor
         .filter(|index| *index < processes.len())
 }
 
-fn overview_process_at(row: u16, processes: &[ProcessRow], cores: usize) -> Option<usize> {
+fn overview_process_at(row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
     let terminal = terminal_area();
-    let start = overview_layout::process_start_row(terminal.height, cores);
+    let first_row = overview_layout::process_start_row(terminal.height, cores);
     let visible = overview_layout::process_rows_for_terminal(terminal.height, cores);
-    row.checked_sub(start)
-        .map(usize::from)
-        .filter(|index| *index < visible && *index < processes.len())
+    let start = overview_layout::visible_start(selected, visible, processes.len());
+    row.checked_sub(first_row)
+        .map(|offset| start + usize::from(offset))
+        .filter(|index| *index < start + visible && *index < processes.len())
 }
 
 fn visible_process_rows(selected: usize, processes: &[ProcessRow]) -> usize {

@@ -25,6 +25,7 @@ pub(crate) fn draw_overview(
 ) {
     let core_rows = overview_layout::core_rows(area.height, snapshot.cpu_cores.len());
     let process_rows = overview_layout::process_rows(area.height, snapshot.cpu_cores.len());
+    let process_start = overview_layout::visible_start(selected, process_rows, snapshot.processes.len());
     let mut lines = vec![
         meter_line("CPU", snapshot.cpu_usage as f64, 100.0, 24, format!(
             "{:>5.1}% across {} core(s)", snapshot.cpu_usage, snapshot.cpu_count
@@ -55,7 +56,8 @@ pub(crate) fn draw_overview(
     lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
     lines.push(title_line("TOP PROCESSES"));
     lines.push(process_header_line(sort));
-    for (index, row) in snapshot.processes.iter().take(process_rows).enumerate() {
+    for (offset, row) in snapshot.processes.iter().skip(process_start).take(process_rows).enumerate() {
+        let index = process_start + offset;
         lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2)));
     }
     render_block(frame, area, "Overview", lines);

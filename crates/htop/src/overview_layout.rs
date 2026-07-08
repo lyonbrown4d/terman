@@ -25,6 +25,14 @@ pub(crate) fn process_rows_for_terminal(terminal_height: u16, core_count: usize)
     process_rows(content_height(terminal_height), core_count)
 }
 
+
+pub(crate) fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
+    if visible == 0 || total <= visible || selected < visible {
+        0
+    } else {
+        (selected + 1 - visible).min(total - visible)
+    }
+}
 pub(crate) fn process_start_row(terminal_height: u16, core_count: usize) -> u16 {
     let body = content_height(terminal_height);
     let rows = core_rows(body, core_count);
