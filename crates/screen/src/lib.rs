@@ -1,6 +1,7 @@
 use std::error::Error;
 
 mod builtin;
+mod builtin_control;
 mod builtin_output;
 mod builtin_mouse;
 mod builtin_runtime;
