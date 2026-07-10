@@ -61,10 +61,6 @@ impl ScreenWindowState {
         self.replay.scrollback_lines()
     }
 
-    pub(super) fn clear_replay(&mut self) {
-        self.replay.clear();
-    }
-
     pub(super) fn set_scrollback_lines(&mut self, lines: usize, cols: Option<u16>) {
         self.replay.set_scrollback_lines(lines, cols);
     }
@@ -101,8 +97,12 @@ impl ScreenWindowState {
         self.output_log.toggle_enabled()
     }
 
-    pub(super) fn append_output(&mut self, bytes: &[u8], cols: Option<u16>) {
+    pub(super) fn append_replay(&mut self, bytes: &[u8], cols: Option<u16>) {
         self.replay.append(bytes, cols);
+    }
+
+    pub(super) fn append_output(&mut self, bytes: &[u8], cols: Option<u16>) {
+        self.append_replay(bytes, cols);
         self.output_log.append(bytes, self.title.as_deref());
     }
 

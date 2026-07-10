@@ -152,15 +152,15 @@ impl ScreenSessionBus {
             .ok()
             .and_then(|mut state| state.remove_window(index))
     }
-    pub(crate) fn clear_replay(&self) {
-        if let Ok(mut state) = self.inner.lock() {
-            if let Some(window) = state.active_window_mut() {
-                window.clear_replay();
-            }
-        }
+    pub(crate) fn publish_display_control(&self, bytes: &[u8]) {
+        let Ok(mut state) = self.inner.lock() else { return; };
+        let cols = state.cols;
+        let active_window = state.active_window;
+        let Some(window) = state.window_mut(active_window) else { return; };
+        window.append_replay(bytes, cols);
+        let event = ScreenSessionEvent::Output(bytes.to_vec());
+        state.subscribers.retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
     }
-
-
 
     pub(crate) fn publish_transient_output(&self, bytes: &[u8]) {
         self.broadcast(ScreenSessionEvent::Output(bytes.to_vec()));

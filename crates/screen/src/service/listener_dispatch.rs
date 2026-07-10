@@ -51,7 +51,7 @@ pub(super) fn handle_client(
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Clear) => {
-            bus.clear_replay();
+            bus.publish_display_control(b"\x1b[2J\x1b[H");
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Echo { message }) => {
@@ -123,8 +123,7 @@ pub(super) fn handle_client(
             bus.publish_transient_output(&bytes);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }        Ok(ScreenIpcRequest::Reset) => {
-            bus.clear_replay();
-            bus.publish_transient_output(b"\x1bc");
+            bus.publish_display_control(b"\x1bc");
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Hardcopy { include_history }) => write_response(

@@ -41,10 +41,6 @@ impl ScreenReplayBuffer {
         self.scrollback_lines
     }
 
-    pub(super) fn clear(&mut self) {
-        self.bytes.clear();
-    }
-
     pub(super) fn set_scrollback_lines(&mut self, lines: usize, cols: Option<u16>) {
         self.scrollback_lines = lines;
         self.trim(cols);

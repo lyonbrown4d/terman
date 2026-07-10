@@ -57,6 +57,20 @@ fn tracks_last_message() {
     );
 }
 #[test]
+fn display_control_preserves_history_and_reaches_clients() {
+    let bus = ScreenSessionBus::new();
+    bus.publish_output(b"history");
+    let (_, subscription) = bus.subscribe_with_replay(None);
+    bus.publish_display_control(b"\x1b[2J\x1b[H");
+
+    assert_eq!(bus.replay_snapshot(), b"history\x1b[2J\x1b[H".to_vec());
+    assert_eq!(
+        subscription.try_recv(),
+        Ok(ScreenSessionEvent::Output(b"\x1b[2J\x1b[H".to_vec()))
+    );
+}
+
+#[test]
 fn updates_scrollback_limit() {
     let bus = ScreenSessionBus::new();
     bus.set_scrollback_lines(0);
