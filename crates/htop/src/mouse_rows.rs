@@ -1,4 +1,3 @@
-use crossterm::terminal;
 use ratatui::layout::Rect;
 
 use crate::{
@@ -51,7 +50,7 @@ pub(crate) fn move_down(selected: usize, count: usize) -> usize {
 }
 
 pub(crate) fn terminal_area() -> Rect {
-    let (width, height) = terminal::size().unwrap_or((80, 24));
+    let (width, height) = terman_common::current_terminal_size().unwrap_or((80, 24));
     Rect::new(0, 0, width, height)
 }
 

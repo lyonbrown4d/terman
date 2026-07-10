@@ -69,7 +69,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             sort,
             snapshot.processes.get(selected).map(|row| row.pid.clone()),
             selected_data_index(tab, &snapshot, selected),
-            crossterm::terminal::size().ok(),
+            terman_common::current_terminal_size().ok(),
         );
         if visibility_anchor.as_ref() != Some(&next_visibility_anchor) {
             keep_selected_visible(tab, &snapshot, selected, &mut io_scroll, &mut network_scroll);

@@ -1,5 +1,3 @@
-use crossterm::terminal;
-
 use crate::{model::Snapshot, render::Tab};
 
 pub(crate) fn selected_data_index(tab: Tab, snapshot: &Snapshot, selected: usize) -> Option<usize> {
@@ -70,7 +68,7 @@ fn connection_rows(sockets: usize) -> usize {
 }
 
 fn body_rows() -> usize {
-    terminal::size()
+    terman_common::current_terminal_size()
         .map(|(_, rows)| rows.saturating_sub(10) as usize)
         .unwrap_or(14)
 }
