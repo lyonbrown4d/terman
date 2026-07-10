@@ -26,6 +26,7 @@ use crate::{
     render::{self, Tab},
     selected_scroll::keep_selected_visible,
     sort_menu,
+    tab_sort::normalize_sort_for_tab,
 };
 
 pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
@@ -56,6 +57,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         metrics.refresh();
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
         let active_search = search_input.as_deref().unwrap_or(&search);
+        sort = normalize_sort_for_tab(tab, sort);
         let snapshot = metrics.snapshot(sort, active_filter, tree);
         selected = clamp_selection(selected, snapshot.processes.len());
         io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));

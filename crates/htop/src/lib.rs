@@ -31,6 +31,7 @@ mod render;
 mod selected_scroll;
 mod sort_menu;
 mod tab_hitbox;
+mod tab_sort;
 
 pub use cli::{HtopArgs, run_with_binary_parse};
 
