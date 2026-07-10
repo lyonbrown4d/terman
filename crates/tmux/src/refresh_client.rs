@@ -20,7 +20,7 @@ pub(crate) fn refresh_builtin_tmux_client(args: &[String]) -> Result<(), Box<dyn
         &session_endpoint(&session),
         TmuxIpcRequest::Resize {
             cols,
-            rows: content_rows(rows),
+            rows: terman_common::terminal_rows_without_status(rows),
         },
     )? {
         TmuxIpcResponse::Accepted => Ok(()),
@@ -40,9 +40,6 @@ fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
         .unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
 }
 
-fn content_rows(rows: u16) -> u16 {
-    rows.saturating_sub(1).max(1)
-}
 
 fn target_required_error() -> Box<dyn Error> {
     Box::new(io::Error::new(
@@ -58,13 +55,3 @@ fn session_not_found_error(target: &str) -> Box<dyn Error> {
     ))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::content_rows;
-
-    #[test]
-    fn keeps_status_row_out_of_client_size() {
-        assert_eq!(content_rows(40), 39);
-        assert_eq!(content_rows(0), 1);
-    }
-}

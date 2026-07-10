@@ -101,7 +101,7 @@ fn write_output(bytes: &[u8]) -> io::Result<()> {
 
 fn sync_terminal_size(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let (cols, rows) = size()?;
-    send_resize(endpoint, cols, content_rows(rows))
+    send_resize(endpoint, cols, terman_common::terminal_rows_without_status(rows))
 }
 
 fn spawn_terminal_event_forwarder(endpoint: TmuxIpcEndpoint, client_id: String) -> thread::JoinHandle<()> {
@@ -115,7 +115,7 @@ fn forward_terminal_events(endpoint: TmuxIpcEndpoint, client_id: String) -> io::
         match read()? {
             Event::Key(key) => if !input_mode.handle_key(&endpoint, &client_id, key)? { return Ok(()); },
             Event::Mouse(mouse) => handle_attach_mouse(&endpoint, &mut mouse_state, mouse)?,
-            Event::Resize(cols, rows) => send_resize(&endpoint, cols, content_rows(rows))?,
+            Event::Resize(cols, rows) => send_resize(&endpoint, cols, terman_common::terminal_rows_without_status(rows))?,
             _ => {}
         }
     }
@@ -125,7 +125,6 @@ fn send_resize(endpoint: &TmuxIpcEndpoint, cols: u16, rows: u16) -> io::Result<(
     send_request(endpoint, TmuxIpcRequest::Resize { cols, rows })
 }
 
-fn content_rows(rows: u16) -> u16 { rows.saturating_sub(1).max(1) }
 
 fn send_request(endpoint: &TmuxIpcEndpoint, request: TmuxIpcRequest) -> io::Result<()> {
     match request_endpoint_response(endpoint, request)? {
