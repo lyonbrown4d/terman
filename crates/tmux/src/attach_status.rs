@@ -4,7 +4,7 @@ use crossterm::{
     cursor::{MoveTo, RestorePosition, SavePosition},
     execute,
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-    terminal::{Clear, ClearType, size},
+    terminal::{Clear, ClearType},
 };
 
 use crate::{
@@ -30,7 +30,7 @@ pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String
 }
 
 pub(crate) fn render_status_line(status: &str) -> io::Result<()> {
-    let (cols, rows) = size()?;
+    let (cols, rows) = terman_common::current_terminal_size()?;
     let row = rows.saturating_sub(1);
     let text = terman_common::fit_terminal_text(status, cols as usize);
     let mut stdout = io::stdout().lock();

@@ -1,6 +1,5 @@
 use std::io;
 
-use crossterm::terminal::size;
 
 use crate::{
     attach_status::render_status_line,
@@ -45,7 +44,7 @@ fn format_window_list_status(active_window: u32, indexes: &[u32], names: &[Strin
     let labels = window_labels(active_window, indexes, names);
     let windows = labels.iter().map(|(_, label)| label.as_str()).collect::<Vec<_>>().join(" ");
     let status = terman_common::builtin_tmux_attach_window_list(&windows);
-    let max_width = size().ok().map(|(cols, _)| cols);
+    let max_width = terman_common::current_terminal_size().ok().map(|(cols, _)| cols);
     let layout = layout_window_labels(&status, &labels, max_width);
     (status, layout)
 }

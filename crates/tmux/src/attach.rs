@@ -7,7 +7,7 @@ use std::{
 
 use crossterm::{
     event::{read, Event},
-    terminal::{disable_raw_mode, enable_raw_mode, size},
+    terminal::{disable_raw_mode, enable_raw_mode},
 };
 use interprocess::local_socket::prelude::*;
 
@@ -100,7 +100,7 @@ fn write_output(bytes: &[u8]) -> io::Result<()> {
 }
 
 fn sync_terminal_size(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
-    let (cols, rows) = size()?;
+    let (cols, rows) = terman_common::current_terminal_size()?;
     send_resize(endpoint, cols, terman_common::terminal_rows_without_status(rows))
 }
 

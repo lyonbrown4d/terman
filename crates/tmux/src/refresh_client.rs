@@ -1,6 +1,5 @@
 use std::{error::Error, io};
 
-use crossterm::terminal;
 
 use crate::{
     args::target_session_name_arg,
@@ -14,7 +13,7 @@ pub(crate) fn refresh_builtin_tmux_client(args: &[String]) -> Result<(), Box<dyn
     let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
         return Err(session_not_found_error(&target));
     };
-    let (cols, rows) = terminal::size()?;
+    let (cols, rows) = terman_common::current_terminal_size()?;
 
     match request_endpoint_response(
         &session_endpoint(&session),
