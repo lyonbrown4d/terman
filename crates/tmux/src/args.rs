@@ -13,25 +13,34 @@ pub(crate) fn target_session_name_arg(args: &[String]) -> Option<String> {
     })
 }
 
+pub(crate) fn target_window_selector_arg(args: &[String]) -> Option<String> {
+    target_session_arg(args)
+        .and_then(|target| target.split_once(':').map(|(_, selector)| selector.to_string()))
+        .and_then(|selector| normalized_window_selector(&selector).map(ToString::to_string))
+}
+
 pub(crate) fn target_window_index_arg(args: &[String]) -> Option<usize> {
-    target_session_arg(args).and_then(|target| {
-        target
-            .split_once(':')
-            .and_then(|(_, selector)| target_window_selector_index(selector))
-    })
+    target_window_selector_arg(args).and_then(|selector| selector.parse::<usize>().ok())
 }
 
 pub(crate) fn target_pane_index_arg(args: &[String]) -> Option<usize> {
     target_session_arg(args).and_then(|target| {
         target
             .split_once(':')
-            .and_then(|(_, selector)| selector.split_once('.'))
+            .and_then(|(_, selector)| selector.rsplit_once('.'))
             .and_then(|(_, pane)| pane.parse::<usize>().ok())
     })
 }
 
-fn target_window_selector_index(selector: &str) -> Option<usize> {
-    selector.split('.').next()?.parse::<usize>().ok()
+fn normalized_window_selector(selector: &str) -> Option<&str> {
+    let selector = selector.trim();
+    if selector.is_empty() { return None; }
+    if let Some((window, pane)) = selector.rsplit_once('.') {
+        if pane.parse::<usize>().is_ok() {
+            return if window.is_empty() { Some(".") } else { Some(window) };
+        }
+    }
+    Some(selector)
 }
 pub(crate) fn rename_session_name_arg(args: &[String]) -> Option<String> {
     positional_after_command(args, &["rename-session"])

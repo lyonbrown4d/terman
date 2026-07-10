@@ -3,7 +3,7 @@ use std::{error::Error, io};
 use serde::Serialize;
 
 use crate::{
-    args::target_session_name_arg,
+    args::{target_session_name_arg, target_window_selector_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::BuiltinTmuxSession,
@@ -62,6 +62,25 @@ pub(crate) fn active_window_index(session: &BuiltinTmuxSession) -> Result<u32, B
     }
 }
 
+pub(crate) fn resolve_target_window_index(
+    session: &BuiltinTmuxSession,
+    args: &[String],
+) -> Result<u32, Box<dyn Error>> {
+    let indexes = session.window_indices();
+    let selector = target_window_selector_arg(args);
+    let index = match selector.as_deref() {
+        None | Some(".") => Some(active_window_index(session)?),
+        Some("^") => indexes.first().copied(),
+        Some("$") => indexes.last().copied(),
+        Some("+") => adjacent_window_index(active_window_index(session)?, &indexes, true),
+        Some("-") => adjacent_window_index(active_window_index(session)?, &indexes, false),
+        Some(selector) => selector.parse::<u32>().ok()
+            .filter(|index| indexes.contains(index))
+            .or_else(|| indexes.iter().copied().find(|index| session.window_name(*index).as_str() == selector)),
+    };
+    index.ok_or_else(|| window_not_found_error(&session.name, selector.as_deref().unwrap_or(".")))
+}
+
 pub(crate) fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
     session.ipc_endpoint.as_deref().map(TmuxIpcEndpoint::from_raw_name).unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
 }
@@ -91,8 +110,8 @@ pub(crate) fn session_not_found_error(target: &str) -> Box<dyn Error> {
     Box::new(io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_session_not_found_hint(target)))
 }
 
-pub(crate) fn window_not_found_error(target: &str, index: usize) -> Box<dyn Error> {
-    Box::new(io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_window_not_found_hint(target, index)))
+pub(crate) fn window_not_found_error(target: &str, selector: impl ToString) -> Box<dyn Error> {
+    Box::new(io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_window_not_found_hint(target, selector)))
 }
 
 pub(crate) fn unexpected_response_error(response: TmuxIpcResponse) -> Box<dyn Error> {

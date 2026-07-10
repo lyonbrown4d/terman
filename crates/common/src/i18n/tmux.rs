@@ -76,7 +76,7 @@ pub fn builtin_tmux_window_name_required_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxWindowNameRequired, &[])
 }
 
-pub fn builtin_tmux_window_not_found_hint(session: &str, index: usize) -> String {
+pub fn builtin_tmux_window_not_found_hint(session: &str, index: impl ToString) -> String {
     let index = index.to_string();
     localized_message(
         MessageKey::BuiltinTmuxWindowNotFound,
