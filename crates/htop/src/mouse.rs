@@ -2,6 +2,7 @@ pub(crate) use crate::mouse_context::MouseContext;
 use crate::process_table;
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use crate::{
+    body_layout,
     footer::{self, FooterAction},
     model::SortMode,
     overview_layout,
@@ -178,7 +179,7 @@ fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Op
         Tab::Overview if row == overview_header_row(context) => process_table::sort_at_column(column),
         Tab::Processes if row == 6 => process_table::sort_at_column(column),
         Tab::Io if row == 6 => io_header_sort_at(column),
-        Tab::Network if row == network_header_row() => network_header_sort_at(column),
+        Tab::Network if row == network_header_row(context) => network_header_sort_at(column),
         _ => None,
     }
 }
@@ -206,10 +207,10 @@ fn overview_header_row(context: &MouseContext<'_>) -> u16 {
         .saturating_sub(1)
 }
 
-fn network_header_row() -> u16 {
-    let body = terminal_area().height.saturating_sub(10) as usize;
-    let interfaces = 4usize.min(body.saturating_sub(6));
-    9u16.saturating_add(interfaces as u16)
+fn network_header_row(context: &MouseContext<'_>) -> u16 {
+    let data_rows = body_layout::terminal_data_rows();
+    let interfaces = body_layout::network_interface_rows(data_rows, context.sockets.len());
+    body_layout::network_header_row(interfaces)
 }
 
 fn select_index(index: usize, context: MouseContext<'_>) {

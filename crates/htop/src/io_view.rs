@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::{format::format_bytes, model::{Snapshot, SortMode}};
+use crate::{body_layout, format::format_bytes, model::{Snapshot, SortMode}};
 
 const IO_NAME_START: u16 = 51;
 
@@ -19,7 +19,7 @@ pub(crate) fn draw_io(
     selected: usize,
 ) {
     let mut lines = vec![io_header_line(sort)];
-    let visible = body_rows(area);
+    let visible = body_layout::data_rows(area);
     let selected_pid = snapshot.processes.get(selected).map(|row| row.pid.as_str());
     let start = scroll.min(snapshot.io.len().saturating_sub(visible));
     for row in snapshot.io.iter().skip(start).take(visible) {
@@ -77,8 +77,4 @@ fn plain_line(text: String) -> Line<'static> {
 
 fn selected_line(text: String) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Black).bg(Color::Green)))
-}
-
-fn body_rows(area: Rect) -> usize {
-    area.height.saturating_sub(4) as usize
 }

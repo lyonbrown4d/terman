@@ -1,4 +1,4 @@
-use crate::{model::Snapshot, render::Tab};
+use crate::{body_layout, model::Snapshot, render::Tab};
 
 pub(crate) fn selected_data_index(tab: Tab, snapshot: &Snapshot, selected: usize) -> Option<usize> {
     let pid = snapshot.processes.get(selected)?.pid.as_str();
@@ -26,7 +26,7 @@ pub(crate) fn keep_selected_visible(
 }
 
 fn keep_io_visible(snapshot: &Snapshot, pid: &str, scroll: &mut usize) {
-    let visible = body_rows();
+    let visible = body_layout::terminal_data_rows();
     let max = snapshot.io.len().saturating_sub(visible);
     *scroll = (*scroll).min(max);
     if let Some(index) = snapshot.io.iter().position(|row| row.pid == pid) {
@@ -62,13 +62,7 @@ fn connection_rows(sockets: usize) -> usize {
     if sockets == 0 {
         return 0;
     }
-    let body = body_rows();
-    let interfaces = 4usize.min(body.saturating_sub(6));
-    body.saturating_sub(interfaces + 4)
-}
-
-fn body_rows() -> usize {
-    terman_common::current_terminal_size()
-        .map(|(_, rows)| rows.saturating_sub(10) as usize)
-        .unwrap_or(14)
+    let data_rows = body_layout::terminal_data_rows();
+    let interfaces = body_layout::network_interface_rows(data_rows, sockets);
+    body_layout::network_connection_rows(data_rows, interfaces)
 }

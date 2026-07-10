@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::{
+    body_layout,
     model::{Snapshot, SortMode},
     process_detail::process_detail_lines,
     process_table::{process_header_line, process_line},
@@ -25,7 +26,7 @@ pub(crate) fn draw_processes(
     let details = process_detail_lines(snapshot.processes.get(selected));
     let detail_visible = detail_rows(area, details.len());
     let detail_scroll = detail_scroll.min(details.len().saturating_sub(detail_visible));
-    let visible = body_rows(area).saturating_sub(detail_visible + 1).max(1);
+    let visible = body_layout::data_rows(area).saturating_sub(detail_visible + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
     let mut lines = vec![process_header_line(sort)];
     lines.push(plain_line(format!(
@@ -79,11 +80,7 @@ fn visible_start(selected: usize, visible: usize, total: usize) -> usize {
     }
 }
 
-fn body_rows(area: Rect) -> usize {
-    area.height.saturating_sub(4) as usize
-}
-
 fn detail_rows(area: Rect, count: usize) -> usize {
-    let max_detail = body_rows(area).saturating_sub(4).max(1).min(10);
+    let max_detail = body_layout::data_rows(area).saturating_sub(4).max(1).min(10);
     count.max(1).min(max_detail)
 }

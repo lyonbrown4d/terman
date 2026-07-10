@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::{format::format_bytes, model::{Snapshot, SortMode}};
+use crate::{body_layout, format::format_bytes, model::{Snapshot, SortMode}};
 
 pub(crate) fn draw_network(
     frame: &mut Frame<'_>,
@@ -90,11 +90,11 @@ fn network_total_line(snapshot: &Snapshot) -> Line<'static> {
 }
 
 fn interface_limit(area: Rect, sockets: usize) -> usize {
-    if sockets == 0 { body_rows(area).saturating_sub(3) } else { 4.min(body_rows(area).saturating_sub(6)) }
+    body_layout::network_interface_rows(body_layout::data_rows(area), sockets)
 }
 
 fn connection_limit(area: Rect, interfaces: usize) -> usize {
-    body_rows(area).saturating_sub(interfaces + 4)
+    body_layout::network_connection_rows(body_layout::data_rows(area), interfaces)
 }
 
 fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
@@ -118,10 +118,6 @@ fn selected_line(text: String) -> Line<'static> {
 }
 fn fit_cell(value: &str, width: usize) -> String {
     terman_common::fit_terminal_text(terman_common::truncate_terminal_text(value, width).as_str(), width)
-}
-
-fn body_rows(area: Rect) -> usize {
-    area.height.saturating_sub(4) as usize
 }
 
 #[cfg(test)]

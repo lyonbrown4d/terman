@@ -4,6 +4,7 @@ mod app;
 mod app_events;
 mod app_input;
 mod app_terminal;
+mod body_layout;
 mod cli;
 mod core_meter;
 mod di;
