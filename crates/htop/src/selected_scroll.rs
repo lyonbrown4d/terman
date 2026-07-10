@@ -2,6 +2,14 @@ use crossterm::terminal;
 
 use crate::{model::Snapshot, render::Tab};
 
+pub(crate) fn selected_data_index(tab: Tab, snapshot: &Snapshot, selected: usize) -> Option<usize> {
+    let pid = snapshot.processes.get(selected)?.pid.as_str();
+    match tab {
+        Tab::Io => snapshot.io.iter().position(|row| row.pid == pid),
+        Tab::Network => snapshot.sockets.iter().position(|row| row.pid == pid),
+        _ => None,
+    }
+}
 pub(crate) fn keep_selected_visible(
     tab: Tab,
     snapshot: &Snapshot,
