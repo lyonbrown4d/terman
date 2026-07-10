@@ -11,3 +11,7 @@ pub fn is_current_terminal_last_row(row: u16) -> bool {
         .map(|(_, rows)| is_terminal_last_row(row, rows))
         .unwrap_or(false)
 }
+
+pub fn current_terminal_size() -> std::io::Result<(u16, u16)> {
+    crossterm::terminal::size()
+}

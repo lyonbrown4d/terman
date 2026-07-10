@@ -1,6 +1,5 @@
 use std::io;
 
-use crossterm::terminal;
 
 use super::{
     attach_buffer::{read_attach_buffer, remove_attach_buffer, write_attach_buffer},
@@ -98,6 +97,6 @@ pub(super) fn handle_attach_action(
 }
 
 pub(super) fn sync_attach_terminal_size(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
-    let (cols, rows) = terminal::size()?;
+    let (cols, rows) = terman_common::current_terminal_size()?;
     send_control_request(endpoint, ScreenIpcRequest::Resize { cols, rows })
 }

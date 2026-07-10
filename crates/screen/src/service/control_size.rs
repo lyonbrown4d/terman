@@ -15,7 +15,7 @@ struct SizeSpec {
 }
 
 pub(super) fn request_fit_command(args: &ScreenArgs) -> io::Result<()> {
-    let (cols, rows) = crossterm::terminal::size()?;
+    let (cols, rows) = terman_common::current_terminal_size()?;
     send_session_control_request(args, ScreenIpcRequest::Resize { cols, rows })
 }
 
