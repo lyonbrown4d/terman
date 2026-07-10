@@ -1,9 +1,6 @@
 use std::io::{self, Write};
 
-use crossterm::{
-    event::{MouseButton, MouseEvent, MouseEventKind},
-    terminal::size,
-};
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 
 use super::{
     attach_output::print_attach_help,
@@ -136,9 +133,7 @@ fn entry_width(entry: &str) -> u16 {
 }
 
 fn on_control_row(row: u16) -> bool {
-    size()
-        .map(|(_, rows)| row == rows.saturating_sub(1))
-        .unwrap_or(false)
+    terman_common::is_current_terminal_last_row(row)
 }
 
 fn forward_mouse_event(endpoint: &ScreenIpcEndpoint, event: MouseEvent) -> io::Result<()> {

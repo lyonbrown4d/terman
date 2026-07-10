@@ -189,7 +189,7 @@ fn clipped_end(start: u16, width: u16, max_width: Option<u16>) -> u16 {
 }
 
 fn on_status_row(row: u16) -> bool {
-    size().map(|(_, rows)| row == rows.saturating_sub(1)).unwrap_or(false)
+    terman_common::is_current_terminal_last_row(row)
 }
 
 fn render_current_status(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {

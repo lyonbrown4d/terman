@@ -1,9 +1,6 @@
 use std::io::{self, Write};
 
-use crossterm::{
-    event::{MouseButton, MouseEvent, MouseEventKind},
-    terminal::size,
-};
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 
 use crate::{
     builtin_output::publish_window_redraw,
@@ -133,8 +130,10 @@ fn middle_click(
 }
 
 fn on_control_row(bus: &ScreenSessionBus, row: u16) -> bool {
-    let rows = bus.status_snapshot().rows.or_else(|| size().ok().map(|(_, rows)| rows));
-    rows.map(|rows| row == rows.saturating_sub(1)).unwrap_or(false)
+    match bus.status_snapshot().rows {
+        Some(rows) => terman_common::is_terminal_last_row(row, rows),
+        None => terman_common::is_current_terminal_last_row(row),
+    }
 }
 
 fn forward_mouse_event(windows: &mut [ScreenWindowRuntime], active_window: usize, event: MouseEvent) {
