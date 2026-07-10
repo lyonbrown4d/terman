@@ -45,6 +45,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut detail_scroll = 0usize;
     let mut io_scroll = 0usize;
     let mut network_scroll = 0usize;
+    let mut visibility_anchor: Option<(Tab, SortMode, Option<String>, Option<(u16, u16)>)> = None;
     let mut refresh_ms = args.refresh_ms.max(100);
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
@@ -63,7 +64,16 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));
         network_scroll = network_scroll
             .min(snapshot.networks.len().max(snapshot.sockets.len()).saturating_sub(1));
-        keep_selected_visible(tab, &snapshot, selected, &mut io_scroll, &mut network_scroll);
+        let next_visibility_anchor = (
+            tab,
+            sort,
+            snapshot.processes.get(selected).map(|row| row.pid.clone()),
+            crossterm::terminal::size().ok(),
+        );
+        if visibility_anchor.as_ref() != Some(&next_visibility_anchor) {
+            keep_selected_visible(tab, &snapshot, selected, &mut io_scroll, &mut network_scroll);
+            visibility_anchor = Some(next_visibility_anchor);
+        }
         terminal.draw(|frame| {
             if help_open {
                 help::draw(frame);

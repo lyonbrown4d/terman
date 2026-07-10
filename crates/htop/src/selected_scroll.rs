@@ -29,6 +29,9 @@ fn keep_io_visible(snapshot: &Snapshot, pid: &str, scroll: &mut usize) {
 }
 
 fn keep_network_visible(snapshot: &Snapshot, pid: &str, scroll: &mut usize) {
+    if snapshot.sockets.is_empty() {
+        return;
+    }
     let visible = connection_rows(snapshot.sockets.len());
     let max = snapshot.sockets.len().saturating_sub(visible);
     *scroll = (*scroll).min(max);
