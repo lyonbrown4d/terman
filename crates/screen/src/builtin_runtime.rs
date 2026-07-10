@@ -2,7 +2,7 @@ use std::{io, time::Duration};
 
 use crossterm::{
     event::{self, Event},
-    terminal::{self, size as terminal_size},
+    terminal,
 };
 
 use crate::{
@@ -39,7 +39,7 @@ pub(crate) fn screen_session_endpoint(args: &ScreenArgs) -> ScreenIpcEndpoint {
 }
 
 pub(crate) fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16>) -> (u16, u16) {
-    let (cols, rows) = terminal_size().unwrap_or((120, 32));
+    let (cols, rows) = terman_common::current_terminal_size().unwrap_or((120, 32));
     (cols_override.unwrap_or(cols), rows_override.unwrap_or(rows))
 }
 
