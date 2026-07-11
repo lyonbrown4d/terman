@@ -54,6 +54,7 @@ pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> 
     if context.signal_menu.is_some() {
         return handle_signal_mouse(event, &mut context);
     }
+    if context.user_filter.handle_mouse(&event, terminal_area()) { return MouseAction::Handled; }
     match event.kind {
         MouseEventKind::ScrollUp => scroll(event.row, context, false),
         MouseEventKind::ScrollDown => scroll(event.row, context, true),
@@ -211,12 +212,14 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
         *context.sort,
         *context.sort_inverted,
         *context.tree,
+        context.user_filter.selected(),
         context.filter,
         context.search,
         context.refresh_ms,
         context.signal_menu.as_ref().map(|menu| menu.pid()),
     ) {
         Some(FooterAction::Help) => *context.help_open = true,
+        Some(FooterAction::User) => context.user_filter.open(context.process_users),
         Some(FooterAction::Search) => return MouseAction::Search,
         Some(FooterAction::Filter) => return MouseAction::Filter,
         Some(FooterAction::Tree) => *context.tree = !*context.tree,
@@ -292,4 +295,3 @@ fn network_header_row(context: &MouseContext<'_>) -> u16 {
     let interfaces = body_layout::network_interface_rows(data_rows, context.sockets.len());
     body_layout::network_header_row(interfaces)
 }
-

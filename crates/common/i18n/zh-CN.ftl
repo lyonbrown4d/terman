@@ -4,7 +4,7 @@ builtin-htop-tab-overview = 概览
 builtin-htop-tab-processes = 进程
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = 网络
-builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，F5/t 树视图，+/- 展开/折叠分支，* 切换全部分支，F6/s 排序菜单，P/M/T/N 按 CPU/内存/时间/PID 排序，F 跟随选中 PID，I 反向排序，F9 选择信号，F10/q/Esc 退出，非树视图下 +/- 调整刷新间隔。鼠标：点击标签/页脚/Overview 或 Processes 进程行/表头，滚轮滚动列表、详情、I/O 或网络页，右键进程行打开信号菜单。F7/F8 调整优先级。 Space 标记，U 清除全部标记。
+builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，u 按用户筛选，F5/t 树视图，+/- 展开/折叠分支，* 切换全部分支，F6/s 排序菜单，P/M/T/N 按 CPU/内存/时间/PID 排序，F 跟随选中 PID，I 反向排序，F9 选择信号，F10/q/Esc 退出，非树视图下 +/- 调整刷新间隔。鼠标：点击标签/页脚/Overview 或 Processes 进程行/表头，滚轮滚动列表、详情、I/O 或网络页，右键进程行打开信号菜单。F7/F8 调整优先级。 Space 标记，U 清除全部标记。
 builtin-htop-help-panel =
     terman htop
 
@@ -16,6 +16,7 @@ builtin-htop-help-panel =
     F：跨排序和刷新持续跟随选中的 PID。
     F3：按 PID、用户、名称或命令查找可见进程。
     F4 或 /：按 PID、用户、名称或完整命令行过滤进程。
+    u：精确选择进程所属用户；选择“全部用户”可清除筛选。
     F5 或 t：切换平铺/树状进程视图。
     +/-/*：树视图中，+ 展开、- 折叠、* 切换全部分支。
     F6 或 s：打开排序菜单。
@@ -33,6 +34,10 @@ builtin-htop-tree-expand = 展开
 builtin-htop-tree-toggle-all = 全部
 builtin-htop-sort-menu-title = 排序方式
 builtin-htop-sort-menu-help = 上/下选择，Enter 应用，Esc 取消。
+builtin-htop-user-filter = 用户
+builtin-htop-all-users = 全部用户
+builtin-htop-user-menu-title = 选择用户
+builtin-htop-user-menu-help = 上/下或滚轮选择，Enter 或点击应用，Esc/u 取消。
 builtin-htop-signal-menu-title = 向 PID {$pid} 发送信号
 builtin-htop-signal-menu-help = 上/下或滚轮选择，Enter 或点击发送，Esc/F9 取消。
 builtin-htop-signal-unsupported = 当前平台不支持进程信号。

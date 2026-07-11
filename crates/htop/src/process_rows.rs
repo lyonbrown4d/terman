@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
 };
 
 use sysinfo::{Process, System, Users};
@@ -17,9 +17,10 @@ pub(crate) fn process_rows(
     sort: SortMode,
     inverted: bool,
     filter: &str,
+    user_filter: Option<&str>,
     tree: bool,
     tree_state: &ProcessTreeState,
-) -> Vec<ProcessRow> {
+) -> (Vec<ProcessRow>, Vec<String>) {
     let mut rows: Vec<_> = system
         .processes()
         .iter()
@@ -27,7 +28,7 @@ pub(crate) fn process_rows(
             let usage = process.disk_usage();
             let pid = pid.to_string();
             let user = process_user(process, users);
-        let nice = process_priority::nice_value(pid.as_str());
+            let nice = process_priority::nice_value(pid.as_str());
             ProcessRow {
                 pid,
                 parent_pid: process.parent().map(|parent| parent.to_string()),
@@ -48,20 +49,52 @@ pub(crate) fn process_rows(
                 name: process.name().to_string_lossy().into_owned(),
             }
         })
-        .filter(|row| process_matches(row.pid.as_str(), row.user.as_str(), row.name.as_str(), row.command.as_str(), filter))
         .collect();
+    let process_users = rows
+        .iter()
+        .map(|row| row.user.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    rows.retain(|row| matches_user(row.user.as_str(), user_filter));
+    rows.retain(|row| {
+        process_matches(
+            row.pid.as_str(),
+            row.user.as_str(),
+            row.name.as_str(),
+            row.command.as_str(),
+            filter,
+        )
+    });
     rows.sort_by(|left, right| compare_process(left, right, sort));
-    if inverted { rows.reverse(); }
-    if tree { tree_rows(rows, tree_state) } else { rows }
+    if inverted {
+        rows.reverse();
+    }
+    let rows = if tree {
+        tree_rows(rows, tree_state)
+    } else {
+        rows
+    };
+    (rows, process_users)
 }
-
-pub(crate) fn io_rows(system: &System, sort: SortMode, inverted: bool, filter: &str) -> Vec<IoRow> {
+pub(crate) fn io_rows(
+    system: &System,
+    users: &Users,
+    sort: SortMode,
+    inverted: bool,
+    filter: &str,
+    user_filter: Option<&str>,
+) -> Vec<IoRow> {
     let mut rows: Vec<_> = system
         .processes()
         .iter()
-        .map(|(pid, process)| {
+        .filter_map(|(pid, process)| {
+            let user = process_user(process, users);
+            if !matches_user(user.as_str(), user_filter) {
+                return None;
+            }
             let usage = process.disk_usage();
-            IoRow {
+            let row = IoRow {
                 pid: pid.to_string(),
                 read_rate: usage.read_bytes,
                 written_rate: usage.written_bytes,
@@ -69,15 +102,26 @@ pub(crate) fn io_rows(system: &System, sort: SortMode, inverted: bool, filter: &
                 written: usage.total_written_bytes,
                 name: process.name().to_string_lossy().into_owned(),
                 command: command_line(process),
-            }
+            };
+            Some((row, user))
         })
-        .filter(|row| process_matches(row.pid.as_str(), "", row.name.as_str(), row.command.as_str(), filter))
+        .filter(|(row, user)| {
+            process_matches(
+                row.pid.as_str(),
+                user.as_str(),
+                row.name.as_str(),
+                row.command.as_str(),
+                filter,
+            )
+        })
+        .map(|(row, _)| row)
         .collect();
     rows.sort_by(|left, right| compare_io_row(left, right, sort));
-    if inverted { rows.reverse(); }
+    if inverted {
+        rows.reverse();
+    }
     rows
 }
-
 fn tree_rows(rows: Vec<ProcessRow>, tree_state: &ProcessTreeState) -> Vec<ProcessRow> {
     let included: HashSet<_> = rows.iter().map(|row| row.pid.clone()).collect();
     let mut roots = Vec::new();
@@ -138,6 +182,10 @@ fn process_user(process: &Process, users: &Users) -> String {
         .map(|user| user.name().to_string())
         .unwrap_or_else(|| "-".to_string())
 }
+fn matches_user(user: &str, selected: Option<&str>) -> bool {
+    selected.map_or(true, |selected| selected == user)
+}
+
 fn process_matches(pid: &str, user: &str, name: &str, command: &str, filter: &str) -> bool {
     let filter = filter.trim();
     let lowered = filter.to_lowercase();

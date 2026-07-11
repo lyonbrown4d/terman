@@ -17,6 +17,7 @@ use crate::{
     signal_menu::SignalMenuState,
     sort_menu,
     tab_sort::normalize_sort_for_tab,
+    user_filter::UserFilterState,
 };
 
 pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
@@ -30,6 +31,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut sort_menu_open = false;
     let mut sort_cursor = sort;
     let mut sort_header_pressed = None;
+    let mut user_filter = UserFilterState::default();
     let mut tree = false;
     let mut tree_state = ProcessTreeState::default();
     let mut help_open = false;
@@ -61,7 +63,14 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
         let active_search = search_input.as_deref().unwrap_or(&search);
         sort = normalize_sort_for_tab(tab, sort);
-        let snapshot = metrics.snapshot(sort, sort_inverted, active_filter, tree, &tree_state);
+        let snapshot = metrics.snapshot(
+            sort,
+            sort_inverted,
+            active_filter,
+            user_filter.selected(),
+            tree,
+            &tree_state,
+        );
         let followed_index = followed_pid.as_deref().and_then(|pid| {
             snapshot.processes.iter().position(|process| process.pid == pid)
         });
@@ -109,6 +118,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     sort,
                     sort_inverted,
                     tree,
+                    user_filter.selected(),
                     selected,
                     active_filter,
                     filter_input.is_some(),
@@ -125,6 +135,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                 if sort_menu_open {
                     sort_menu::draw(frame, sort_cursor);
                 }
+                user_filter.draw(frame);
             }
         })?;
         if args.once {
@@ -140,6 +151,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut sort_menu_open,
             &mut sort_cursor,
             &mut sort_header_pressed,
+            &mut user_filter,
             &mut tree,
             &mut tree_state,
             &mut help_open,
@@ -150,6 +162,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut io_scroll,
             &mut network_scroll,
             snapshot.processes.as_slice(),
+            snapshot.process_users.as_slice(),
             snapshot.io.as_slice(),
             snapshot.sockets.as_slice(),
             snapshot.cpu_cores.len(),

@@ -51,6 +51,7 @@ pub(crate) struct Snapshot {
     pub(crate) load_average: LoadAverage,
     pub(crate) system: SystemSummary,
     pub(crate) processes: Vec<ProcessRow>,
+    pub(crate) process_users: Vec<String>,
     pub(crate) io: Vec<IoRow>,
     pub(crate) networks: Vec<NetworkRow>,
     pub(crate) sockets: Vec<SocketRow>,

@@ -8,6 +8,7 @@ use crate::model::SortMode;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum FooterAction {
     Help,
+    User,
     Search,
     Filter,
     Tree,
@@ -30,6 +31,7 @@ pub(crate) fn footer_line(
     sort: SortMode,
     sort_inverted: bool,
     tree: bool,
+    user_filter: Option<&str>,
     filter: &str,
     filtering: bool,
     search: &str,
@@ -39,6 +41,7 @@ pub(crate) fn footer_line(
 ) -> Line<'static> {
     let mut spans = vec![
         key_span("F1"), value_span(" Help ".to_string()),
+        key_span("u"), value_span(format!(" {}:{} ", terman_common::builtin_htop_user_filter_hint(), user_label(user_filter))),
         key_span("F3"), value_span(format!(" Search:{} ", value_label(search))),
         key_span("F4"), value_span(format!(" Filter:{} ", value_label(filter))),
         key_span("F5"), value_span(format!(" {} ", view_label(tree))),
@@ -74,6 +77,7 @@ pub(crate) fn footer_action_at(
     sort: SortMode,
     sort_inverted: bool,
     tree: bool,
+    user_filter: Option<&str>,
     filter: &str,
     search: &str,
     refresh_ms: u64,
@@ -81,6 +85,7 @@ pub(crate) fn footer_action_at(
 ) -> Option<FooterAction> {
     let mut segments = vec![
         (FooterAction::Help, button_width("F1", " Help ".to_string())),
+        (FooterAction::User, button_width("u", format!(" {}:{} ", terman_common::builtin_htop_user_filter_hint(), user_label(user_filter)))),
         (FooterAction::Search, button_width("F3", format!(" Search:{} ", value_label(search)))),
         (FooterAction::Filter, button_width("F4", format!(" Filter:{} ", value_label(filter)))),
         (FooterAction::Tree, button_width("F5", format!(" {} ", view_label(tree)))),
@@ -191,6 +196,11 @@ fn prompt_text(tree: bool, filtering: bool, searching: bool, kill_target: Option
     }
 }
 
+fn user_label(user: Option<&str>) -> String {
+    user.map(str::to_string)
+        .unwrap_or_else(terman_common::builtin_htop_all_users_hint)
+}
+
 fn view_label(tree: bool) -> &'static str {
     if tree { "Tree" } else { "Flat" }
 }
@@ -204,7 +214,7 @@ mod tests {
         let help = button_width("F1", " Help ".to_string());
         let search = button_width("F3", " Search:服务 ".to_string());
         let column = help.saturating_add(search).saturating_add(1);
-        let action = footer_action_at(column, SortMode::Cpu, false, false, "", "服务", 1000, None);
+        let action = footer_action_at(column, SortMode::Cpu, false, false, None, "", "服务", 1000, None);
         assert_eq!(action, Some(FooterAction::Filter));
     }
 }

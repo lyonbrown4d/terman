@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
+builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, u filter by user, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
 builtin-htop-help-panel =
     terman htop
 
@@ -16,6 +16,7 @@ builtin-htop-help-panel =
     F: follow the selected PID across sorting and refreshes.
     F3: search visible process PID, user, name, or command.
     F4 or /: filter processes by PID, user, name, or command line.
+    u: select an exact process owner; choose All users to clear.
     F5 or t: toggle flat/tree process view.
     +/-/*: in tree view, + expands, - collapses, and * toggles all branches.
     F6 or s: open the sort menu.
@@ -33,6 +34,10 @@ builtin-htop-tree-expand = Expand
 builtin-htop-tree-toggle-all = All
 builtin-htop-sort-menu-title = Sort by
 builtin-htop-sort-menu-help = Up/Down choose, Enter apply, Esc cancel.
+builtin-htop-user-filter = User
+builtin-htop-all-users = All users
+builtin-htop-user-menu-title = Select user
+builtin-htop-user-menu-help = Up/Down or wheel choose, Enter or click apply, Esc/u cancel.
 builtin-htop-signal-menu-title = Send signal to PID {$pid}
 builtin-htop-signal-menu-help = Up/Down or wheel choose, Enter or click send, Esc/F9 cancel.
 builtin-htop-signal-unsupported = No process signals are supported on this platform.

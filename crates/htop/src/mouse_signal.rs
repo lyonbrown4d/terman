@@ -50,6 +50,7 @@ fn handle_left_click(event: MouseEvent, context: &mut MouseContext<'_>) -> Mouse
         *context.sort,
         *context.sort_inverted,
         *context.tree,
+        context.user_filter.selected(),
         context.filter,
         context.search,
         context.refresh_ms,

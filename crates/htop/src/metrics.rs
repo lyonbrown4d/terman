@@ -53,12 +53,22 @@ impl Metrics {
         sort: SortMode,
         inverted: bool,
         filter: &str,
+        user_filter: Option<&str>,
         tree: bool,
         tree_state: &ProcessTreeState,
     ) -> Snapshot {
         let networks = self.network_rows();
-        let processes = process_rows(&self.system, &self.users, sort, inverted, filter, tree, tree_state);
-        let io = io_rows(&self.system, sort, inverted, filter);
+        let (processes, process_users) = process_rows(
+            &self.system,
+            &self.users,
+            sort,
+            inverted,
+            filter,
+            user_filter,
+            tree,
+            tree_state,
+        );
+        let io = io_rows(&self.system, &self.users, sort, inverted, filter, user_filter);
         let sockets = socket_rows(&self.system, sort, inverted);
         let received = networks.iter().map(|row| row.received).sum();
         let transmitted = networks.iter().map(|row| row.transmitted).sum();
@@ -78,6 +88,7 @@ impl Metrics {
             load_average: load_average(),
             system: system_summary(),
             processes,
+            process_users,
             io,
             networks,
             sockets,

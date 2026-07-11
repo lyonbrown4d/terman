@@ -5,6 +5,7 @@ mod app_events;
 mod app_input;
 mod app_poll;
 mod app_terminal;
+mod app_tree_input;
 mod body_layout;
 mod cli;
 mod core_meter;
@@ -38,6 +39,7 @@ mod signal_menu;
 mod sort_menu;
 mod tab_hitbox;
 mod tab_sort;
+mod user_filter;
 
 pub use cli::{HtopArgs, run_with_binary_parse};
 

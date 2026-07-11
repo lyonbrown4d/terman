@@ -6,6 +6,7 @@ use std::{collections::HashSet,
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
 use crate::{
+    app_tree_input::{apply_tree_branch, process_tree_active},
     app_events::{
         confirm_mouse_signal, handle_filter_input, handle_help_input, handle_search_input,
         handle_signal_input, handle_sort_menu_input, selected_process_pid,
@@ -14,7 +15,7 @@ use crate::{
         adjust_refresh, apply_direct_sort, delay_key, filter_key, follow_key, help_key, interrupt_key,
         invert_sort_key, kill_key, move_selection, navigation_key, next_tab, priority_delta,
         quit_key, search_key, sort_key, tree_branch_action, tree_key, tree_toggle_all_key,
-        TreeBranchAction,
+        user_filter_key, TreeBranchAction,
     },
     interrupt::InterruptFlag,
     metrics::Metrics,
@@ -23,6 +24,7 @@ use crate::{
     mouse::{self, MouseContext},
     render::Tab,
     signal_menu::SignalMenuState,
+    user_filter::UserFilterState,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -36,6 +38,7 @@ pub(crate) fn poll_until_refresh(
     sort_menu_open: &mut bool,
     sort_cursor: &mut SortMode,
     sort_header_pressed: &mut Option<SortMode>,
+    user_filter: &mut UserFilterState,
     tree: &mut bool,
     tree_state: &mut ProcessTreeState,
     help_open: &mut bool,
@@ -46,6 +49,7 @@ pub(crate) fn poll_until_refresh(
     io_scroll: &mut usize,
     network_scroll: &mut usize,
     processes: &[ProcessRow],
+    process_users: &[String],
     io: &[IoRow],
     sockets: &[SocketRow],
     cpu_core_count: usize,
@@ -70,6 +74,7 @@ pub(crate) fn poll_until_refresh(
                 Event::Key(key) if interrupt_key(&key) => return Ok(true),
                 Event::Key(key) if key.kind == KeyEventKind::Release => false,
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
+                Event::Key(key) if user_filter.handle_key(key.code) => true,
                 Event::Mouse(mouse_event) => {
                     let action = mouse::handle_mouse(
                         mouse_event,
@@ -80,6 +85,7 @@ pub(crate) fn poll_until_refresh(
                             sort_menu_open,
                             sort_cursor,
                             sort_header_pressed,
+                            user_filter,
                             tree,
                             help_open,
                             selected,
@@ -87,6 +93,7 @@ pub(crate) fn poll_until_refresh(
                             io_scroll,
                             network_scroll,
                             processes,
+                            process_users,
                             io,
                             sockets,
                             cpu_core_count,
@@ -244,6 +251,11 @@ pub(crate) fn poll_until_refresh(
                     *filter_input = Some(filter.clone());
                     true
                 }
+                Event::Key(key) if user_filter_key(key.code) => {
+                    *sort_menu_open = false;
+                    user_filter.open(process_users);
+                    true
+                }
                 Event::Key(key) if apply_direct_sort(*tab, key.code, sort, sort_inverted) => true,
                 Event::Key(key) if sort_key(key.code) => {
                     *sort_cursor = *sort;
@@ -276,23 +288,4 @@ pub(crate) fn poll_until_refresh(
         }
     }
     Ok(false)
-}
-
-fn process_tree_active(tab: Tab, tree: bool) -> bool {
-    tree && matches!(tab, Tab::Overview | Tab::Processes)
-}
-
-fn apply_tree_branch(
-    tree_state: &mut ProcessTreeState,
-    processes: &[ProcessRow],
-    selected: usize,
-    action: TreeBranchAction,
-) {
-    let Some(row) = processes.get(selected).filter(|row| row.has_children) else {
-        return;
-    };
-    match action {
-        TreeBranchAction::Expand => tree_state.expand(row.pid.as_str()),
-        TreeBranchAction::Collapse => tree_state.collapse(row.pid.as_str()),
-    }
 }

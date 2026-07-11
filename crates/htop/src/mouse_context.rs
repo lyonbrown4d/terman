@@ -2,6 +2,7 @@ use crate::{
     model::{IoRow, ProcessRow, SocketRow, SortMode},
     render::Tab,
     signal_menu::SignalMenuState,
+    user_filter::UserFilterState,
 };
 
 pub(crate) struct MouseContext<'a> {
@@ -18,11 +19,13 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) io_scroll: &'a mut usize,
     pub(crate) network_scroll: &'a mut usize,
     pub(crate) processes: &'a [ProcessRow],
+    pub(crate) process_users: &'a [String],
     pub(crate) io: &'a [IoRow],
     pub(crate) sockets: &'a [SocketRow],
     pub(crate) cpu_core_count: usize,
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
     pub(crate) signal_menu: &'a mut Option<SignalMenuState>,
+    pub(crate) user_filter: &'a mut UserFilterState,
     pub(crate) refresh_ms: u64,
 }

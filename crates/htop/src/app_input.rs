@@ -62,6 +62,10 @@ pub(crate) fn filter_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('/') | KeyCode::F(4))
 }
 
+pub(crate) fn user_filter_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('u'))
+}
+
 pub(crate) fn sort_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('s') | KeyCode::F(6))
 }

@@ -46,6 +46,22 @@ pub fn builtin_htop_sort_menu_title_hint() -> String {
 pub fn builtin_htop_sort_menu_help_hint() -> String {
     localized_message(MessageKey::BuiltinHtopSortMenuHelp, &[])
 }
+
+pub fn builtin_htop_user_filter_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopUserFilter, &[])
+}
+
+pub fn builtin_htop_all_users_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopAllUsers, &[])
+}
+
+pub fn builtin_htop_user_menu_title_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopUserMenuTitle, &[])
+}
+
+pub fn builtin_htop_user_menu_help_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopUserMenuHelp, &[])
+}
 pub fn builtin_htop_signal_menu_title_hint(pid: &str) -> String {
     localized_message(MessageKey::BuiltinHtopSignalMenuTitle, &[("pid", pid)])
 }
