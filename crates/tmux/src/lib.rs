@@ -11,6 +11,7 @@ mod attach_keys;
 mod attach_mouse;
 mod attach_pane;
 mod attach_rename;
+mod attach_repeat;
 mod attach_status;
 mod attach_window;
 mod attach_window_list;

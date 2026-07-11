@@ -13,6 +13,7 @@ use crate::{
         swap_current_pane, toggle_current_pane_zoom,
     },
     attach_rename::{RenameTarget, handle_rename_input, render_rename_prompt},
+    attach_repeat::PaneResizeRepeat,
     attach_status::{
         KILL_PANE_CONFIRM_STATUS, KILL_WINDOW_CONFIRM_STATUS, query_status_line,
         render_status_line,
@@ -42,6 +43,7 @@ pub(crate) enum AttachInputResult {
 pub(crate) struct AttachInputMode {
     command_prompt: CommandPromptState,
     prefix_pending: bool,
+    resize_repeat: PaneResizeRepeat,
     kill_pending: Option<KillTarget>,
     rename_input: Option<(RenameTarget, String)>,
     last_window: Option<u32>,
@@ -74,6 +76,10 @@ impl AttachInputMode {
         }
         if self.prefix_pending {
             return self.handle_prefix(endpoint, client_id, &key);
+        }
+        if let Some(command) = self.resize_repeat.take_command(&key) {
+            self.handle_prefix_command(endpoint, command)?;
+            return Ok(AttachInputResult::Continue);
         }
         if is_tmux_prefix_key(&key) {
             self.prefix_pending = true;
@@ -168,6 +174,7 @@ impl AttachInputMode {
                 let _ = render_current_status(endpoint);
             }
             TmuxPrefixCommand::ResizePane(direction) => {
+                self.resize_repeat.arm();
                 resize_current_pane(endpoint, direction)?;
                 let _ = render_current_status(endpoint);
             }
