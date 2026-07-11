@@ -3,6 +3,7 @@ use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenInputAction {
     CopyMode,
+    CommandPrompt,
     Bytes(Vec<u8>),
     Clear,
     Detach,

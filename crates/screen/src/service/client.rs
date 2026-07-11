@@ -29,11 +29,12 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
         .as_deref()
         .map(ScreenIpcEndpoint::from_raw_name)
         .unwrap_or_else(|| ScreenIpcEndpoint::for_session(&session.name));
+    let session_name = session.name.clone();
     let client_id = new_attach_client_id();
     let mut stream = endpoint.connect_options()?.connect_sync()?;
     let request = ScreenIpcRequest::Attach {
         mode,
-        target: Some(session.name),
+        target: Some(session_name.clone()),
         detach_existing: args.detach_existing,
         client_id: Some(client_id.clone()),
     };
@@ -43,7 +44,7 @@ pub(crate) fn request_screen_attach(args: &ScreenArgs) -> io::Result<()> {
     stream.write_all(b"\n")?;
     stream.flush()?;
 
-    attach_interactive(endpoint, stream, client_id)
+    attach_interactive(endpoint, stream, client_id, session_name)
 }
 
 pub(crate) fn request_screen_server_ready(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {

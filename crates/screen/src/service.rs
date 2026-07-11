@@ -1,3 +1,4 @@
+mod attach_command;
 mod attach_copy;
 mod attach;
 mod attach_actions;
@@ -6,6 +7,7 @@ mod attach_hardcopy;
 mod attach_mouse;
 mod attach_number;
 mod attach_output;
+mod attach_prompt;
 mod attach_size;
 mod attach_termcap;
 mod attach_title;

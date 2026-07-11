@@ -63,7 +63,7 @@ pub enum MessageKey {
     BuiltinScreenAttachHelp,
     BuiltinScreenCopyStatus, BuiltinScreenCopySelectionStatus, BuiltinScreenMonitorStatus, BuiltinScreenMonitorActivity, BuiltinScreenSilenceStatus, BuiltinScreenSilenceActivity, BuiltinScreenControlMonitorRequired, BuiltinScreenControlSilenceRequired,
     BuiltinScreenAttachHardcopyPathUnavailable,
-    BuiltinScreenAttachTitlePrompt,
+    BuiltinScreenAttachTitlePrompt, BuiltinScreenAttachCommandPrompt,
     BuiltinScreenAttachTargetRequired,
     BuiltinScreenAttachOutputThreadPanicked,
     BuiltinScreenSessionNotFound,
@@ -194,7 +194,7 @@ Self::BuiltinScreenMonitorStatus => "builtin-screen-monitor-status", Self::Built
             Self::BuiltinScreenAttachHardcopyPathUnavailable => {
                 "builtin-screen-attach-hardcopy-path-unavailable"
             }
-            Self::BuiltinScreenAttachTitlePrompt => "builtin-screen-attach-title-prompt",
+            Self::BuiltinScreenAttachTitlePrompt => "builtin-screen-attach-title-prompt", Self::BuiltinScreenAttachCommandPrompt => "builtin-screen-attach-command-prompt",
             Self::BuiltinScreenAttachTargetRequired => "builtin-screen-attach-target-required",
             Self::BuiltinScreenAttachOutputThreadPanicked => {
                 "builtin-screen-attach-output-thread-panicked"

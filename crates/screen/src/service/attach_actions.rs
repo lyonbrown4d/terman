@@ -10,7 +10,6 @@ use super::{
     },
     attach_size::{fit_attach_window, toggle_attach_width},
     attach_termcap::print_attach_dumptermcap,
-    attach_title::prompt_attach_title,
     ipc_client::send_control_request,
 };
 use crate::{
@@ -20,6 +19,8 @@ use crate::{
 
 pub(super) enum AttachActionResult {
     CopyMode,
+    CommandPrompt,
+    TitlePrompt,
     Continue,
     Stop,
 }
@@ -31,6 +32,7 @@ pub(super) fn handle_attach_action(
 ) -> io::Result<AttachActionResult> {
     match action {
         ScreenInputAction::CopyMode => return Ok(AttachActionResult::CopyMode),
+        ScreenInputAction::CommandPrompt => return Ok(AttachActionResult::CommandPrompt),
         ScreenInputAction::Bytes(bytes) => {
             send_control_request(endpoint, ScreenIpcRequest::Input { bytes })?;
         }
@@ -107,7 +109,7 @@ pub(super) fn handle_attach_action(
             send_control_request(endpoint, ScreenIpcRequest::SelectWindow { index })?;
         }
         ScreenInputAction::Time => print_attach_time()?,
-        ScreenInputAction::Title => prompt_attach_title(endpoint)?,
+        ScreenInputAction::Title => return Ok(AttachActionResult::TitlePrompt),
         ScreenInputAction::Version => print_attach_version()?,
         ScreenInputAction::WidthToggle => toggle_attach_width(endpoint)?,
         ScreenInputAction::Windows => print_attach_windows(endpoint)?,

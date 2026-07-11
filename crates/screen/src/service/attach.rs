@@ -16,6 +16,8 @@ use interprocess::local_socket::prelude::*;
 
 use super::{
     attach_actions::{AttachActionResult, handle_attach_action, sync_attach_terminal_size},
+    attach_command::prompt_attach_command,
+    attach_title::prompt_attach_title,
     attach_copy::{finish_attach_copy_mode, start_attach_copy_mode},
     attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
     ipc_client::send_control_request,
@@ -47,16 +49,17 @@ pub(super) fn attach_interactive(
     endpoint: ScreenIpcEndpoint,
     stream: LocalSocketStream,
     client_id: String,
+    session_name: String,
 ) -> io::Result<()> {
     let _raw = AttachRawMode::enter()?;
     sync_attach_terminal_size(&endpoint)?;
 
     let running = Arc::new(AtomicBool::new(true));
-    let copy_active = Arc::new(AtomicBool::new(false));
+    let output_paused = Arc::new(AtomicBool::new(false));
     let output_running = Arc::clone(&running);
-    let output_copy_active = Arc::clone(&copy_active);
+    let output_output_paused = Arc::clone(&output_paused);
     let output_thread = thread::spawn(move || {
-        let result = read_attach_stream(stream, &output_copy_active);
+        let result = read_attach_stream(stream, &output_output_paused);
         output_running.store(false, Ordering::Release);
         result
     });
@@ -82,12 +85,12 @@ pub(super) fn attach_interactive(
                             ScreenCopyResult::Continue => mode.render()?,
                             ScreenCopyResult::Cancel => {
                                 copy_mode = None;
-                                copy_active.store(false, Ordering::Release);
+                                output_paused.store(false, Ordering::Release);
                                 finish_attach_copy_mode(&endpoint, None)?;
                             }
                             ScreenCopyResult::Copy(bytes) => {
                                 copy_mode = None;
-                                copy_active.store(false, Ordering::Release);
+                                output_paused.store(false, Ordering::Release);
                                 finish_attach_copy_mode(&endpoint, Some(bytes))?;
                             }
                         }
@@ -98,9 +101,19 @@ pub(super) fn attach_interactive(
                             AttachActionResult::Continue => {}
                             AttachActionResult::CopyMode => {
                                 let mode = start_attach_copy_mode(&endpoint)?;
-                                copy_active.store(true, Ordering::Release);
+                                output_paused.store(true, Ordering::Release);
                                 mode.render()?;
                                 copy_mode = Some(mode);
+                            }
+                            AttachActionResult::CommandPrompt => {
+                                run_attach_prompt(&endpoint, &output_paused, || {
+                                    prompt_attach_command(&session_name)
+                                })?;
+                            }
+                            AttachActionResult::TitlePrompt => {
+                                run_attach_prompt(&endpoint, &output_paused, || {
+                                    prompt_attach_title(&endpoint)
+                                })?;
                             }
                             AttachActionResult::Stop => {
                                 running.store(false, Ordering::Release);
@@ -133,9 +146,21 @@ pub(super) fn attach_interactive(
     }
 }
 
+fn run_attach_prompt(
+    endpoint: &ScreenIpcEndpoint,
+    output_paused: &AtomicBool,
+    prompt: impl FnOnce() -> io::Result<()>,
+) -> io::Result<()> {
+    output_paused.store(true, Ordering::Release);
+    let result = prompt();
+    output_paused.store(false, Ordering::Release);
+    result?;
+    let _ = send_control_request(endpoint, ScreenIpcRequest::Redisplay);
+    Ok(())
+}
 fn read_attach_stream(
     stream: LocalSocketStream,
-    copy_active: &AtomicBool,
+    output_paused: &AtomicBool,
 ) -> io::Result<()> {
     let mut reader = BufReader::new(stream);
     let mut stdout = io::stdout();
@@ -159,7 +184,7 @@ fn read_attach_stream(
             ScreenIpcResponse::Info { .. } => {}
             ScreenIpcResponse::PasteBuffer { .. } => {}
             ScreenIpcResponse::Output { bytes } => {
-                if !copy_active.load(Ordering::Acquire) {
+                if !output_paused.load(Ordering::Acquire) {
                     stdout.write_all(&bytes)?;
                     stdout.flush()?;
                 }

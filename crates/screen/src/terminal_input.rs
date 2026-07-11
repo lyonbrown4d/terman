@@ -175,7 +175,11 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::Windows)
             }
-            KeyCode::Char(c) if key.modifiers.is_empty() && c.is_ascii_digit() => {
+            KeyCode::Char(':')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::CommandPrompt)
+            }            KeyCode::Char(c) if key.modifiers.is_empty() && c.is_ascii_digit() => {
                 Some(ScreenInputAction::SelectWindow(c.to_digit(10).unwrap_or(0) as usize))
             }
             KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),

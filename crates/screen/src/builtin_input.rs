@@ -65,7 +65,8 @@ pub(crate) fn handle_builtin_input_action(
             let (cols, rows) = terman_common::current_terminal_size()?;
             Some(ScreenControlEvent::Resize { cols, rows })
         }
-        ScreenInputAction::Displays
+        ScreenInputAction::CommandPrompt
+        | ScreenInputAction::Displays
         | ScreenInputAction::DumpTermcap
         | ScreenInputAction::Hardcopy
         | ScreenInputAction::Help
