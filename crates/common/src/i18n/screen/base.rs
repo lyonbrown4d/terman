@@ -197,6 +197,7 @@ pub fn builtin_screen_copy_status_hint(
     line: usize,
     total: usize,
     selecting: bool,
+    search: &str,
 ) -> String {
     let line = line.to_string();
     let total = total.to_string();
@@ -206,6 +207,6 @@ pub fn builtin_screen_copy_status_hint(
         } else {
             crate::i18n::MessageKey::BuiltinScreenCopyStatus
         },
-        &[("line", &line), ("total", &total)],
+        &[("line", &line), ("total", &total), ("search", search)],
     )
 }

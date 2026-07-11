@@ -153,7 +153,7 @@ builtin-screen-session-name-empty = Screen session name cannot be empty.
 builtin-screen-session-record-invalid = Built-in screen session record is invalid.
 builtin-screen-unexpected-response = Unexpected screen response: {$response}.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
-builtin-screen-attach-help = screen keys: Ctrl-A c/Ctrl-C new window | Ctrl-A d/Ctrl-D detach | Ctrl-A D detach all | Ctrl-A k/Ctrl-K kill current window | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r wrap | Ctrl-A S/| split region | Ctrl-A Tab focus region | Ctrl-A X remove region | Ctrl-A Q only region | Ctrl-A l redisplay | Ctrl-A m/Ctrl-M last message | Ctrl-A M monitor, Ctrl-A _ silence | Ctrl-A h hardcopy | Ctrl-A H log | Ctrl-A . dumptermcap | Ctrl-A ]/Ctrl-] paste buffer | Ctrl-A </>/= exchange buffer | Ctrl-A q xon | Ctrl-A s xoff | Ctrl-A i/Ctrl-I info | Ctrl-A n/Ctrl-N/Space next | Ctrl-A N number | Ctrl-A p/Ctrl-P/Backspace previous | Ctrl-A 0..9 select window | Ctrl-A ' select by number/title | Ctrl-A * displays | Ctrl-A t/Ctrl-T time | Ctrl-A v version | Ctrl-A , license | Ctrl-A F fit | Ctrl-A W width | Ctrl-A w/Ctrl-W windows | Ctrl-A " windowlist (arrows/Enter/Esc) | Ctrl-A \\ quit | Ctrl-A ? help | Ctrl-A A title | Ctrl-A : command | Ctrl-A Ctrl-A last window | Ctrl-A a send literal Ctrl-A | Mouse wheel next/previous | right-click windows | middle-click help | Ctrl-A [/Esc copy mode
+builtin-screen-attach-help = screen keys: Ctrl-A c/Ctrl-C new window | Ctrl-A d/Ctrl-D detach | Ctrl-A D detach all | Ctrl-A k/Ctrl-K kill current window | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r wrap | Ctrl-A S/| split region | Ctrl-A Tab focus region | Ctrl-A X remove region | Ctrl-A Q only region | Ctrl-A l redisplay | Ctrl-A m/Ctrl-M last message | Ctrl-A M monitor, Ctrl-A _ silence | Ctrl-A h hardcopy | Ctrl-A H log | Ctrl-A . dumptermcap | Ctrl-A ]/Ctrl-] paste buffer | Ctrl-A </>/= exchange buffer | Ctrl-A q xon | Ctrl-A s xoff | Ctrl-A i/Ctrl-I info | Ctrl-A n/Ctrl-N/Space next | Ctrl-A N number | Ctrl-A p/Ctrl-P/Backspace previous | Ctrl-A 0..9 select window | Ctrl-A ' select by number/title | Ctrl-A * displays | Ctrl-A t/Ctrl-T time | Ctrl-A v version | Ctrl-A , license | Ctrl-A F fit | Ctrl-A W width | Ctrl-A w/Ctrl-W windows | Ctrl-A " windowlist (arrows/Enter/Esc) | Ctrl-A \\ quit | Ctrl-A ? help | Ctrl-A A title | Ctrl-A : command | Ctrl-A Ctrl-A last window | Ctrl-A a send literal Ctrl-A | Mouse wheel next/previous | right-click windows | middle-click help | Ctrl-A [/Esc copy mode (/? find, n/N repeat)
 builtin-screen-monitor-status =
     { $state ->
         [on] screen: monitoring window {$window}
@@ -278,8 +278,8 @@ builtin-tmux-window-name-required = specify a new tmux window name
 builtin-tmux-window-not-found = tmux window {$index} in session {$session} was not found
 
 builtin-screen-window-list-status = windowlist | arrows/PgUp/PgDn move | Enter select | Esc cancel
-builtin-screen-copy-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
-builtin-screen-copy-selection-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel
+builtin-screen-copy-status = copy mode | find {$search} | line {$line}/{$total} | /? find, n/N repeat | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
+builtin-screen-copy-selection-status = copy mode | find {$search} | line {$line}/{$total} | /? find, n/N repeat | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel
 builtin-tmux-copy-status = tmux copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
 builtin-tmux-copy-selection-status = tmux copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel
 builtin-tmux-buffer-data-required = set-buffer requires buffer data.
