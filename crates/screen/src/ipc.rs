@@ -50,6 +50,9 @@ pub(crate) enum ScreenIpcRequest {
     },
     Info,
     LastMessage,
+    SetMonitor {
+        enabled: Option<bool>,
+    },
     NewWindow {
         command: Option<String>,
     },

@@ -76,6 +76,23 @@ pub fn builtin_screen_attach_help_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachHelp, &[])
 }
 
+pub fn builtin_screen_monitor_status_hint(window: usize, enabled: bool) -> String {
+    let window = window.to_string();
+    let state = if enabled { "on" } else { "off" };
+    localized_message(
+        MessageKey::BuiltinScreenMonitorStatus,
+        &[("window", &window), ("state", state)],
+    )
+}
+
+pub fn builtin_screen_monitor_activity_hint(window: usize, title: Option<&str>) -> String {
+    let window = window.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenMonitorActivity,
+        &[("window", &window), ("title", title.unwrap_or("-"))],
+    )
+}
+
 pub fn builtin_screen_attach_hardcopy_path_unavailable_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachHardcopyPathUnavailable, &[])
 }

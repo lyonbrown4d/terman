@@ -25,6 +25,7 @@ mod control_info;
 mod control_license;
 mod control_local;
 mod control_log;
+mod control_monitor;
 mod control_number;
 mod control_parse;
 mod control_register;

@@ -158,6 +158,10 @@ pub(super) fn handle_client(
             },
         ),
         Ok(ScreenIpcRequest::LastMessage) => write_last_message(stream, bus),
+        Ok(ScreenIpcRequest::SetMonitor { enabled }) => {
+            bus.set_monitor_enabled(enabled);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Info) => write_info(stream, session_name, bus),
         Ok(ScreenIpcRequest::PasteBuffer) => {
             send_control_event(control_tx, ScreenControlEvent::Input(bus.paste_buffer_snapshot()))?;

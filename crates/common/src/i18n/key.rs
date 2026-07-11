@@ -61,8 +61,7 @@ pub enum MessageKey {
     BuiltinScreenUnexpectedResponse,
     BuiltinScreenAttachUnsupported,
     BuiltinScreenAttachHelp,
-    BuiltinScreenCopyStatus,
-    BuiltinScreenCopySelectionStatus,
+    BuiltinScreenCopyStatus, BuiltinScreenCopySelectionStatus, BuiltinScreenMonitorStatus, BuiltinScreenMonitorActivity, BuiltinScreenControlMonitorRequired,
     BuiltinScreenAttachHardcopyPathUnavailable,
     BuiltinScreenAttachTitlePrompt,
     BuiltinScreenAttachTargetRequired,
@@ -190,8 +189,8 @@ impl MessageKey {
             Self::BuiltinScreenUnexpectedResponse => "builtin-screen-unexpected-response",
             Self::BuiltinScreenAttachUnsupported => "builtin-screen-attach-unsupported",
             Self::BuiltinScreenAttachHelp => "builtin-screen-attach-help",
-Self::BuiltinScreenCopyStatus => "builtin-screen-copy-status",
-Self::BuiltinScreenCopySelectionStatus => "builtin-screen-copy-selection-status",
+Self::BuiltinScreenCopyStatus => "builtin-screen-copy-status", Self::BuiltinScreenCopySelectionStatus => "builtin-screen-copy-selection-status",
+Self::BuiltinScreenMonitorStatus => "builtin-screen-monitor-status", Self::BuiltinScreenMonitorActivity => "builtin-screen-monitor-activity", Self::BuiltinScreenControlMonitorRequired => "builtin-screen-control-monitor-required",
             Self::BuiltinScreenAttachHardcopyPathUnavailable => {
                 "builtin-screen-attach-hardcopy-path-unavailable"
             }

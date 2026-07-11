@@ -1,6 +1,5 @@
 use std::{
     collections::BTreeMap,
-    error::Error,
     path::PathBuf,
     sync::{Arc, Mutex, mpsc},
 };
@@ -13,9 +12,12 @@ use crate::{
         ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, apply_default_window_log,
         kill_active_window, kill_windows, new_screen_window_title, next_screen_window_index,
         renumber_screen_window, resize_windows, spawn_screen_window_runtime,
-        switch_screen_window, take_exited_window, write_active_window_input,
+        take_exited_window, write_active_window_input,
     },
 };
+
+mod support;
+use self::support::{publish_error, publish_window_redraw, switch_and_sync, sync_region_change};
 
 pub(crate) struct ServerControlDefaults {
     pub(crate) cwd: Option<PathBuf>,
@@ -266,47 +268,3 @@ fn spawn_control_window(
     }
 }
 
-fn switch_and_sync(
-    args: &ScreenArgs,
-    endpoint_name: &str,
-    session_name_state: &Arc<Mutex<String>>,
-    bus: &ScreenSessionBus,
-    windows: &[ScreenWindowRuntime],
-    active_window: &mut usize,
-    target: ScreenWindowSwitch,
-) {
-    if let Some(replay) = switch_screen_window(bus, windows, active_window, target) {
-        if bus.publish_region_redraw().is_none() {
-            publish_window_redraw(bus, &replay);
-        }
-        sync_session_manifest(args, endpoint_name, session_name_state, bus);
-    }
-}
-
-fn sync_region_change(
-    args: &ScreenArgs,
-    endpoint_name: &str,
-    session_name_state: &Arc<Mutex<String>>,
-    bus: &ScreenSessionBus,
-    active_window: &mut usize,
-    result: Option<(usize, Vec<u8>)>,
-) {
-    if let Some((index, _)) = result {
-        *active_window = index;
-        sync_session_manifest(args, endpoint_name, session_name_state, bus);
-    }
-}
-
-fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
-    bus.publish_transient_output(b"c");
-    if !replay.is_empty() {
-        bus.publish_transient_output(replay);
-    }
-}
-
-fn publish_error(bus: &ScreenSessionBus, err: Box<dyn Error>) {
-    let message = format!("
-screen window failed: {err}
-");
-    bus.publish_transient_output(message.as_bytes());
-}

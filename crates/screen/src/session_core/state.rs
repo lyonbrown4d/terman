@@ -150,6 +150,9 @@ impl ScreenSessionState {
             let next_position = position.min(self.windows.len() - 1);
             self.active_window = self.windows[next_position].index();
         }
+        if let Some(window) = self.window_mut(self.active_window) {
+            window.clear_activity();
+        }
         self.regions.replace_window(index, self.active_window);
         let replay = self
             .active_window()
@@ -209,7 +212,9 @@ impl ScreenSessionState {
     }
 
     fn activate_window(&mut self, index: usize) {
-        if self.active_window != index && self.window(self.active_window).is_some() {
+        if let Some(window) = self.window_mut(index) {
+            window.clear_activity();
+        }        if self.active_window != index && self.window(self.active_window).is_some() {
             self.last_window = Some(self.active_window);
         }
         self.active_window = index;

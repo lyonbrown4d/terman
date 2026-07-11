@@ -10,6 +10,8 @@ pub(super) struct ScreenWindowState {
     title: Option<String>,
     replay: ScreenReplayBuffer,
     output_log: ScreenOutputLog,
+    monitor_enabled: bool,
+    activity_pending: bool,
     terminal: vt100::Parser,
 }
 
@@ -20,6 +22,8 @@ impl ScreenWindowState {
             title: None,
             replay: ScreenReplayBuffer::default(),
             output_log: ScreenOutputLog::new(index),
+            monitor_enabled: false,
+            activity_pending: false,
             terminal: vt100::Parser::new(
                 DEFAULT_TERMINAL_ROWS,
                 DEFAULT_TERMINAL_COLS,
@@ -43,6 +47,27 @@ impl ScreenWindowState {
 
     pub(super) fn set_title(&mut self, title: String) {
         self.title = Some(title);
+    }
+
+    pub(super) fn monitor_enabled(&self) -> bool {
+        self.monitor_enabled
+    }
+
+    pub(super) fn set_monitor_enabled(&mut self, enabled: bool) {
+        self.monitor_enabled = enabled;
+        self.activity_pending = false;
+    }
+
+    pub(super) fn mark_activity(&mut self) -> bool {
+        if !self.monitor_enabled || self.activity_pending {
+            return false;
+        }
+        self.activity_pending = true;
+        true
+    }
+
+    pub(super) fn clear_activity(&mut self) {
+        self.activity_pending = false;
     }
 
     pub(super) fn terminal_screen(&self) -> &vt100::Screen {

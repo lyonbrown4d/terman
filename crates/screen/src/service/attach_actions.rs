@@ -63,6 +63,9 @@ pub(super) fn handle_attach_action(
         }
         ScreenInputAction::License => print_attach_license()?,
         ScreenInputAction::LogToggle => send_control_request(endpoint, ScreenIpcRequest::ToggleLog)?,
+        ScreenInputAction::MonitorToggle => {
+            send_control_request(endpoint, ScreenIpcRequest::SetMonitor { enabled: None })?;
+        }
         ScreenInputAction::NewWindow => {
             send_control_request(endpoint, ScreenIpcRequest::NewWindow { command: None })?;
         }

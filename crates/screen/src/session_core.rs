@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex, mpsc};
 mod config;
 mod events;
 mod logging;
+mod monitor;
 mod log_control;
 mod region_bus;
 mod region_layout;
@@ -188,25 +189,6 @@ impl ScreenSessionBus {
         let active_window = self.inner.lock().map(|state| state.active_window).ok();
         if let Some(active_window) = active_window {
             self.publish_window_output(active_window, bytes);
-        }
-    }
-
-    pub(crate) fn publish_window_output(&self, index: usize, bytes: &[u8]) {
-        let Ok(mut state) = self.inner.lock() else {
-            return;
-        };
-        let cols = state.cols;
-        let active = state.active_window == index;
-        if let Some(window) = state.window_mut(index) {
-            window.append_output(bytes, cols);
-        }
-        if active {
-            state.subscribers.retain(|subscriber| {
-                subscriber
-                    .sender
-                    .send(ScreenSessionEvent::Output(bytes.to_vec()))
-                    .is_ok()
-            });
         }
     }
 

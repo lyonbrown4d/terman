@@ -49,6 +49,10 @@ pub(crate) fn handle_builtin_input_action(
             let _ = bus.toggle_log_enabled();
             None
         }
+        ScreenInputAction::MonitorToggle => {
+            bus.set_monitor_enabled(None);
+            None
+        }
         ScreenInputAction::Detach | ScreenInputAction::DetachAll => {
             bus.publish_detach();
             None

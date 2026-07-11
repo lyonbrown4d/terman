@@ -7,9 +7,8 @@ use crate::{
     footer::{self, FooterAction},
     model::SortMode,
     mouse_signal::handle_signal_mouse,
-    mouse_rows::{
-        detail_at, detail_drag_scroll, max_detail_scroll, move_down, row_process_at, terminal_area,
-    },
+    mouse_rows::{detail_at, detail_drag_scroll, max_detail_scroll, move_down, row_process_at,
+        terminal_area},
     overview_layout,
     process_table,
     render::Tab,
@@ -238,11 +237,7 @@ fn apply_header_sort(mode: SortMode, context: &mut MouseContext<'_>) {
     *context.sort_cursor = mode;
 }
 
-fn table_header_sort_at(
-    column: u16,
-    row: u16,
-    context: &MouseContext<'_>,
-) -> Option<SortMode> {
+fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Option<SortMode> {
     let column = column.saturating_sub(1);
     match *context.tab {
         Tab::Overview if row == overview_header_row(context) => {
