@@ -9,7 +9,7 @@ mod monitor;
 mod silence;
 mod log_control;
 mod region_bus;
-mod region_layout;
+mod region_geometry; mod region_layout; mod region_resize;
 mod region_render;
 mod replay;
 mod registers; mod state;

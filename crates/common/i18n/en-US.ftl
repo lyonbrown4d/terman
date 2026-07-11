@@ -196,7 +196,7 @@ builtin-screen-control-logtstamp-required = Specify screen log timestamp as logt
 builtin-screen-control-help = Supported screen -X commands: quit, kill, bell, help, commands, echo, wall, lastmsg, monitor, silence, wrap, stuff, meta, xon, xoff, screen, shell, defshell, shelltitle, term, chdir, setenv, unsetenv, paste, pastefile, bufferfile, process, register, readreg, readbuf, removebuf, writebuf, source, detach, pow_detach, resize, fit, width, height, select, number, next, prev, previous, other, scrollback, defscrollback, logfile, log, deflog, logtstamp, title, aka, sleep, time, version, license, info, dinfo, dumptermcap, displays, windows, windowlist, hardcopy, hardcopydir, hardcopy_append, clear, reset, redisplay, eval, at, colon, sessionname, split, focus, remove, only.
 builtin-screen-control-stuff-required = Specify text for screen -X stuff.
 builtin-screen-control-register-required = Specify register text as screen -X register [-e encoding] <register> <text>.
-builtin-screen-control-resize-required = Specify resize dimensions as `screen -X resize <cols> <rows>`.
+builtin-screen-control-resize-required = Specify region resize as `resize [-h|-v|-b|-l|-p] [+|-]n[%]`, `=`, `max`, or `min`.
 builtin-screen-control-select-unsupported = Unsupported screen window selector `{$selector}`. Use a visible numeric window index, title, -, ., #, or an empty selector.
 builtin-screen-control-number = screen window number: {$index} {$title}
 builtin-screen-control-number-invalid = Specify a screen window number as screen -X number [index|+delta|-delta].

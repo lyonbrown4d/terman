@@ -8,7 +8,7 @@ use super::{
     window::ScreenWindowState,
 };
 use crate::{
-    region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus},
+    region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus, ScreenRegionResize},
     screen_exchange::default_screen_exchange_file,
 };
 
@@ -192,6 +192,14 @@ impl ScreenSessionState {
         let index = self.regions.keep_focused_only()?;
         self.activate_window(index);
         Some(index)
+    }
+
+    pub(super) fn resize_region(&mut self, resize: ScreenRegionResize) -> bool {
+        self.regions.resize(
+            resize,
+            self.rows.unwrap_or(24),
+            self.cols.unwrap_or(80),
+        )
     }
 
     pub(super) fn has_multiple_regions(&self) -> bool {

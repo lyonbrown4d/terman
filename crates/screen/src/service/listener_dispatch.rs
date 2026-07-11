@@ -241,6 +241,7 @@ pub(super) fn handle_client(
             send_control_event(control_tx, ScreenControlEvent::Input(bytes))?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::ResizeRegion { resize }) => { send_control_event(control_tx, ScreenControlEvent::ResizeRegion { resize })?; write_response(stream, &ScreenIpcResponse::Accepted) }
         Ok(ScreenIpcRequest::Resize { cols, rows }) => {
             send_control_event(control_tx, ScreenControlEvent::Resize { cols, rows })?;
             write_response(stream, &ScreenIpcResponse::Accepted)

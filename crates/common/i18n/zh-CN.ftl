@@ -196,7 +196,7 @@ builtin-screen-control-logtstamp-required = 请按 logtstamp [on|off]、logtstam
 builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、monitor、silence、wrap、stuff、meta、xon、xoff、screen、shell、defshell、shelltitle、term、chdir、setenv、unsetenv、paste、pastefile、bufferfile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、fit、width、height、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、license、info、dinfo、dumptermcap、displays、windows、windowlist、hardcopy、hardcopydir、hardcopy_append、clear、reset、redisplay、eval、at、colon、sessionname、split、focus、remove、only。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-register-required = 请按 screen -X register [-e encoding] <寄存器> <文本> 指定寄存器文本。
-builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
+builtin-screen-control-resize-required = 请按 `resize [-h|-v|-b|-l|-p] [+|-]n[%]`、`=`、`max` 或 `min` 调整区域尺寸。
 builtin-screen-control-select-unsupported = 不支持的 screen 窗口 selector `{$selector}`。请使用可见的数字窗口索引、标题、-、.、# 或空 selector。
 builtin-screen-control-number = screen 窗口编号：{$index} {$title}
 builtin-screen-control-number-invalid = 请按 screen -X number [index|+delta|-delta] 指定 screen 窗口编号。

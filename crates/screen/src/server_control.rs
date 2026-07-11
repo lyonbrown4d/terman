@@ -217,6 +217,9 @@ fn handle_control(
             active_window,
             bus.only_region(),
         ),
+        ScreenControlEvent::ResizeRegion { resize } => sync_region_change(
+            args, endpoint_name, session_name_state, bus, active_window, bus.resize_region(resize),
+        ),
         ScreenControlEvent::Resize { cols, rows } => {
             resize_windows(windows, cols, rows);
             bus.publish_resize(cols, rows);

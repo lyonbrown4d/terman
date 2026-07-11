@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
+use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus, ScreenRegionResize};
 
 mod endpoint;
 pub(crate) use self::endpoint::ScreenIpcEndpoint;
@@ -92,6 +92,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     RemoveRegion,
     OnlyRegion,
+    ResizeRegion { resize: ScreenRegionResize },
     GetPasteBuffer,
     PasteBuffer,
     KillWindow,

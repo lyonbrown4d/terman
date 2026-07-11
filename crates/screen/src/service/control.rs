@@ -21,6 +21,7 @@ use super::{
     control_silence::request_silence_command,
     control_number::request_number_command,
     control_register::{request_process_command, request_readreg_command, request_register_command},
+    control_region_resize::request_region_resize_command,
     control_scrollback::{request_defscrollback_command, request_scrollback_command},
     control_select::request_select_command,
     control_session::{
@@ -111,7 +112,8 @@ fn execute_control_command(
         "readbuf" => request_readbuf_command(args, inline_payload, extra_args),
         "removebuf" => request_removebuf_command(args),
         "writebuf" => request_writebuf_command(args, inline_payload, extra_args),
-        "resize" => request_resize_command(args, inline_payload, extra_args),
+        "resize" => request_region_resize_command(args, inline_payload, extra_args),
+        "resize-terminal" => request_resize_command(args, inline_payload, extra_args),
         "fit" => request_fit_command(args),
         "width" | "height" => request_size_command(args, &command, inline_payload, extra_args),
         "select" => request_select_command(args, inline_payload, extra_args, request_session_response),

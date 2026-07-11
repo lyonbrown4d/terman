@@ -1,13 +1,15 @@
-use crate::region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus};
+use crate::region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus, ScreenRegionResize};
+use super::{region_geometry::split_rect, region_resize::resize_region};
 
 #[derive(Clone)]
-enum RegionNode {
+pub(super) enum RegionNode {
     Leaf {
         id: u64,
         window_index: usize,
     },
     Split {
         axis: ScreenRegionAxis,
+        ratio: u16,
         first: Box<RegionNode>,
         second: Box<RegionNode>,
     },
@@ -135,6 +137,15 @@ impl ScreenRegionLayout {
         });
     }
 
+    pub(super) fn resize(&mut self, resize: ScreenRegionResize, rows: u16, cols: u16) -> bool {
+        resize_region(
+            &mut self.root,
+            self.focused,
+            resize,
+            RegionRect { x: 0, y: 0, width: cols.max(1), height: rows.max(1) },
+        )
+    }
+
     pub(super) fn views(&self, rows: u16, cols: u16) -> Vec<ScreenRegionView> {
         let mut views = Vec::new();
         layout_node(
@@ -178,6 +189,7 @@ fn split_leaf(
             let first = node.clone();
             *node = RegionNode::Split {
                 axis,
+                ratio: 500,
                 first: Box::new(first),
                 second: Box::new(RegionNode::Leaf { id: new_id, window_index }),
             };
@@ -195,12 +207,13 @@ fn remove_leaf(node: RegionNode, target: u64) -> Option<RegionNode> {
     match node {
         RegionNode::Leaf { id, .. } if id == target => None,
         RegionNode::Leaf { .. } => Some(node),
-        RegionNode::Split { axis, first, second } => {
+        RegionNode::Split { axis, ratio, first, second } => {
             let first = remove_leaf(*first, target);
             let second = remove_leaf(*second, target);
             match (first, second) {
                 (Some(first), Some(second)) => Some(RegionNode::Split {
                     axis,
+                    ratio,
                     first: Box::new(first),
                     second: Box::new(second),
                 }),
@@ -247,43 +260,10 @@ fn layout_node(
             rect,
             focused: *id == focused,
         }),
-        RegionNode::Split { axis, first, second } => {
-            let (first_rect, second_rect) = split_rect(rect, *axis);
+        RegionNode::Split { axis, ratio, first, second } => {
+            let (first_rect, second_rect) = split_rect(rect, *axis, *ratio);
             layout_node(first, first_rect, focused, views);
             layout_node(second, second_rect, focused, views);
-        }
-    }
-}
-
-fn split_rect(rect: RegionRect, axis: ScreenRegionAxis) -> (RegionRect, RegionRect) {
-    match axis {
-        ScreenRegionAxis::Horizontal => {
-            let gap = u16::from(rect.height >= 3);
-            let available = rect.height.saturating_sub(gap);
-            let first_height = available / 2;
-            let second_height = available.saturating_sub(first_height);
-            (
-                RegionRect { height: first_height, ..rect },
-                RegionRect {
-                    y: rect.y.saturating_add(first_height).saturating_add(gap),
-                    height: second_height,
-                    ..rect
-                },
-            )
-        }
-        ScreenRegionAxis::Vertical => {
-            let gap = u16::from(rect.width >= 3);
-            let available = rect.width.saturating_sub(gap);
-            let first_width = available / 2;
-            let second_width = available.saturating_sub(first_width);
-            (
-                RegionRect { width: first_width, ..rect },
-                RegionRect {
-                    x: rect.x.saturating_add(first_width).saturating_add(gap),
-                    width: second_width,
-                    ..rect
-                },
-            )
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
+use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus, ScreenRegionResize};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenSessionEvent {
@@ -29,6 +29,7 @@ pub(crate) enum ScreenControlEvent {
     FocusRegion { target: ScreenRegionFocus },
     RemoveRegion,
     OnlyRegion,
+    ResizeRegion { resize: ScreenRegionResize },
     Resize { cols: u16, rows: u16 },
     Terminate,
 }

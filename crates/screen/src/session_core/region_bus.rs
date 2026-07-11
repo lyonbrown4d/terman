@@ -1,4 +1,4 @@
-use crate::region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus};
+use crate::region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus, ScreenRegionResize};
 
 use super::ScreenSessionBus;
 
@@ -58,6 +58,19 @@ impl ScreenSessionBus {
             let mut state = self.inner.lock().ok()?;
             let active = state.only_region()?;
             (active, state.render_regions())
+        };
+        self.publish_transient_output(&frame);
+        Some((active, frame))
+    }
+
+    pub(crate) fn resize_region(
+        &self,
+        resize: ScreenRegionResize,
+    ) -> Option<(usize, Vec<u8>)> {
+        let (active, frame) = {
+            let mut state = self.inner.lock().ok()?;
+            if !state.resize_region(resize) { return None; }
+            (state.active_window, state.render_regions())
         };
         self.publish_transient_output(&frame);
         Some((active, frame))

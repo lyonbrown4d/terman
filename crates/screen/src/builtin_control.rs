@@ -155,6 +155,12 @@ fn handle_control(
                 if display_output { write_region_frame(&frame); }
             }
         }
+        ScreenControlEvent::ResizeRegion { resize } => {
+            if let Some((index, frame)) = session_bus.resize_region(resize) {
+                *active_window = index;
+                if display_output { write_region_frame(&frame); }
+            }
+        }
         ScreenControlEvent::Resize { cols, rows } => {
             resize_windows(windows, cols, rows);
             session_bus.publish_resize(cols, rows);

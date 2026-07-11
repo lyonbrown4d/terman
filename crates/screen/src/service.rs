@@ -32,7 +32,7 @@ mod control_silence;
 mod control_wrap;
 mod control_number;
 mod control_parse;
-mod control_register;
+mod control_register; mod control_region_resize;
 mod control_scrollback;
 mod control_select;
 mod control_session;
