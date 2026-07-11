@@ -19,7 +19,7 @@ use crate::{
     attach_rename::{RenameTarget, handle_rename_input, render_rename_prompt},
     attach_repeat::PaneResizeRepeat,
     attach_status::{
-        KILL_PANE_CONFIRM_STATUS, KILL_WINDOW_CONFIRM_STATUS, query_status_line,
+        kill_pane_confirm_status, kill_window_confirm_status, query_status_line,
         render_status_line,
     },
     attach_window::{
@@ -162,11 +162,11 @@ impl AttachInputMode {
             TmuxPrefixCommand::DisplayPanes => self.pane_chooser.open(endpoint)?,
             TmuxPrefixCommand::KillPane => {
                 self.kill_pending = Some(KillTarget::Pane);
-                let _ = render_status_line(KILL_PANE_CONFIRM_STATUS);
+                let _ = render_status_line(&kill_pane_confirm_status());
             }
             TmuxPrefixCommand::KillWindow => {
                 self.kill_pending = Some(KillTarget::Window);
-                let _ = render_status_line(KILL_WINDOW_CONFIRM_STATUS);
+                let _ = render_status_line(&kill_window_confirm_status());
             }
             TmuxPrefixCommand::SplitHorizontal => {
                 split_current_pane(endpoint, true)?;

@@ -13,10 +13,12 @@ use crate::{
     service::request_endpoint_response,
 };
 
-pub(crate) const KILL_PANE_CONFIRM_STATUS: &str =
-    "tmux confirm | kill current pane? y yes  n/Esc no";
-pub(crate) const KILL_WINDOW_CONFIRM_STATUS: &str =
-    "tmux confirm | kill current window? y yes  n/Esc no";
+pub(crate) fn kill_pane_confirm_status() -> String {
+    terman_common::builtin_tmux_kill_pane_confirm_hint()
+}
+pub(crate) fn kill_window_confirm_status() -> String {
+    terman_common::builtin_tmux_kill_window_confirm_hint()
+}
 
 pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String> {
     match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {
@@ -25,7 +27,7 @@ pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String
                 let name = window_names.get(position).map(String::as_str).unwrap_or("-");
                 if *index == active_window { format!("[{index}:{name}]") } else { format!("{index}:{name}") }
             }).collect::<Vec<_>>().join(" ");
-            Ok(format!("tmux {session_name} | {windows} | C-b n/p switch  mouse click/wheel  right list  middle help"))
+            Ok(terman_common::builtin_tmux_status_line_hint(&session_name, &windows))
         }
         TmuxIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::PermissionDenied, reason)),
         response => Err(io::Error::new(io::ErrorKind::InvalidData, terman_common::builtin_tmux_unexpected_response_hint(&format!("{response:?}")))),
