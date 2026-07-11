@@ -76,6 +76,10 @@ pub fn builtin_screen_attach_help_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachHelp, &[])
 }
 
+pub fn builtin_screen_window_list_status_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenWindowListStatus, &[])
+}
+
 pub fn builtin_screen_monitor_status_hint(window: usize, enabled: bool) -> String {
     let window = window.to_string();
     let state = if enabled { "on" } else { "off" };

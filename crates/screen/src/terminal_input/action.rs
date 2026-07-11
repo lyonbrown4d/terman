@@ -42,6 +42,7 @@ pub(crate) enum ScreenInputAction {
     Title,
     Version,
     WidthToggle,
+    WindowList,
     Windows,
     WriteBuffer,
 }

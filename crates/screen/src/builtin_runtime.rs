@@ -9,7 +9,7 @@ use crate::{
     ScreenArgs,
     builtin_input::handle_builtin_input_action,
     builtin_mouse::{
-        ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse,
+        ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse, handle_builtin_window_list_key, open_builtin_window_list,
     },
     builtin_output::{publish_window_redraw, write_region_frame},
     copy_mode::{ScreenCopyMode, ScreenCopyResult},
@@ -84,6 +84,13 @@ pub(crate) fn poll_terminal_event(
                         restore_builtin_display(session_bus);
                     }
                 }
+            } else if handle_builtin_window_list_key(
+                session_bus,
+                windows,
+                active_window,
+                mouse_state,
+                &key,
+            ) {
             } else if let Some(action) = input_decoder.decode_key(key) {
                 match action {
                     ScreenInputAction::CopyMode => {
@@ -96,6 +103,9 @@ pub(crate) fn poll_terminal_event(
                         mode.render()?;
                         *copy_mode = Some(mode);
                     }
+                    ScreenInputAction::WindowList => {
+                        open_builtin_window_list(session_bus, mouse_state);
+                    }
                     action => handle_builtin_input_action(session_bus, control_tx, action)?,
                 }
             }
@@ -106,6 +116,8 @@ pub(crate) fn poll_terminal_event(
             if let Some(mode) = copy_mode.as_mut() {
                 mode.resize(cols, rows);
                 mode.render()?;
+            } else if mouse_state.list_open() {
+                open_builtin_window_list(session_bus, mouse_state);
             } else if let Some(frame) = session_bus.publish_region_redraw() {
                 write_region_frame(&frame);
             }

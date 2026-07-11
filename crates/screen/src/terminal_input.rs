@@ -193,7 +193,7 @@ impl ScreenInputDecoder {
             KeyCode::Char('>') if key.modifiers.is_empty() => Some(ScreenInputAction::WriteBuffer),
             KeyCode::Char('=') if key.modifiers.is_empty() => Some(ScreenInputAction::RemoveBuffer),
             KeyCode::Char('\\') if key.modifiers.is_empty() => Some(ScreenInputAction::Quit),
-            KeyCode::Char('"') if key.modifiers.is_empty() => Some(ScreenInputAction::Windows),
+            KeyCode::Char('"') if key.modifiers.is_empty() => Some(ScreenInputAction::WindowList),
             KeyCode::Char(']')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
             {

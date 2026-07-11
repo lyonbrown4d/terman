@@ -137,7 +137,7 @@ builtin-screen-session-name-empty = screen 会话名不能为空。
 builtin-screen-session-record-invalid = 内置 screen 会话记录无效。
 builtin-screen-unexpected-response = 非预期的 screen 响应：{$response}。
 builtin-screen-attach-unsupported = 内置 screen 暂未开放 attach。跨平台 attach 将由内置会话服务处理。
-builtin-screen-attach-help = screen 快捷键：Ctrl-A c/Ctrl-C 新建窗口 | Ctrl-A d/Ctrl-D 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k/Ctrl-K 结束当前窗口 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 自动换行 | Ctrl-A S/| 拆分区域 | Ctrl-A Tab 切换区域 | Ctrl-A X 删除区域 | Ctrl-A Q 保留当前区域 | Ctrl-A l 重绘 | Ctrl-A m/Ctrl-M 显示最后消息 | Ctrl-A M 切换活动监控，Ctrl-A _ 切换静默监控 | Ctrl-A h 生成 hardcopy | Ctrl-A H 切换日志 | Ctrl-A . 生成 termcap | Ctrl-A ]/Ctrl-] 粘贴 paste buffer | Ctrl-A </>/= 交换 buffer | Ctrl-A q 发送 xon | Ctrl-A s 发送 xoff | Ctrl-A i/Ctrl-I 显示信息 | Ctrl-A n/Ctrl-N/Space 下一个窗口 | Ctrl-A N 显示窗口编号 | Ctrl-A p/Ctrl-P/Backspace 上一个窗口 | Ctrl-A 0..9 选择窗口 | Ctrl-A ' 按编号/标题选择窗口 | Ctrl-A * 显示 displays | Ctrl-A t/Ctrl-T 显示时间 | Ctrl-A v 显示版本 | Ctrl-A , 显示 license | Ctrl-A F 适配尺寸 | Ctrl-A W 切换宽度 | Ctrl-A w/Ctrl-W 显示窗口 | Ctrl-A " 显示 windowlist | Ctrl-A \\ 退出 screen | Ctrl-A ? 显示帮助 | Ctrl-A A 设置标题 | Ctrl-A : 命令 | Ctrl-A Ctrl-A 上一个活动窗口 | Ctrl-A a 发送字面 Ctrl-A | 鼠标滚轮前后切换窗口 | 右键显示窗口列表 | 中键显示帮助 | Ctrl-A [/Esc 复制模式
+builtin-screen-attach-help = screen 快捷键：Ctrl-A c/Ctrl-C 新建窗口 | Ctrl-A d/Ctrl-D 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k/Ctrl-K 结束当前窗口 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 自动换行 | Ctrl-A S/| 拆分区域 | Ctrl-A Tab 切换区域 | Ctrl-A X 删除区域 | Ctrl-A Q 保留当前区域 | Ctrl-A l 重绘 | Ctrl-A m/Ctrl-M 显示最后消息 | Ctrl-A M 切换活动监控，Ctrl-A _ 切换静默监控 | Ctrl-A h 生成 hardcopy | Ctrl-A H 切换日志 | Ctrl-A . 生成 termcap | Ctrl-A ]/Ctrl-] 粘贴 paste buffer | Ctrl-A </>/= 交换 buffer | Ctrl-A q 发送 xon | Ctrl-A s 发送 xoff | Ctrl-A i/Ctrl-I 显示信息 | Ctrl-A n/Ctrl-N/Space 下一个窗口 | Ctrl-A N 显示窗口编号 | Ctrl-A p/Ctrl-P/Backspace 上一个窗口 | Ctrl-A 0..9 选择窗口 | Ctrl-A ' 按编号/标题选择窗口 | Ctrl-A * 显示 displays | Ctrl-A t/Ctrl-T 显示时间 | Ctrl-A v 显示版本 | Ctrl-A , 显示 license | Ctrl-A F 适配尺寸 | Ctrl-A W 切换宽度 | Ctrl-A w/Ctrl-W 显示窗口 | Ctrl-A " 显示 windowlist（方向键/Enter/Esc） | Ctrl-A \\ 退出 screen | Ctrl-A ? 显示帮助 | Ctrl-A A 设置标题 | Ctrl-A : 命令 | Ctrl-A Ctrl-A 上一个活动窗口 | Ctrl-A a 发送字面 Ctrl-A | 鼠标滚轮前后切换窗口 | 右键显示窗口列表 | 中键显示帮助 | Ctrl-A [/Esc 复制模式
 builtin-screen-monitor-status =
     { $state ->
         [on] screen：已监控窗口 {$window}
@@ -261,6 +261,7 @@ builtin-tmux-window-killed = 已结束 tmux 会话 {$session} 中的一个窗口
 builtin-tmux-window-name-required = 请指定新的 tmux 窗口名称
 builtin-tmux-window-not-found = 未找到 tmux 会话 {$session} 中的窗口 {$index}
 
+builtin-screen-window-list-status = 窗口列表 | 方向键/PgUp/PgDn 移动 | Enter 选择 | Esc 取消
 builtin-screen-copy-status = 复制模式 | 第 {$line}/{$total} 行 | 方向键/PgUp/PgDn 移动 | Space/Enter 标记 | Esc 取消
 builtin-screen-copy-selection-status = 复制模式 | 第 {$line}/{$total} 行 | 方向键/PgUp/PgDn 移动 | Space/Enter 复制 | Esc 取消
 builtin-tmux-copy-status = tmux 复制模式 | 第 {$line}/{$total} 行 | 方向键/PgUp/PgDn 移动 | Space/Enter 标记 | Esc 取消

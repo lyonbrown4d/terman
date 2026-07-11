@@ -22,6 +22,7 @@ pub(super) enum AttachActionResult {
     CommandPrompt,
     SelectPrompt,
     TitlePrompt,
+    WindowList,
     Continue,
     Stop,
 }
@@ -107,6 +108,7 @@ pub(super) fn handle_attach_action(
         }
         ScreenInputAction::WrapToggle => send_control_request(endpoint, ScreenIpcRequest::SetWrap { enabled: None })?,
         ScreenInputAction::SelectPrompt => return Ok(AttachActionResult::SelectPrompt),
+        ScreenInputAction::WindowList => return Ok(AttachActionResult::WindowList),
         ScreenInputAction::SelectWindow(index) => {
             send_control_request(endpoint, ScreenIpcRequest::SelectWindow { index })?;
         }

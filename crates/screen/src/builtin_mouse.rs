@@ -1,12 +1,13 @@
 use std::io::{self, Write};
 
-use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 
 use crate::{
     builtin_output::publish_window_redraw,
     mouse_window_list::MouseWindowListState,
     session_core::ScreenSessionBus,
     terminal_mouse::mouse_event_bytes,
+    window_list_input::{WindowListKeyAction, handle_window_list_key},
     window_runtime::{ScreenWindowRuntime, ScreenWindowSwitch, switch_screen_window, write_active_window_input},
 };
 
@@ -14,6 +15,40 @@ pub(crate) type ScreenMouseState = MouseWindowListState;
 
 pub(crate) use terman_common::{disable_mouse_capture, enable_mouse_capture};
 
+pub(crate) fn open_builtin_window_list(bus: &ScreenSessionBus, state: &mut ScreenMouseState) {
+    publish_windows(bus, state, current_control_row(bus));
+}
+
+pub(crate) fn handle_builtin_window_list_key(
+    bus: &ScreenSessionBus,
+    windows: &mut [ScreenWindowRuntime],
+    active_window: &mut usize,
+    state: &mut ScreenMouseState,
+    key: &KeyEvent,
+) -> bool {
+    if !state.list_open() {
+        return false;
+    }
+    match handle_window_list_key(state, key) {
+        WindowListKeyAction::Redraw => open_builtin_window_list(bus, state),
+        WindowListKeyAction::Select(index) => {
+            state.clear();
+            if let Some(replay) = switch_screen_window(
+                bus,
+                windows,
+                active_window,
+                ScreenWindowSwitch::Select(index),
+            ) {
+                publish_window_redraw(bus, &replay);
+            } else {
+                redraw_active_window(bus);
+            }
+        }
+        WindowListKeyAction::Cancel => close_window_list(bus, state),
+        WindowListKeyAction::Noop => {}
+    }
+    true
+}
 pub(crate) fn handle_builtin_mouse(
     bus: &ScreenSessionBus,
     windows: &mut [ScreenWindowRuntime],
@@ -161,10 +196,17 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
     let cols = status.cols;
     let rows = status.rows;
     let windows = status.windows;
-    let start = list_start_row(anchor_row, rows, windows.len());
+    let active = windows.iter().find(|window| window.active)
+        .map(|window| window.index).unwrap_or_default();
+    state.sync_windows(windows.iter().map(|window| window.index).collect(), active);
+    let range = state.visible_range(list_capacity(anchor_row));
+    let range_start = range.start;
+    let visible_len = range.len();
+    let selected = state.selected_window();
+    let start = list_start_row(anchor_row, visible_len);
     let mut message = String::new();
     let mut entries = Vec::new();
-    for (offset, window) in windows.into_iter().enumerate() {
+    for (offset, window) in windows.into_iter().skip(range_start).take(visible_len).enumerate() {
         let row = start.saturating_add(offset as u16).saturating_add(1);
         let title = window.title.unwrap_or_else(|| format!("window-{}", window.index));
         let entry = terman_common::builtin_screen_control_windows_entry_hint(
@@ -173,7 +215,7 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
         let entry = visible_entry(entry.as_str(), cols);
         entries.push((window.index, entry_width(entry.as_str())));
         message.push_str(&format!("\x1b[{row};1H\x1b[2K"));
-        if window.active {
+        if selected == Some(window.index) {
             message.push_str("\x1b[7m");
             message.push_str(&entry);
             message.push_str("\x1b[0m");
@@ -181,10 +223,22 @@ fn publish_windows(bus: &ScreenSessionBus, state: &mut ScreenMouseState, anchor_
             message.push_str(&entry);
         }
     }
-    state.show_window_list(start, entries);
+    let status = visible_entry(&terman_common::builtin_screen_window_list_status_hint(), cols);
+    message.push_str(&format!("\x1b[{};1H\x1b[2K{}", anchor_row.saturating_add(1), status));
+    state.set_visible_entries(start, entries);
     publish_mouse_message(bus, message);
 }
 
+fn current_control_row(bus: &ScreenSessionBus) -> u16 {
+    bus.status_snapshot().rows
+        .or_else(|| terman_common::current_terminal_size().ok().map(|(_, rows)| rows))
+        .unwrap_or(1)
+        .saturating_sub(1)
+}
+
+fn list_capacity(anchor_row: u16) -> usize {
+    usize::from(anchor_row.max(1))
+}
 fn visible_entry(entry: &str, cols: Option<u16>) -> String {
     match cols {
         Some(cols) => terman_common::truncate_terminal_text(entry, cols as usize),
@@ -196,9 +250,8 @@ fn entry_width(entry: &str) -> u16 {
     terman_common::terminal_text_width(entry)
 }
 
-fn list_start_row(anchor_row: u16, rows: Option<u16>, len: usize) -> u16 {
-    let len = len.max(1) as u16;
-    rows.map(|rows| anchor_row.min(rows.saturating_sub(len))).unwrap_or(anchor_row)
+fn list_start_row(anchor_row: u16, len: usize) -> u16 {
+    anchor_row.saturating_sub(len as u16)
 }
 
 fn publish_help(bus: &ScreenSessionBus) {

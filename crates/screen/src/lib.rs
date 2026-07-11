@@ -27,6 +27,7 @@ mod shell;
 mod terminal_input;
 mod terminal_key;
 mod terminal_mouse;
+mod window_list_input;
 mod window_runtime;
 
 pub use cli::{ScreenArgs, run_with_binary_parse};

@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 
 use super::{
     attach_output::print_attach_help,
@@ -10,12 +10,42 @@ use crate::{
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     mouse_window_list::MouseWindowListState,
     terminal_mouse::mouse_event_bytes,
+    window_list_input::{WindowListKeyAction, handle_window_list_key},
 };
 
 pub(super) type AttachMouseState = MouseWindowListState;
 
 pub(super) use terman_common::{disable_mouse_capture, enable_mouse_capture};
 
+pub(super) fn open_attach_window_list(
+    endpoint: &ScreenIpcEndpoint,
+    state: &mut AttachMouseState,
+) -> io::Result<()> {
+    show_window_list(endpoint, state, current_control_row())
+}
+
+pub(super) fn handle_attach_window_list_key(
+    endpoint: &ScreenIpcEndpoint,
+    state: &mut AttachMouseState,
+    key: &KeyEvent,
+) -> io::Result<bool> {
+    if !state.list_open() {
+        return Ok(false);
+    }
+    match handle_window_list_key(state, key) {
+        WindowListKeyAction::Redraw => open_attach_window_list(endpoint, state)?,
+        WindowListKeyAction::Select(index) => {
+            state.clear();
+            send_control_request(endpoint, ScreenIpcRequest::SelectWindow { index })?;
+        }
+        WindowListKeyAction::Cancel => {
+            state.clear();
+            send_control_request(endpoint, ScreenIpcRequest::Redisplay)?;
+        }
+        WindowListKeyAction::Noop => {}
+    }
+    Ok(true)
+}
 pub(super) fn handle_attach_mouse(
     endpoint: &ScreenIpcEndpoint,
     state: &mut AttachMouseState,
@@ -71,10 +101,17 @@ fn show_window_list(
 ) -> io::Result<()> {
     match request_endpoint_response(endpoint, ScreenIpcRequest::Info)? {
         ScreenIpcResponse::Info { attach_clients, cols, rows, windows, .. } => {
-            let start = list_start_row(anchor_row, rows, windows.len());
+            let active = windows.iter().find(|window| window.active)
+                .map(|window| window.index).unwrap_or_default();
+            state.sync_windows(windows.iter().map(|window| window.index).collect(), active);
+            let range = state.visible_range(list_capacity(anchor_row));
+            let range_start = range.start;
+            let visible_len = range.len();
+            let selected = state.selected_window();
+            let start = list_start_row(anchor_row, visible_len);
             let mut stdout = io::stdout();
             let mut entries = Vec::new();
-            for (offset, window) in windows.into_iter().enumerate() {
+            for (offset, window) in windows.into_iter().skip(range_start).take(visible_len).enumerate() {
                 let row = start.saturating_add(offset as u16).saturating_add(1);
                 let entry = terman_common::builtin_screen_control_windows_entry_hint(
                     window.index, window.active, &window.title, window.replay_bytes, attach_clients, cols, rows,
@@ -82,7 +119,7 @@ fn show_window_list(
                 let entry = visible_entry(entry.as_str(), cols);
                 entries.push((window.index, entry_width(&entry)));
                 stdout.write_all(format!("\x1b[{row};1H\x1b[2K").as_bytes())?;
-                if window.active {
+                if selected == Some(window.index) {
                     stdout.write_all(b"\x1b[7m")?;
                     stdout.write_all(entry.as_bytes())?;
                     stdout.write_all(b"\x1b[0m")?;
@@ -90,8 +127,10 @@ fn show_window_list(
                     stdout.write_all(entry.as_bytes())?;
                 }
             }
+            let status = visible_entry(&terman_common::builtin_screen_window_list_status_hint(), cols);
+            stdout.write_all(format!("\x1b[{};1H\x1b[2K{}", anchor_row.saturating_add(1), status).as_bytes())?;
             stdout.flush()?;
-            state.show_window_list(start, entries);
+            state.set_visible_entries(start, entries);
             Ok(())
         }
         ScreenIpcResponse::Rejected { reason } => Err(io::Error::new(io::ErrorKind::Unsupported, reason)),
@@ -101,7 +140,6 @@ fn show_window_list(
         )),
     }
 }
-
 fn select_list_window(
     endpoint: &ScreenIpcEndpoint,
     state: &mut AttachMouseState,
@@ -116,9 +154,8 @@ fn select_list_window(
     }
 }
 
-fn list_start_row(anchor_row: u16, rows: Option<u16>, len: usize) -> u16 {
-    let len = len.max(1) as u16;
-    rows.map(|rows| anchor_row.min(rows.saturating_sub(len))).unwrap_or(anchor_row)
+fn list_start_row(anchor_row: u16, len: usize) -> u16 {
+    anchor_row.saturating_sub(len as u16)
 }
 
 fn visible_entry(entry: &str, cols: Option<u16>) -> String {
@@ -130,6 +167,14 @@ fn visible_entry(entry: &str, cols: Option<u16>) -> String {
 
 fn entry_width(entry: &str) -> u16 {
     terman_common::terminal_text_width(entry)
+}
+
+fn current_control_row() -> u16 {
+    terman_common::current_terminal_size().map(|(_, rows)| rows).unwrap_or(1).saturating_sub(1)
+}
+
+fn list_capacity(anchor_row: u16) -> usize {
+    usize::from(anchor_row.max(1))
 }
 
 fn on_control_row(row: u16) -> bool {

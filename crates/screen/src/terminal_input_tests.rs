@@ -213,7 +213,7 @@ fn detects_screen_windowlist_prefix() {
     let windowlist = KeyEvent::new(KeyCode::Char('"'), KeyModifiers::empty());
 
     assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(windowlist), Some(ScreenInputAction::Windows));
+    assert_eq!(decoder.decode_key(windowlist), Some(ScreenInputAction::WindowList));
 }
 
 #[test]

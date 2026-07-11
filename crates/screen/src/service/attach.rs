@@ -19,7 +19,7 @@ use super::{
     attach_command::prompt_attach_command,
     attach_title::prompt_attach_title,
     attach_copy::{finish_attach_copy_mode, start_attach_copy_mode},
-    attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
+    attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse, handle_attach_window_list_key, open_attach_window_list},
     attach_select::prompt_attach_select,
     ipc_client::send_control_request,
 };
@@ -78,6 +78,7 @@ pub(super) fn attach_interactive(
                         }
                     } else {
                         handle_attach_mouse(&endpoint, &mut mouse_state, mouse)?;
+                        output_paused.store(mouse_state.list_open(), Ordering::Release);
                     }
                 }
                 Ok(Event::Key(key)) => {
@@ -97,6 +98,10 @@ pub(super) fn attach_interactive(
                         }
                         continue;
                     }
+                    if handle_attach_window_list_key(&endpoint, &mut mouse_state, &key)? {
+                        output_paused.store(mouse_state.list_open(), Ordering::Release);
+                        continue;
+                    }
                     if let Some(action) = input_decoder.decode_key(key) {
                         match handle_attach_action(&endpoint, &client_id, action)? {
                             AttachActionResult::Continue => {}
@@ -105,6 +110,10 @@ pub(super) fn attach_interactive(
                                 output_paused.store(true, Ordering::Release);
                                 mode.render()?;
                                 copy_mode = Some(mode);
+                            }
+                            AttachActionResult::WindowList => {
+                                output_paused.store(true, Ordering::Release);
+                                open_attach_window_list(&endpoint, &mut mouse_state)?;
                             }
                             AttachActionResult::CommandPrompt => {
                                 run_attach_prompt(&endpoint, &output_paused, || {
@@ -133,6 +142,8 @@ pub(super) fn attach_interactive(
                     if let Some(mode) = copy_mode.as_mut() {
                         mode.resize(cols, rows);
                         mode.render()?;
+                    } else if mouse_state.list_open() {
+                        open_attach_window_list(&endpoint, &mut mouse_state)?;
                     }
                 }
                 Ok(_) => {}
