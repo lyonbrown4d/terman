@@ -219,6 +219,7 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
         context.signal_menu.as_ref().map(|menu| menu.pid()),
     ) {
         Some(FooterAction::Help) => *context.help_open = true,
+        Some(FooterAction::Setup) => context.setup_menu.open(),
         Some(FooterAction::User) => context.user_filter.open(context.process_users),
         Some(FooterAction::Search) => return MouseAction::Search,
         Some(FooterAction::Filter) => return MouseAction::Filter,

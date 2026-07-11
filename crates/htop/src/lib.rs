@@ -35,6 +35,7 @@ mod process_tree;
 mod processes_view;
 mod render;
 mod selected_scroll;
+mod setup_menu;
 mod signal_menu;
 mod sort_menu;
 mod tab_hitbox;

@@ -23,6 +23,7 @@ use crate::{
     process_tree::ProcessTreeState,
     mouse::{self, MouseContext},
     render::Tab,
+    setup_menu::SetupMenuState,
     signal_menu::SignalMenuState,
     user_filter::UserFilterState,
 };
@@ -38,6 +39,7 @@ pub(crate) fn poll_until_refresh(
     sort_menu_open: &mut bool,
     sort_cursor: &mut SortMode,
     sort_header_pressed: &mut Option<SortMode>,
+    setup_menu: &mut SetupMenuState,
     user_filter: &mut UserFilterState,
     tree: &mut bool,
     tree_state: &mut ProcessTreeState,
@@ -75,6 +77,7 @@ pub(crate) fn poll_until_refresh(
                 Event::Key(key) if key.kind == KeyEventKind::Release => false,
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Key(key) if user_filter.handle_key(key.code) => true,
+                Event::Mouse(mouse_event) if setup_menu.handle_mouse(mouse_event, refresh_ms, tree, sort_inverted) => true,
                 Event::Mouse(mouse_event) => {
                     let action = mouse::handle_mouse(
                         mouse_event,
@@ -85,6 +88,7 @@ pub(crate) fn poll_until_refresh(
                             sort_menu_open,
                             sort_cursor,
                             sort_header_pressed,
+                            setup_menu,
                             user_filter,
                             tree,
                             help_open,
@@ -175,6 +179,7 @@ pub(crate) fn poll_until_refresh(
                     true
                 }
                 Event::Key(key) if handle_filter_input(key.code, filter, filter_input) => true,
+                Event::Key(key) if setup_menu.handle_key(key.code, refresh_ms, tree, sort_inverted) => true,
                 Event::Key(key) if key.code == KeyCode::Esc && !filter.is_empty() => {
                     filter.clear();
                     true

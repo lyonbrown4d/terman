@@ -1,6 +1,7 @@
 use crate::{
     model::{IoRow, ProcessRow, SocketRow, SortMode},
     render::Tab,
+    setup_menu::SetupMenuState,
     signal_menu::SignalMenuState,
     user_filter::UserFilterState,
 };
@@ -12,6 +13,7 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) sort_menu_open: &'a mut bool,
     pub(crate) sort_cursor: &'a mut SortMode,
     pub(crate) sort_header_pressed: &'a mut Option<SortMode>,
+    pub(crate) setup_menu: &'a mut SetupMenuState,
     pub(crate) tree: &'a mut bool,
     pub(crate) help_open: &'a mut bool,
     pub(crate) selected: &'a mut usize,

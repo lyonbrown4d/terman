@@ -8,6 +8,7 @@ use crate::model::SortMode;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum FooterAction {
     Help,
+    Setup,
     User,
     Search,
     Filter,
@@ -41,6 +42,7 @@ pub(crate) fn footer_line(
 ) -> Line<'static> {
     let mut spans = vec![
         key_span("F1"), value_span(" Help ".to_string()),
+        key_span("F2"), value_span(format!(" {} ", terman_common::builtin_htop_setup_title_hint())),
         key_span("u"), value_span(format!(" {}:{} ", terman_common::builtin_htop_user_filter_hint(), user_label(user_filter))),
         key_span("F3"), value_span(format!(" Search:{} ", value_label(search))),
         key_span("F4"), value_span(format!(" Filter:{} ", value_label(filter))),
@@ -85,6 +87,7 @@ pub(crate) fn footer_action_at(
 ) -> Option<FooterAction> {
     let mut segments = vec![
         (FooterAction::Help, button_width("F1", " Help ".to_string())),
+        (FooterAction::Setup, button_width("F2", format!(" {} ", terman_common::builtin_htop_setup_title_hint()))),
         (FooterAction::User, button_width("u", format!(" {}:{} ", terman_common::builtin_htop_user_filter_hint(), user_label(user_filter)))),
         (FooterAction::Search, button_width("F3", format!(" Search:{} ", value_label(search)))),
         (FooterAction::Filter, button_width("F4", format!(" Filter:{} ", value_label(filter)))),
@@ -212,8 +215,10 @@ mod tests {
     #[test]
     fn maps_footer_actions_after_wide_search_text() {
         let help = button_width("F1", " Help ".to_string());
+        let setup = button_width("F2", format!(" {} ", terman_common::builtin_htop_setup_title_hint()));
+        let user = button_width("u", format!(" {}:- ", terman_common::builtin_htop_user_filter_hint()));
         let search = button_width("F3", " Search:服务 ".to_string());
-        let column = help.saturating_add(search).saturating_add(1);
+        let column = help.saturating_add(setup).saturating_add(user).saturating_add(search).saturating_add(1);
         let action = footer_action_at(column, SortMode::Cpu, false, false, None, "", "服务", 1000, None);
         assert_eq!(action, Some(FooterAction::Filter));
     }

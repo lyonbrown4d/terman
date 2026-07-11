@@ -13,7 +13,7 @@ pub enum MessageKey {
     BuiltinHtopSignalMenuTitle,
     BuiltinHtopSignalMenuHelp,
     BuiltinHtopSignalUnsupported,
-    BuiltinHtopSignalFooter, BuiltinHtopFollowStatus,
+    BuiltinHtopSignalFooter, BuiltinHtopFollowStatus, BuiltinHtopSetupTitle, BuiltinHtopSetupHelp, BuiltinHtopSetupRefresh, BuiltinHtopSetupTree, BuiltinHtopSetupSortDirection, BuiltinHtopSetupEnabled, BuiltinHtopSetupDisabled, BuiltinHtopSetupAscending, BuiltinHtopSetupDescending,
     BuiltinTmuxNoSessions,
     BuiltinTmuxCliAbout,
     BuiltinTmuxCliExamples,
@@ -121,7 +121,6 @@ pub enum MessageKey {
     BuiltinScreenControlWritebufComplete, BuiltinScreenControlReadbufComplete, BuiltinScreenControlRemovebufComplete, BuiltinScreenControlBufferIoError,
     BuiltinScreenWipeComplete,
 }
-
 impl MessageKey {
     pub(crate) fn fluent_id(self) -> &'static str {
         match self {
@@ -138,7 +137,7 @@ impl MessageKey {
             Self::BuiltinHtopSignalMenuTitle => "builtin-htop-signal-menu-title",
             Self::BuiltinHtopSignalMenuHelp => "builtin-htop-signal-menu-help",
             Self::BuiltinHtopSignalUnsupported => "builtin-htop-signal-unsupported",
-            Self::BuiltinHtopSignalFooter => "builtin-htop-signal-footer", Self::BuiltinHtopFollowStatus => "builtin-htop-follow-status",
+            Self::BuiltinHtopSignalFooter => "builtin-htop-signal-footer", Self::BuiltinHtopFollowStatus => "builtin-htop-follow-status", Self::BuiltinHtopSetupTitle => "builtin-htop-setup-title", Self::BuiltinHtopSetupHelp => "builtin-htop-setup-help", Self::BuiltinHtopSetupRefresh => "builtin-htop-setup-refresh", Self::BuiltinHtopSetupTree => "builtin-htop-setup-tree", Self::BuiltinHtopSetupSortDirection => "builtin-htop-setup-sort-direction", Self::BuiltinHtopSetupEnabled => "builtin-htop-setup-enabled", Self::BuiltinHtopSetupDisabled => "builtin-htop-setup-disabled", Self::BuiltinHtopSetupAscending => "builtin-htop-setup-ascending", Self::BuiltinHtopSetupDescending => "builtin-htop-setup-descending",
             Self::BuiltinTmuxNoSessions => "builtin-tmux-no-sessions",
             Self::BuiltinTmuxCliAbout => "builtin-tmux-cli-about",
             Self::BuiltinTmuxCliExamples => "builtin-tmux-cli-examples",

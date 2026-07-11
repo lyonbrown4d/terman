@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, u filter by user, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
+builtin-htop-help = F1 help, F2 setup, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, u filter by user, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
 builtin-htop-help-panel =
     terman htop
 
@@ -43,7 +43,15 @@ builtin-htop-signal-menu-help = Up/Down or wheel choose, Enter or click send, Es
 builtin-htop-signal-unsupported = No process signals are supported on this platform.
 builtin-htop-signal-footer =  signal PID {$pid}:
 builtin-htop-follow-status = FOLLOW PID {$pid}
-builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
+builtin-htop-setup-title = Setup
+builtin-htop-setup-help = Up/Down select, Left/Right change, Enter apply, Esc/F2 close.
+builtin-htop-setup-refresh = Refresh interval
+builtin-htop-setup-tree = Tree view
+builtin-htop-setup-sort-direction = Sort direction
+builtin-htop-setup-enabled = Enabled
+builtin-htop-setup-disabled = Disabled
+builtin-htop-setup-ascending = Ascending
+builtin-htop-setup-descending = Descendingbuiltin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
 builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
 builtin-screen-cli-examples =
     Common examples:

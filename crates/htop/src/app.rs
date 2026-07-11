@@ -14,6 +14,7 @@ use crate::{
     process_tree::ProcessTreeState,
     render::{self, Tab},
     selected_scroll::{keep_selected_visible, selected_data_index},
+    setup_menu::SetupMenuState,
     signal_menu::SignalMenuState,
     sort_menu,
     tab_sort::normalize_sort_for_tab,
@@ -35,6 +36,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut tree = false;
     let mut tree_state = ProcessTreeState::default();
     let mut help_open = false;
+    let mut setup_menu = SetupMenuState::default();
     let mut signal_menu: Option<SignalMenuState> = None;
     let mut selected = 0usize;
     let mut followed_pid: Option<String> = None;
@@ -135,6 +137,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                 if sort_menu_open {
                     sort_menu::draw(frame, sort_cursor);
                 }
+                setup_menu.draw(frame, refresh_ms, tree, sort_inverted);
                 user_filter.draw(frame);
             }
         })?;
@@ -151,6 +154,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut sort_menu_open,
             &mut sort_cursor,
             &mut sort_header_pressed,
+            &mut setup_menu,
             &mut user_filter,
             &mut tree,
             &mut tree_state,

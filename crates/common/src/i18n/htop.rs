@@ -81,7 +81,29 @@ pub fn builtin_htop_signal_footer_hint(pid: &str) -> String {
 pub fn builtin_htop_follow_status_hint(pid: &str) -> String {
     localized_message(MessageKey::BuiltinHtopFollowStatus, &[("pid", pid)])
 }
-pub fn builtin_htop_tag() -> String {
+pub fn builtin_htop_setup_title_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSetupTitle, &[])
+}
+pub fn builtin_htop_setup_help_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSetupHelp, &[])
+}
+pub fn builtin_htop_setup_refresh_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSetupRefresh, &[])
+}
+pub fn builtin_htop_setup_tree_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSetupTree, &[])
+}
+pub fn builtin_htop_setup_sort_direction_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSetupSortDirection, &[])
+}
+pub fn builtin_htop_setup_toggle_hint(enabled: bool) -> String {
+    let key = if enabled { MessageKey::BuiltinHtopSetupEnabled } else { MessageKey::BuiltinHtopSetupDisabled };
+    localized_message(key, &[])
+}
+pub fn builtin_htop_setup_direction_hint(inverted: bool) -> String {
+    let key = if inverted { MessageKey::BuiltinHtopSetupAscending } else { MessageKey::BuiltinHtopSetupDescending };
+    localized_message(key, &[])
+}pub fn builtin_htop_tag() -> String {
     localized_message(MessageKey::BuiltinHtopTag, &[])
 }
 
