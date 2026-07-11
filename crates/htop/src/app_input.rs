@@ -2,6 +2,11 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{model::ProcessRow, render::Tab};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum TreeBranchAction {
+    Expand,
+    Collapse,
+}
 pub(crate) fn find_next(selected: usize, processes: &[ProcessRow], term: &str) -> usize {
     let term = term.trim().to_lowercase();
     if term.is_empty() || processes.is_empty() {
@@ -62,6 +67,17 @@ pub(crate) fn sort_key(code: KeyCode) -> bool {
 
 pub(crate) fn tree_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('t') | KeyCode::F(5))
+}
+pub(crate) fn tree_branch_action(code: KeyCode) -> Option<TreeBranchAction> {
+    match code {
+        KeyCode::Char('+') | KeyCode::Char('=') => Some(TreeBranchAction::Expand),
+        KeyCode::Char('-') => Some(TreeBranchAction::Collapse),
+        _ => None,
+    }
+}
+
+pub(crate) fn tree_toggle_all_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('*'))
 }
 
 pub(crate) fn follow_key(code: KeyCode) -> bool {

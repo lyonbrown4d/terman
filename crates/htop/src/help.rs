@@ -18,7 +18,7 @@ pub(crate) fn draw(frame: &mut Frame<'_>) {
 }
 
 fn help_line(text: &str) -> Line<'static> {
-    if text.starts_with("F") || text.starts_with("Tab") || text.starts_with("1-4") || text.starts_with("Esc") {
+    if text.starts_with("F") || text.starts_with("Tab") || text.starts_with("1-4") || text.starts_with("Esc") || text.starts_with("+") {
         Line::from(Span::styled(
             text.to_string(),
             Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),

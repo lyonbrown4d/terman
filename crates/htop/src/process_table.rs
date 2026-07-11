@@ -58,7 +58,7 @@ pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, 
     let state = status_char(row.status.as_str());
     let nice = row.nice.map(|value| value.to_string()).unwrap_or_else(|| "-".to_string());
     let ppid = row.parent_pid.as_deref().unwrap_or("-");
-    let command = command_cell(tree_name(row.depth, command_text(row)).as_str(), table_width);
+    let command = command_cell(tree_name(row, command_text(row)).as_str(), table_width);
     let text = process_text(row, ppid, nice.as_str(), state.as_str(), memory_percent, command.as_str());
     if selected {
         return Line::from(Span::styled(text, selected_style()));
@@ -115,8 +115,16 @@ fn command_text(row: &ProcessRow) -> &str {
     if row.command.is_empty() { row.name.as_str() } else { row.command.as_str() }
 }
 
-fn tree_name(depth: usize, name: &str) -> String {
-    if depth == 0 { name.to_string() } else { format!("{}+- {}", "  ".repeat(depth.min(12)), name) }
+fn tree_name(row: &ProcessRow, name: &str) -> String {
+    if row.depth == 0 && !row.has_children {
+        return name.to_string();
+    }
+    let marker = match (row.has_children, row.collapsed) {
+        (true, true) => "[+]",
+        (true, false) => "[-]",
+        (false, _) => "+-",
+    };
+    format!("{}{} {}", "  ".repeat(row.depth.min(12)), marker, name)
 }
 
 fn status_char(status: &str) -> String {

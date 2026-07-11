@@ -80,6 +80,8 @@ pub(crate) struct ProcessRow {
     pub(crate) pid: String,
     pub(crate) parent_pid: Option<String>,
     pub(crate) depth: usize,
+    pub(crate) has_children: bool,
+    pub(crate) collapsed: bool,
     pub(crate) nice: Option<i32>,
     pub(crate) status: String,
     pub(crate) run_time: u64,

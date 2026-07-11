@@ -30,6 +30,7 @@ mod process_priority;
 mod process_rows;
 mod process_status;
 mod process_table;
+mod process_tree;
 mod processes_view;
 mod render;
 mod selected_scroll;

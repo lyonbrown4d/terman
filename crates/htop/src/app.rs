@@ -11,6 +11,7 @@ use crate::{
     interrupt::InterruptFlag,
     metrics::Metrics,
     model::SortMode,
+    process_tree::ProcessTreeState,
     render::{self, Tab},
     selected_scroll::{keep_selected_visible, selected_data_index},
     signal_menu::SignalMenuState,
@@ -30,6 +31,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut sort_cursor = sort;
     let mut sort_header_pressed = None;
     let mut tree = false;
+    let mut tree_state = ProcessTreeState::default();
     let mut help_open = false;
     let mut signal_menu: Option<SignalMenuState> = None;
     let mut selected = 0usize;
@@ -58,7 +60,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
         let active_search = search_input.as_deref().unwrap_or(&search);
         sort = normalize_sort_for_tab(tab, sort);
-        let snapshot = metrics.snapshot(sort, sort_inverted, active_filter, tree);
+        let snapshot = metrics.snapshot(sort, sort_inverted, active_filter, tree, &tree_state);
         let followed_index = followed_pid.as_deref().and_then(|pid| {
             snapshot.processes.iter().position(|process| process.pid == pid)
         });
@@ -136,6 +138,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut sort_cursor,
             &mut sort_header_pressed,
             &mut tree,
+            &mut tree_state,
             &mut help_open,
             &mut signal_menu,
             &mut selected,

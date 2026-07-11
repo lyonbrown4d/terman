@@ -5,9 +5,20 @@ use std::{
 
 use sysinfo::{Process, System};
 
-use crate::{model::{IoRow, ProcessRow, SortMode}, process_priority};
+use crate::{
+    model::{IoRow, ProcessRow, SortMode},
+    process_priority,
+    process_tree::ProcessTreeState,
+};
 
-pub(crate) fn process_rows(system: &System, sort: SortMode, inverted: bool, filter: &str, tree: bool) -> Vec<ProcessRow> {
+pub(crate) fn process_rows(
+    system: &System,
+    sort: SortMode,
+    inverted: bool,
+    filter: &str,
+    tree: bool,
+    tree_state: &ProcessTreeState,
+) -> Vec<ProcessRow> {
     let mut rows: Vec<_> = system
         .processes()
         .iter()
@@ -19,6 +30,8 @@ pub(crate) fn process_rows(system: &System, sort: SortMode, inverted: bool, filt
                 pid,
                 parent_pid: process.parent().map(|parent| parent.to_string()),
                 depth: 0,
+                has_children: false,
+                collapsed: false,
                 nice,
                 status: format!("{:?}", process.status()),
                 run_time: process.run_time(),
@@ -36,7 +49,7 @@ pub(crate) fn process_rows(system: &System, sort: SortMode, inverted: bool, filt
         .collect();
     rows.sort_by(|left, right| compare_process(left, right, sort));
     if inverted { rows.reverse(); }
-    if tree { tree_rows(rows) } else { rows }
+    if tree { tree_rows(rows, tree_state) } else { rows }
 }
 
 pub(crate) fn io_rows(system: &System, sort: SortMode, inverted: bool, filter: &str) -> Vec<IoRow> {
@@ -62,7 +75,7 @@ pub(crate) fn io_rows(system: &System, sort: SortMode, inverted: bool, filter: &
     rows
 }
 
-fn tree_rows(rows: Vec<ProcessRow>) -> Vec<ProcessRow> {
+fn tree_rows(rows: Vec<ProcessRow>, tree_state: &ProcessTreeState) -> Vec<ProcessRow> {
     let included: HashSet<_> = rows.iter().map(|row| row.pid.clone()).collect();
     let mut roots = Vec::new();
     let mut children: HashMap<String, Vec<ProcessRow>> = HashMap::new();
@@ -76,7 +89,7 @@ fn tree_rows(rows: Vec<ProcessRow>) -> Vec<ProcessRow> {
     let mut output = Vec::new();
     let mut seen = HashSet::new();
     for root in roots {
-        append_tree(root, 0, &mut children, &mut seen, &mut output);
+        append_tree(root, 0, &mut children, tree_state, &mut seen, &mut output);
     }
     output
 }
@@ -85,17 +98,21 @@ fn append_tree(
     mut row: ProcessRow,
     depth: usize,
     children: &mut HashMap<String, Vec<ProcessRow>>,
+    tree_state: &ProcessTreeState,
     seen: &mut HashSet<String>,
     output: &mut Vec<ProcessRow>,
 ) {
     if !seen.insert(row.pid.clone()) { return; }
     row.depth = depth;
     let pid = row.pid.clone();
+    let child_rows = children.remove(&pid).unwrap_or_default();
+    row.has_children = !child_rows.is_empty();
+    row.collapsed = row.has_children && tree_state.is_collapsed(&pid);
+    let collapsed = row.collapsed;
     output.push(row);
-    if let Some(child_rows) = children.remove(&pid) {
-        for child in child_rows {
-            append_tree(child, depth + 1, children, seen, output);
-        }
+    if collapsed { return; }
+    for child in child_rows {
+        append_tree(child, depth + 1, children, tree_state, seen, output);
     }
 }
 

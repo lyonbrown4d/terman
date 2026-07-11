@@ -4,6 +4,7 @@ use crate::{
     model::{CpuCore, LoadAverage, NetworkRow, Snapshot, SortMode, SystemSummary},
     network::socket_rows,
     process_priority,
+    process_tree::ProcessTreeState,
     process_rows::{io_rows, process_rows},
 };
 
@@ -38,9 +39,16 @@ impl Metrics {
         process_priority::adjust(pid, delta).is_ok()
     }
 
-    pub(crate) fn snapshot(&self, sort: SortMode, inverted: bool, filter: &str, tree: bool) -> Snapshot {
+    pub(crate) fn snapshot(
+        &self,
+        sort: SortMode,
+        inverted: bool,
+        filter: &str,
+        tree: bool,
+        tree_state: &ProcessTreeState,
+    ) -> Snapshot {
         let networks = self.network_rows();
-        let processes = process_rows(&self.system, sort, inverted, filter, tree);
+        let processes = process_rows(&self.system, sort, inverted, filter, tree, tree_state);
         let io = io_rows(&self.system, sort, inverted, filter);
         let sockets = socket_rows(&self.system, sort, inverted);
         let received = networks.iter().map(|row| row.received).sum();

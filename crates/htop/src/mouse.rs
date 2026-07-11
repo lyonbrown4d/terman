@@ -29,6 +29,9 @@ pub(crate) enum MouseAction {
     PriorityLower,
     DelayFaster,
     DelaySlower,
+    TreeExpand,
+    TreeCollapse,
+    TreeToggleAll,
     Quit,
 }
 
@@ -222,6 +225,9 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
         Some(FooterAction::PriorityLower) => return MouseAction::PriorityLower,
         Some(FooterAction::DelayFaster) => return MouseAction::DelayFaster,
         Some(FooterAction::DelaySlower) => return MouseAction::DelaySlower,
+        Some(FooterAction::TreeExpand) => return MouseAction::TreeExpand,
+        Some(FooterAction::TreeCollapse) => return MouseAction::TreeCollapse,
+        Some(FooterAction::TreeToggleAll) => return MouseAction::TreeToggleAll,
         Some(FooterAction::Quit) => return MouseAction::Quit,
         None => return MouseAction::Ignored,
     }

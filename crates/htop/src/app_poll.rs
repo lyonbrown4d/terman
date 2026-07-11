@@ -13,11 +13,13 @@ use crate::{
     app_input::{
         adjust_refresh, delay_key, filter_key, follow_key, help_key, interrupt_key,
         invert_sort_key, kill_key, move_selection, navigation_key, next_tab, priority_delta,
-        quit_key, search_key, sort_key, tree_key,
+        quit_key, search_key, sort_key, tree_branch_action, tree_key, tree_toggle_all_key,
+        TreeBranchAction,
     },
     interrupt::InterruptFlag,
     metrics::Metrics,
     model::{IoRow, ProcessRow, SocketRow, SortMode},
+    process_tree::ProcessTreeState,
     mouse::{self, MouseContext},
     render::Tab,
     signal_menu::SignalMenuState,
@@ -35,6 +37,7 @@ pub(crate) fn poll_until_refresh(
     sort_cursor: &mut SortMode,
     sort_header_pressed: &mut Option<SortMode>,
     tree: &mut bool,
+    tree_state: &mut ProcessTreeState,
     help_open: &mut bool,
     signal_menu: &mut Option<SignalMenuState>,
     selected: &mut usize,
@@ -116,6 +119,23 @@ pub(crate) fn poll_until_refresh(
                         mouse::MouseAction::DelaySlower => {
                             adjust_refresh(refresh_ms, KeyCode::Char('-'));
                         }
+                        mouse::MouseAction::TreeExpand => {
+                            apply_tree_branch(
+                                tree_state,
+                                processes,
+                                *selected,
+                                TreeBranchAction::Expand,
+                            );
+                        }
+                        mouse::MouseAction::TreeCollapse => {
+                            apply_tree_branch(
+                                tree_state,
+                                processes,
+                                *selected,
+                                TreeBranchAction::Collapse,
+                            );
+                        }
+                        mouse::MouseAction::TreeToggleAll => tree_state.toggle_all(),
                         _ => {}
                     }
                     action != mouse::MouseAction::Ignored
@@ -166,7 +186,24 @@ pub(crate) fn poll_until_refresh(
                     *selected = next;
                     true
                 }
-                Event::Key(key) if delay_key(key.code) => {
+                Event::Key(key)
+                    if process_tree_active(*tab, *tree) && tree_toggle_all_key(key.code) =>
+                {
+                    tree_state.toggle_all();
+                    true
+                }
+                Event::Key(key)
+                    if process_tree_active(*tab, *tree)
+                        && tree_branch_action(key.code).is_some() =>
+                {
+                    apply_tree_branch(
+                        tree_state,
+                        processes,
+                        *selected,
+                        tree_branch_action(key.code).unwrap_or(TreeBranchAction::Expand),
+                    );
+                    true
+                }                Event::Key(key) if delay_key(key.code) => {
                     adjust_refresh(refresh_ms, key.code);
                     true
                 }
@@ -229,6 +266,24 @@ pub(crate) fn poll_until_refresh(
     Ok(false)
 }
 
+fn process_tree_active(tab: Tab, tree: bool) -> bool {
+    tree && matches!(tab, Tab::Overview | Tab::Processes)
+}
+
+fn apply_tree_branch(
+    tree_state: &mut ProcessTreeState,
+    processes: &[ProcessRow],
+    selected: usize,
+    action: TreeBranchAction,
+) {
+    let Some(row) = processes.get(selected).filter(|row| row.has_children) else {
+        return;
+    };
+    match action {
+        TreeBranchAction::Expand => tree_state.expand(row.pid.as_str()),
+        TreeBranchAction::Collapse => tree_state.collapse(row.pid.as_str()),
+    }
+}
 fn adjust_selected_priority(
     metrics: &mut Metrics,
     processes: &[ProcessRow],

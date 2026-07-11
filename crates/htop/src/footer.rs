@@ -11,6 +11,9 @@ pub(crate) enum FooterAction {
     Search,
     Filter,
     Tree,
+    TreeExpand,
+    TreeCollapse,
+    TreeToggleAll,
     Sort,
     PriorityHigher,
     PriorityLower,
@@ -41,10 +44,24 @@ pub(crate) fn footer_line(
         key_span("F7"), value_span(" Nice- ".to_string()),
         key_span("F8"), value_span(" Nice+ ".to_string()),
         key_span("F9"), value_span(" Kill ".to_string()),
-        key_span("+/-"), value_span(format!(" Delay:{}ms ", refresh_ms)),
-        key_span("F10"), value_span(" Quit ".to_string()),
     ];
-    spans.extend(prompt_spans(filtering, searching, kill_target));
+    if tree {
+        spans.extend([
+            key_span("-"),
+            value_span(format!(" {} ", terman_common::builtin_htop_tree_collapse_hint())),
+            key_span("+"),
+            value_span(format!(" {} ", terman_common::builtin_htop_tree_expand_hint())),
+            key_span("*"),
+            value_span(format!(" {} ", terman_common::builtin_htop_tree_toggle_all_hint())),
+        ]);
+    } else {
+        spans.extend([
+            key_span("+/-"),
+            value_span(format!(" Delay:{}ms ", refresh_ms)),
+        ]);
+    }
+    spans.extend([key_span("F10"), value_span(" Quit ".to_string())]);
+    spans.extend(prompt_spans(tree, filtering, searching, kill_target));
     Line::from(spans)
 }
 
@@ -58,7 +75,7 @@ pub(crate) fn footer_action_at(
     refresh_ms: u64,
     kill_target: Option<&str>,
 ) -> Option<FooterAction> {
-    let segments = [
+    let mut segments = vec![
         (FooterAction::Help, button_width("F1", " Help ".to_string())),
         (FooterAction::Search, button_width("F3", format!(" Search:{} ", value_label(search)))),
         (FooterAction::Filter, button_width("F4", format!(" Filter:{} ", value_label(filter)))),
@@ -67,9 +84,29 @@ pub(crate) fn footer_action_at(
         (FooterAction::PriorityHigher, button_width("F7", " Nice- ".to_string())),
         (FooterAction::PriorityLower, button_width("F8", " Nice+ ".to_string())),
         (FooterAction::Kill, button_width("F9", " Kill ".to_string())),
-        (FooterAction::DelayFaster, button_width("+/-", format!(" Delay:{}ms ", refresh_ms))),
-        (FooterAction::Quit, button_width("F10", " Quit ".to_string())),
     ];
+    if tree {
+        segments.extend([
+            (
+                FooterAction::TreeCollapse,
+                button_width("-", format!(" {} ", terman_common::builtin_htop_tree_collapse_hint())),
+            ),
+            (
+                FooterAction::TreeExpand,
+                button_width("+", format!(" {} ", terman_common::builtin_htop_tree_expand_hint())),
+            ),
+            (
+                FooterAction::TreeToggleAll,
+                button_width("*", format!(" {} ", terman_common::builtin_htop_tree_toggle_all_hint())),
+            ),
+        ]);
+    } else {
+        segments.push((
+            FooterAction::DelayFaster,
+            button_width("+/-", format!(" Delay:{}ms ", refresh_ms)),
+        ));
+    }
+    segments.push((FooterAction::Quit, button_width("F10", " Quit ".to_string())));
     let mut start = 0u16;
     if let Some(pid) = kill_target {
         for (_, width) in segments { start = start.saturating_add(width); }
@@ -92,8 +129,18 @@ fn sort_label(sort: SortMode, inverted: bool) -> String {
     format!(" Sort:{} {} ", sort.label(), sort.direction_label(inverted))
 }
 
-fn prompt_spans(filtering: bool, searching: bool, kill_target: Option<&str>) -> Vec<Span<'static>> {
-    let Some(pid) = kill_target else { return vec![Span::styled(prompt_text(filtering, searching, None), Style::default().fg(Color::Gray))]; };
+fn prompt_spans(
+    tree: bool,
+    filtering: bool,
+    searching: bool,
+    kill_target: Option<&str>,
+) -> Vec<Span<'static>> {
+    let Some(pid) = kill_target else {
+        return vec![Span::styled(
+            prompt_text(tree, filtering, searching, None),
+            Style::default().fg(Color::Gray),
+        )];
+    };
     vec![
         Span::styled(terman_common::builtin_htop_signal_footer_hint(pid), Style::default().fg(Color::Gray)),
         key_span("Y"), value_span(" Yes ".to_string()),
@@ -124,13 +171,15 @@ fn value_label(value: &str) -> &str {
     if value.is_empty() { "-" } else { value }
 }
 
-fn prompt_text(filtering: bool, searching: bool, kill_target: Option<&str>) -> String {
+fn prompt_text(tree: bool, filtering: bool, searching: bool, kill_target: Option<&str>) -> String {
     if let Some(pid) = kill_target {
         format!("{}y/n", terman_common::builtin_htop_signal_footer_hint(pid))
     } else if searching {
         " type search, Enter jump, Esc cancel".to_string()
     } else if filtering {
         " type filter, Enter apply, Esc cancel".to_string()
+    } else if tree {
+        " arrows select, +/- branch, * all".to_string()
     } else {
         " arrows select, +/- delay".to_string()
     }

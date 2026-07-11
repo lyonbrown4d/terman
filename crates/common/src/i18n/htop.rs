@@ -27,6 +27,17 @@ pub fn builtin_htop_help_hint() -> String {
 pub fn builtin_htop_help_panel_hint() -> String {
     localized_message(MessageKey::BuiltinHtopHelpPanel, &[])
 }
+pub fn builtin_htop_tree_collapse_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopTreeCollapse, &[])
+}
+
+pub fn builtin_htop_tree_expand_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopTreeExpand, &[])
+}
+
+pub fn builtin_htop_tree_toggle_all_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopTreeToggleAll, &[])
+}
 
 pub fn builtin_htop_sort_menu_title_hint() -> String {
     localized_message(MessageKey::BuiltinHtopSortMenuTitle, &[])
