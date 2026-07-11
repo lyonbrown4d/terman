@@ -1,11 +1,11 @@
 use std::io::{self, Write};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, MouseButton, MouseEvent, MouseEventKind};
+use terman_common::{TerminalSearchAction, TerminalTextSearch};
 use unicode_width::UnicodeWidthChar;
 
 use crate::{
     copy_history::{char_index_at_column, terminal_history},
-    copy_search::{ScreenCopySearch, ScreenCopySearchAction},
 };
 
 pub(crate) enum ScreenCopyResult {
@@ -20,7 +20,7 @@ pub(crate) struct ScreenCopyMode {
     cursor_line: usize,
     cursor_col: usize,
     anchor: Option<(usize, usize)>,
-    search: ScreenCopySearch,
+    search: TerminalTextSearch,
     cols: u16,
     rows: u16,
 }
@@ -37,7 +37,7 @@ impl ScreenCopyMode {
             cursor_line,
             cursor_col: 0,
             anchor: None,
-            search: ScreenCopySearch::default(),
+            search: TerminalTextSearch::default(),
             cols,
             rows,
         };
@@ -54,9 +54,9 @@ impl ScreenCopyMode {
             &self.lines,
             (self.cursor_line, self.cursor_col),
         ) {
-            ScreenCopySearchAction::Unhandled => {}
-            ScreenCopySearchAction::Handled => return ScreenCopyResult::Continue,
-            ScreenCopySearchAction::MoveTo { line, col } => {
+            TerminalSearchAction::Unhandled => {}
+            TerminalSearchAction::Handled => return ScreenCopyResult::Continue,
+            TerminalSearchAction::MoveTo { line, col } => {
                 self.cursor_line = line;
                 self.cursor_col = col;
                 self.clamp_cursor();

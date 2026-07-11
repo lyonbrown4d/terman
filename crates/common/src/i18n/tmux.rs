@@ -217,6 +217,7 @@ pub fn builtin_tmux_copy_status_hint(
     line: usize,
     total: usize,
     selecting: bool,
+    search: &str,
 ) -> String {
     let line = line.to_string();
     let total = total.to_string();
@@ -226,7 +227,7 @@ pub fn builtin_tmux_copy_status_hint(
         } else {
             MessageKey::BuiltinTmuxCopyStatus
         },
-        &[("line", &line), ("total", &total)],
+        &[("line", &line), ("total", &total), ("search", search)],
     )
 }
 

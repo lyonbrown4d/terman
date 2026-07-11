@@ -1,5 +1,8 @@
 use std::io::{self, Write};
 
+use crate::copy_history::{char_index_at_column, terminal_history};
+use terman_common::{TerminalSearchAction, TerminalTextSearch};
+
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, MouseButton, MouseEvent, MouseEventKind};
 use unicode_width::UnicodeWidthChar;
 
@@ -15,6 +18,7 @@ pub(crate) struct TmuxCopyMode {
     cursor_line: usize,
     cursor_col: usize,
     anchor: Option<(usize, usize)>,
+    search: TerminalTextSearch,
     cols: u16,
     rows: u16,
 }
@@ -31,6 +35,7 @@ impl TmuxCopyMode {
             cursor_line,
             cursor_col: 0,
             anchor: None,
+            search: TerminalTextSearch::default(),
             cols,
             rows,
         };
@@ -41,6 +46,24 @@ impl TmuxCopyMode {
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> TmuxCopyResult {
         if key.kind != KeyEventKind::Press {
             return TmuxCopyResult::Continue;
+        }
+
+        match self.search.handle_key(
+            &key,
+            &self.lines,
+            (self.cursor_line, self.cursor_col),
+        ) {
+            TerminalSearchAction::Unhandled => {}
+            TerminalSearchAction::Handled => {
+                return TmuxCopyResult::Continue;
+            }
+            TerminalSearchAction::MoveTo { line, col } => {
+                self.cursor_line = line;
+                self.cursor_col = col;
+                self.clamp_cursor();
+                self.ensure_visible();
+                return TmuxCopyResult::Continue;
+            }
         }
         match key.code {
             KeyCode::Esc | KeyCode::Char('q') => return TmuxCopyResult::Cancel,
@@ -141,6 +164,7 @@ impl TmuxCopyMode {
             self.cursor_line.saturating_add(1),
             self.lines.len(),
             self.anchor.is_some(),
+            &self.search.status(),
         );
         let status = terman_common::fit_terminal_text(&status, usize::from(self.cols));
         output.extend_from_slice(b"[30;46m");
@@ -240,49 +264,6 @@ impl TmuxCopyMode {
     }
 }
 
-fn terminal_history(replay: &[u8], cols: u16, rows: u16) -> Vec<String> {
-    let capacity = replay
-        .len()
-        .saturating_div(usize::from(cols))
-        .saturating_add(usize::from(rows))
-        .clamp(usize::from(rows), 100_000);
-    let mut parser = vt100::Parser::new(rows, cols, capacity);
-    parser.process(replay);
-    parser.screen_mut().set_scrollback(usize::MAX);
-    let scrollback = parser.screen().scrollback();
-    let mut lines = Vec::with_capacity(scrollback.saturating_add(usize::from(rows)));
-    for position in 0..scrollback {
-        parser.screen_mut().set_scrollback(scrollback - position);
-        lines.push(row_text(parser.screen(), 0, cols));
-    }
-    parser.screen_mut().set_scrollback(0);
-    for row in 0..rows {
-        lines.push(row_text(parser.screen(), row, cols));
-    }
-    while lines.len() > 1 && lines.first().is_some_and(String::is_empty) {
-        lines.remove(0);
-    }
-    if lines.is_empty() {
-        lines.push(String::new());
-    }
-    lines
-}
-
-fn row_text(screen: &vt100::Screen, row: u16, cols: u16) -> String {
-    screen.contents_between(row, 0, row, cols).trim_end().to_string()
-}
-
-fn char_index_at_column(line: &str, target: usize) -> usize {
-    let mut column = 0usize;
-    for (index, ch) in line.chars().enumerate() {
-        let next = column.saturating_add(ch.width().unwrap_or(0));
-        if target < next {
-            return index;
-        }
-        column = next;
-    }
-    line.chars().count()
-}
 
 fn move_to(output: &mut Vec<u8>, row: u16, col: u16) {
     let _ = write!(output, "[{};{}H", row.saturating_add(1), col.saturating_add(1));

@@ -1,6 +1,5 @@
 mod copy_history;
 mod copy_mode;
-mod copy_search;
 use std::error::Error;
 
 mod blanker;
