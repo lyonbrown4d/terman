@@ -34,22 +34,23 @@ pub(crate) fn draw_processes(
     let visible = body_layout::data_rows(area).saturating_sub(detail_visible + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
     let mut lines = vec![process_header_line(sort, command_mode)];
-    lines.push(plain_line(format!(
-        "Sort: {}  View: {}  Sel: {}  Filter: {}",
+    let view = view_label(tree);
+    let selection = selection_label(selected, snapshot.processes.len());
+    lines.push(plain_line(terman_common::builtin_htop_processes_status_hint(
         sort.label(),
-        view_label(tree),
-        selection_label(selected, snapshot.processes.len()),
-        filter_label(filter)
+        &view,
+        &selection,
+        filter_label(filter),
     )));
     for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
         lines.push(process_line(row, start + offset == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str()), command_mode));
     }
-    lines.push(title_line("DETAILS"));
+    lines.push(title_line(terman_common::builtin_htop_processes_details_hint()));
     lines.extend(details.into_iter().skip(detail_scroll).take(detail_visible));
-    render_block(frame, area, "Processes", lines);
+    render_block(frame, area, terman_common::builtin_htop_processes_title_hint(), lines);
 }
 
-fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: Vec<Line<'static>>) {
+fn render_block(frame: &mut Frame<'_>, area: Rect, title: String, lines: Vec<Line<'static>>) {
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
@@ -57,7 +58,7 @@ fn render_block(frame: &mut Frame<'_>, area: Rect, title: &'static str, lines: V
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
 
-fn title_line(text: &'static str) -> Line<'static> {
+fn title_line(text: String) -> Line<'static> {
     Line::from(Span::styled(text, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)))
 }
 
@@ -69,8 +70,12 @@ fn filter_label(filter: &str) -> &str {
     if filter.is_empty() { "-" } else { filter }
 }
 
-fn view_label(tree: bool) -> &'static str {
-    if tree { "Tree" } else { "Flat" }
+fn view_label(tree: bool) -> String {
+    if tree {
+        terman_common::builtin_htop_processes_view_tree_hint()
+    } else {
+        terman_common::builtin_htop_processes_view_flat_hint()
+    }
 }
 
 fn selection_label(selected: usize, count: usize) -> String {

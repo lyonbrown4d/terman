@@ -140,3 +140,30 @@ pub fn builtin_htop_environment_help_hint() -> String {
 pub fn builtin_htop_environment_empty_hint() -> String {
     localized_message(MessageKey::BuiltinHtopEnvironmentEmpty, &[])
 }
+pub fn builtin_htop_processes_title_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopProcessesTitle, &[])
+}
+
+pub fn builtin_htop_processes_details_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopProcessesDetails, &[])
+}
+
+pub fn builtin_htop_processes_status_hint(
+    sort: &str,
+    view: &str,
+    selection: &str,
+    filter: &str,
+) -> String {
+    localized_message(
+        MessageKey::BuiltinHtopProcessesStatus,
+        &[("sort", sort), ("view", view), ("selection", selection), ("filter", filter)],
+    )
+}
+
+pub fn builtin_htop_processes_view_tree_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopProcessesViewTree, &[])
+}
+
+pub fn builtin_htop_processes_view_flat_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopProcessesViewFlat, &[])
+}
