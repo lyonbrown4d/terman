@@ -1,6 +1,7 @@
 use crate::{
     model::{IoRow, ProcessRow, SocketRow, SortMode},
     render::Tab,
+    signal_menu::SignalMenuState,
 };
 
 pub(crate) struct MouseContext<'a> {
@@ -22,6 +23,6 @@ pub(crate) struct MouseContext<'a> {
     pub(crate) cpu_core_count: usize,
     pub(crate) filter: &'a str,
     pub(crate) search: &'a str,
-    pub(crate) kill_target: Option<&'a str>,
+    pub(crate) signal_menu: &'a mut Option<SignalMenuState>,
     pub(crate) refresh_ms: u64,
 }

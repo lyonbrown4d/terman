@@ -4,28 +4,44 @@ use crate::{
     app_input::find_next,
     metrics::Metrics,
     model::{ProcessRow, SortMode},
+    signal_menu::SignalMenuState,
     sort_menu::{self, SortMenuAction},
 };
 
-pub(crate) fn confirm_mouse_kill(metrics: &mut Metrics, kill_target: &mut Option<String>) {
-    if let Some(pid) = kill_target.clone() {
-        let _ = metrics.kill_process(pid.as_str());
-    }
-    *kill_target = None;
+pub(crate) fn confirm_mouse_signal(
+    metrics: &mut Metrics,
+    signal_menu: &mut Option<SignalMenuState>,
+) {
+    send_selected_signal(metrics, signal_menu);
 }
 
-pub(crate) fn handle_kill_input(
+pub(crate) fn handle_signal_input(
     code: KeyCode,
     metrics: &mut Metrics,
-    kill_target: &mut Option<String>,
+    signal_menu: &mut Option<SignalMenuState>,
 ) -> bool {
-    let Some(pid) = kill_target.clone() else { return false; };
+    let Some(state) = signal_menu.as_mut() else {
+        return false;
+    };
     match code {
-        KeyCode::Char('y') | KeyCode::Char('Y') => {
-            let _ = metrics.kill_process(pid.as_str());
-            *kill_target = None;
+        KeyCode::Up | KeyCode::Char('k') => state.move_cursor(false),
+        KeyCode::Down | KeyCode::Char('j') => state.move_cursor(true),
+        KeyCode::PageUp => {
+            for _ in 0..5 {
+                state.move_cursor(false);
+            }
         }
-        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => *kill_target = None,
+        KeyCode::PageDown => {
+            for _ in 0..5 {
+                state.move_cursor(true);
+            }
+        }
+        KeyCode::Enter | KeyCode::Char('y' | 'Y') => {
+            send_selected_signal(metrics, signal_menu);
+        }
+        KeyCode::Esc | KeyCode::F(9) | KeyCode::Char('n' | 'N') => {
+            *signal_menu = None;
+        }
         _ => {}
     }
     true
@@ -41,7 +57,9 @@ pub(crate) fn handle_sort_menu_input(
     sort_menu_open: &mut bool,
     sort_cursor: &mut SortMode,
 ) -> bool {
-    if !*sort_menu_open { return false; }
+    if !*sort_menu_open {
+        return false;
+    }
     match sort_menu::handle_key(sort_cursor, code) {
         SortMenuAction::Continue => {}
         SortMenuAction::Apply(selected) => {
@@ -54,8 +72,12 @@ pub(crate) fn handle_sort_menu_input(
 }
 
 pub(crate) fn handle_help_input(code: KeyCode, help_open: &mut bool) -> bool {
-    if !*help_open { return false; }
-    if matches!(code, KeyCode::Esc | KeyCode::F(1)) { *help_open = false; }
+    if !*help_open {
+        return false;
+    }
+    if matches!(code, KeyCode::Esc | KeyCode::F(1)) {
+        *help_open = false;
+    }
     true
 }
 
@@ -66,7 +88,9 @@ pub(crate) fn handle_search_input(
     selected: &mut usize,
     processes: &[ProcessRow],
 ) -> bool {
-    let Some(input) = search_input.as_mut() else { return false; };
+    let Some(input) = search_input.as_mut() else {
+        return false;
+    };
     match code {
         KeyCode::Enter => {
             *search = input.trim().to_string();
@@ -74,7 +98,9 @@ pub(crate) fn handle_search_input(
             *search_input = None;
         }
         KeyCode::Esc => *search_input = None,
-        KeyCode::Backspace => { input.pop(); }
+        KeyCode::Backspace => {
+            input.pop();
+        }
         KeyCode::Char(ch) => input.push(ch),
         _ => {}
     }
@@ -86,16 +112,32 @@ pub(crate) fn handle_filter_input(
     filter: &mut String,
     filter_input: &mut Option<String>,
 ) -> bool {
-    let Some(input) = filter_input.as_mut() else { return false; };
+    let Some(input) = filter_input.as_mut() else {
+        return false;
+    };
     match code {
         KeyCode::Enter => {
             *filter = input.trim().to_string();
             *filter_input = None;
         }
         KeyCode::Esc => *filter_input = None,
-        KeyCode::Backspace => { input.pop(); }
+        KeyCode::Backspace => {
+            input.pop();
+        }
         KeyCode::Char(ch) => input.push(ch),
         _ => {}
     }
     true
+}
+
+fn send_selected_signal(
+    metrics: &mut Metrics,
+    signal_menu: &mut Option<SignalMenuState>,
+) {
+    let Some(state) = signal_menu.take() else {
+        return;
+    };
+    if let Some(signal) = state.selected_signal() {
+        let _ = metrics.signal_process(state.pid(), signal);
+    }
 }

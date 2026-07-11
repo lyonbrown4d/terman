@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, I invert sort order, F9 kill, F10/q/Esc quit, +/- adjust refresh. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process kill prompt.
+builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu.
 builtin-htop-help-panel =
     terman htop
 
@@ -17,14 +17,18 @@ builtin-htop-help-panel =
     F5 or t: toggle flat/tree process view.
     F6 or s: open the sort menu.
     I: invert the current sort order.
-    F9: kill selected process after confirmation.
+    F9: choose and send a supported signal to the selected process.
     +/-: adjust refresh delay.
     F10, q, or Esc: quit.
     Mouse: click tabs, footer actions, Overview TOP PROCESSES rows, Processes rows, and Processes table headers.
     Mouse wheel: move process selection; over details, I/O, or Network, scroll that view.
-    Right-click process row: open kill confirmation.
+    Right-click process row: open the signal menu.
 builtin-htop-sort-menu-title = Sort by
 builtin-htop-sort-menu-help = Up/Down choose, Enter apply, Esc cancel.
+builtin-htop-signal-menu-title = Send signal to PID {$pid}
+builtin-htop-signal-menu-help = Up/Down or wheel choose, Enter or click send, Esc/F9 cancel.
+builtin-htop-signal-unsupported = No process signals are supported on this platform.
+builtin-htop-signal-footer =  signal PID {$pid}:
 builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
 builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
 builtin-screen-cli-examples =

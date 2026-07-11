@@ -1,4 +1,4 @@
-use sysinfo::{Networks, System};
+use sysinfo::{Networks, Signal, System};
 
 use crate::{
     model::{CpuCore, LoadAverage, NetworkRow, Snapshot, SortMode, SystemSummary},
@@ -24,12 +24,12 @@ impl Metrics {
         self.networks.refresh(true);
     }
 
-    pub(crate) fn kill_process(&mut self, pid: &str) -> bool {
+    pub(crate) fn signal_process(&mut self, pid: &str, signal: Signal) -> bool {
         self.system
             .processes()
             .iter()
             .find(|(candidate, _)| candidate.to_string() == pid)
-            .map(|(_, process)| process.kill())
+            .and_then(|(_, process)| process.kill_with(signal))
             .unwrap_or(false)
     }
 

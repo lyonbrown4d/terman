@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::{
+    signal_menu::{self, SignalMenuState},
     footer::footer_line,
     io_view::draw_io,
     format::{format_bytes, format_duration},
@@ -61,7 +62,7 @@ pub(crate) fn draw(
     io_scroll: usize,
     network_scroll: usize,
     refresh_ms: u64,
-    kill_target: Option<&str>,
+    signal_state: Option<&SignalMenuState>,
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -83,8 +84,11 @@ pub(crate) fn draw(
         search,
         searching,
         refresh_ms,
-        kill_target,
+        signal_state.map(SignalMenuState::pid),
     )), chunks[2]);
+    if let Some(state) = signal_state {
+        signal_menu::draw(frame, state);
+    }
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {

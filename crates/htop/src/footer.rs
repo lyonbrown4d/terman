@@ -89,14 +89,14 @@ fn sort_label(sort: SortMode, inverted: bool) -> String {
 fn prompt_spans(filtering: bool, searching: bool, kill_target: Option<&str>) -> Vec<Span<'static>> {
     let Some(pid) = kill_target else { return vec![Span::styled(prompt_text(filtering, searching, None), Style::default().fg(Color::Gray))]; };
     vec![
-        Span::styled(format!(" confirm kill pid {pid}: "), Style::default().fg(Color::Gray)),
+        Span::styled(terman_common::builtin_htop_signal_footer_hint(pid), Style::default().fg(Color::Gray)),
         key_span("Y"), value_span(" Yes ".to_string()),
         key_span("N"), value_span(" No ".to_string()),
     ]
 }
 
 fn kill_prompt_action_at(column: u16, pid: &str) -> Option<FooterAction> {
-    let mut start = terman_common::terminal_text_width(&format!(" confirm kill pid {pid}: "));
+    let mut start = terman_common::terminal_text_width(&terman_common::builtin_htop_signal_footer_hint(pid));
     let yes = button_width("Y", " Yes ".to_string());
     if column >= start && column < start.saturating_add(yes) { return Some(FooterAction::ConfirmKill); }
     start = start.saturating_add(yes);
@@ -120,7 +120,7 @@ fn value_label(value: &str) -> &str {
 
 fn prompt_text(filtering: bool, searching: bool, kill_target: Option<&str>) -> String {
     if let Some(pid) = kill_target {
-        format!(" confirm kill pid {pid}: y/n")
+        format!("{}y/n", terman_common::builtin_htop_signal_footer_hint(pid))
     } else if searching {
         " type search, Enter jump, Esc cancel".to_string()
     } else if filtering {

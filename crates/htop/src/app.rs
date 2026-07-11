@@ -9,7 +9,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
     app_events::{
-        confirm_mouse_kill, handle_filter_input, handle_help_input, handle_kill_input,
+        confirm_mouse_signal, handle_filter_input, handle_help_input, handle_signal_input,
         handle_search_input, handle_sort_menu_input, selected_process_pid,
     },
     app_input::{
@@ -26,6 +26,7 @@ use crate::{
     mouse::{self, MouseContext},
     render::{self, Tab},
     selected_scroll::{keep_selected_visible, selected_data_index},
+    signal_menu::SignalMenuState,
     sort_menu,
     tab_sort::normalize_sort_for_tab,
 };
@@ -43,7 +44,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut sort_header_pressed = None;
     let mut tree = false;
     let mut help_open = false;
-    let mut kill_target: Option<String> = None;
+    let mut signal_menu: Option<SignalMenuState> = None;
     let mut selected = 0usize;
     let mut detail_scroll = 0usize;
     let mut io_scroll = 0usize;
@@ -106,7 +107,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     io_scroll,
                     network_scroll,
                     refresh_ms,
-                    kill_target.as_deref(),
+                    signal_menu.as_ref(),
                 );
                 if sort_menu_open {
                     sort_menu::draw(frame, sort_cursor);
@@ -128,7 +129,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut sort_header_pressed,
             &mut tree,
             &mut help_open,
-            &mut kill_target,
+            &mut signal_menu,
             &mut selected,
             &mut detail_scroll,
             &mut io_scroll,
@@ -159,7 +160,7 @@ fn poll_until_refresh(
     sort_header_pressed: &mut Option<SortMode>,
     tree: &mut bool,
     help_open: &mut bool,
-    kill_target: &mut Option<String>,
+    signal_menu: &mut Option<SignalMenuState>,
     selected: &mut usize,
     detail_scroll: &mut usize,
     io_scroll: &mut usize,
@@ -207,7 +208,7 @@ fn poll_until_refresh(
                         cpu_core_count,
                         filter: filter_input.as_deref().unwrap_or(filter.as_str()),
                         search: search_input.as_deref().unwrap_or(search.as_str()),
-                        kill_target: kill_target.as_deref(),
+                        signal_menu,
                         refresh_ms: *refresh_ms,
                     });
                     match action {
@@ -215,10 +216,10 @@ fn poll_until_refresh(
                         mouse::MouseAction::Search => *search_input = Some(search.clone()),
                         mouse::MouseAction::Filter => *filter_input = Some(filter.clone()),
                         mouse::MouseAction::Kill => {
-                            *kill_target = selected_process_pid(processes, *selected);
+                            *signal_menu = selected_process_pid(processes, *selected).map(SignalMenuState::new);
                         }
-                        mouse::MouseAction::ConfirmKill => confirm_mouse_kill(metrics, kill_target),
-                        mouse::MouseAction::CancelKill => *kill_target = None,
+                        mouse::MouseAction::ConfirmKill => confirm_mouse_signal(metrics, signal_menu),
+                        mouse::MouseAction::CancelKill => *signal_menu = None,
                         mouse::MouseAction::DelayFaster => {
                             adjust_refresh(refresh_ms, KeyCode::Char('+'));
                         }
@@ -229,7 +230,7 @@ fn poll_until_refresh(
                     }
                     action != mouse::MouseAction::Ignored
                 }
-                Event::Key(key) if handle_kill_input(key.code, metrics, kill_target) => true,
+                Event::Key(key) if handle_signal_input(key.code, metrics, signal_menu) => true,
                 Event::Key(key) if handle_help_input(key.code, help_open) => true,
                 Event::Key(key) if handle_sort_menu_input(key.code, sort, sort_menu_open, sort_cursor) => true,
                 Event::Key(key) if handle_search_input(key.code, search, search_input, selected, processes) => true,
@@ -252,7 +253,7 @@ fn poll_until_refresh(
                     true
                 }
                 Event::Key(key) if kill_key(key.code) => {
-                    *kill_target = selected_process_pid(processes, *selected);
+                    *signal_menu = selected_process_pid(processes, *selected).map(SignalMenuState::new);
                     true
                 }
                 Event::Key(key) if help_key(key.code) => {

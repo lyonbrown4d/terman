@@ -35,3 +35,18 @@ pub fn builtin_htop_sort_menu_title_hint() -> String {
 pub fn builtin_htop_sort_menu_help_hint() -> String {
     localized_message(MessageKey::BuiltinHtopSortMenuHelp, &[])
 }
+pub fn builtin_htop_signal_menu_title_hint(pid: &str) -> String {
+    localized_message(MessageKey::BuiltinHtopSignalMenuTitle, &[("pid", pid)])
+}
+
+pub fn builtin_htop_signal_menu_help_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSignalMenuHelp, &[])
+}
+
+pub fn builtin_htop_signal_unsupported_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopSignalUnsupported, &[])
+}
+
+pub fn builtin_htop_signal_footer_hint(pid: &str) -> String {
+    localized_message(MessageKey::BuiltinHtopSignalFooter, &[("pid", pid)])
+}
