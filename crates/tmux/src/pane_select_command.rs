@@ -13,6 +13,14 @@ pub(crate) fn select_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Er
         &session,
         target_window_index_arg(args).map(|index| index as u32),
     )?;
+    if args.iter().any(|arg| arg == "-l") {
+        return request_accepted(
+            &session,
+            TmuxIpcRequest::SelectLastPane {
+                window: Some(info.window_index),
+            },
+        );
+    }
     if let Some(direction) = pane_direction_arg(args) {
         return request_accepted(
             &session,

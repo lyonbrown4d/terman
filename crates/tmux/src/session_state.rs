@@ -24,6 +24,7 @@ pub(crate) struct TmuxWindowReplay {
     pub(crate) name: String,
     pub(crate) replay: Vec<u8>,
     pub(crate) active_pane: u32,
+    pub(crate) last_pane: Option<u32>,
     pub(crate) panes: Vec<TmuxPaneReplay>,
 }
 
@@ -95,11 +96,12 @@ impl TmuxSessionState {
         true
     }
 
-    pub(crate) fn pane_status(&self, window: u32) -> Option<(String, u32, Vec<u32>)> {
+    pub(crate) fn pane_status(&self, window: u32) -> Option<(String, u32, Option<u32>, Vec<u32>)> {
         let window = self.windows.iter().find(|item| item.index == window)?;
         Some((
             window.name.clone(),
             window.active_pane,
+            window.last_pane,
             window.panes.iter().map(|pane| pane.index).collect(),
         ))
     }
@@ -116,6 +118,9 @@ impl TmuxSessionState {
             return;
         };
         window.replay = replay;
+        if window.active_pane != active_pane {
+            window.last_pane = Some(window.active_pane);
+        }
         window.active_pane = active_pane;
         window.panes = captures
             .into_iter()
@@ -128,6 +133,11 @@ impl TmuxSessionState {
             });
         }
         window.panes.sort_by_key(|pane| pane.index);
+        if let Some(last_pane) = window.last_pane {
+            if !window.panes.iter().any(|pane| pane.index == last_pane) {
+                window.last_pane = None;
+            }
+        }
     }
 
     pub(crate) fn has_window(&self, index: u32) -> bool {
@@ -141,6 +151,7 @@ impl TmuxSessionState {
                 name,
                 replay: Vec::new(),
                 active_pane: 0,
+                last_pane: None,
                 panes: vec![TmuxPaneReplay {
                     index: 0,
                     capture: Vec::new(),

@@ -105,10 +105,11 @@ impl TmuxSessionBus {
             let window_index = window.unwrap_or(state.active_window);
             state
                 .pane_status(window_index)
-                .map(|(window_name, active_pane, pane_indexes)| TmuxPaneStatus {
+                .map(|(window_name, active_pane, last_pane, pane_indexes)| TmuxPaneStatus {
                     window_index,
                     window_name,
                     active_pane,
+                    last_pane,
                     pane_indexes,
                 })
         })

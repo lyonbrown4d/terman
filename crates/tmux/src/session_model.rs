@@ -49,5 +49,6 @@ pub(crate) struct TmuxPaneStatus {
     pub(crate) window_index: u32,
     pub(crate) window_name: String,
     pub(crate) active_pane: u32,
+    pub(crate) last_pane: Option<u32>,
     pub(crate) pane_indexes: Vec<u32>,
 }

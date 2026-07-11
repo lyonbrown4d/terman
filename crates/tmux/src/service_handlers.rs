@@ -7,6 +7,7 @@ use interprocess::local_socket::prelude::*;
 
 use crate::{
     ipc::{TmuxIpcRequest, TmuxIpcResponse},
+    pane_last::select_last_pane,
     pane_service::{capture_pane, clear_history, kill_pane, resize_pane, resize_pane_direction, select_pane,
         select_pane_direction, split_pane, swap_pane, toggle_pane_zoom, write_pane_info},
     service_codec::write_response,
@@ -88,6 +89,8 @@ pub(crate) fn handle_client(
         Ok(TmuxIpcRequest::PaneInfo { window }) => write_pane_info(stream, bus, window),
         Ok(TmuxIpcRequest::SplitPane { window, horizontal, command }) => split_pane(stream, bus, control_tx, window, horizontal, command),
         Ok(TmuxIpcRequest::SelectPane { window, pane }) => select_pane(stream, bus, control_tx, window, pane),
+        Ok(TmuxIpcRequest::SelectLastPane { window }) =>
+            select_last_pane(stream, bus, control_tx, window),
         Ok(TmuxIpcRequest::SelectPaneDirection { window, direction }) =>
             select_pane_direction(stream, bus, control_tx, window, direction),
         Ok(TmuxIpcRequest::SwapPane { window, source, target, forward }) => {
