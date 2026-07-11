@@ -14,6 +14,15 @@ pub(crate) enum TmuxControlEvent {
     RenameWindow { index: u32, name: String },
     KillWindow { index: u32 },
     SelectWindow { index: u32 },
+    SplitPane { window: u32, horizontal: bool, command: Option<String> },
+    SelectPane { window: u32, pane: u32 },
+    KillPane { window: u32, pane: u32 },
+    ResizePane {
+        window: u32,
+        pane: u32,
+        cols: Option<u16>,
+        rows: Option<u16>,
+    },
     Terminate,
 }
 
@@ -27,4 +36,12 @@ pub(crate) struct TmuxSessionStatus {
     pub(crate) window_names: Vec<String>,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TmuxPaneStatus {
+    pub(crate) window_index: u32,
+    pub(crate) window_name: String,
+    pub(crate) active_pane: u32,
+    pub(crate) pane_indexes: Vec<u32>,
 }

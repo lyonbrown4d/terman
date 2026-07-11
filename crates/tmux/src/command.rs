@@ -14,6 +14,7 @@ pub(crate) enum TmuxCommand {
     DetachClient,
     SendKeys,
     SendPrefix,
+    SplitWindow,
     NewWindow,
     ListWindows,
     ListPanes,
@@ -48,6 +49,7 @@ impl TmuxCommand {
             Some("detach-client" | "detach") => Self::DetachClient,
             Some("send-keys" | "send") => Self::SendKeys,
             Some("send-prefix") => Self::SendPrefix,
+            Some("split-window" | "splitw") => Self::SplitWindow,
             Some("new-window" | "neww") => Self::NewWindow,
             Some("list-windows" | "lsw") => Self::ListWindows,
             Some("list-panes" | "listp") => Self::ListPanes,
@@ -96,6 +98,7 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["detach".into()]), TmuxCommand::DetachClient);
         assert_eq!(TmuxCommand::parse(&["send".into()]), TmuxCommand::SendKeys);
         assert_eq!(TmuxCommand::parse(&["send-prefix".into()]), TmuxCommand::SendPrefix);
+        assert_eq!(TmuxCommand::parse(&["splitw".into()]), TmuxCommand::SplitWindow);
         assert_eq!(TmuxCommand::parse(&["neww".into()]), TmuxCommand::NewWindow);
         assert_eq!(TmuxCommand::parse(&["lsw".into()]), TmuxCommand::ListWindows);
         assert_eq!(TmuxCommand::parse(&["listp".into()]), TmuxCommand::ListPanes);

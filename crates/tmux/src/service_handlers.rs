@@ -7,6 +7,7 @@ use interprocess::local_socket::prelude::*;
 
 use crate::{
     ipc::{TmuxIpcRequest, TmuxIpcResponse},
+    pane_service::{capture_pane, clear_history, kill_pane, resize_pane, select_pane, split_pane, write_pane_info},
     service_codec::write_response,
     session_core::{TmuxControlEvent, TmuxSessionBus, TmuxSessionEvent},
 };
@@ -31,12 +32,12 @@ pub(crate) fn handle_client(
             bus.detach_client(&client_id);
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
-        Ok(TmuxIpcRequest::CapturePane { index }) => capture_pane(stream, bus, index),
+        Ok(TmuxIpcRequest::CapturePane { window, pane }) => capture_pane(stream, bus, window, pane),
         Ok(TmuxIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
-        Ok(TmuxIpcRequest::ClearHistory { index }) => clear_history(stream, bus, index),
+        Ok(TmuxIpcRequest::ClearHistory { window, pane }) => clear_history(stream, bus, window, pane),
         Ok(TmuxIpcRequest::DisplayMessage { message }) => {
             let mut bytes = message.into_bytes();
             bytes.extend_from_slice(b"\r\n");
@@ -66,6 +67,11 @@ pub(crate) fn handle_client(
         }
         Ok(TmuxIpcRequest::SelectWindow { index }) => select_window(stream, bus, control_tx, index),
         Ok(TmuxIpcRequest::LastWindow) => select_last_window(stream, bus, control_tx),
+        Ok(TmuxIpcRequest::PaneInfo { window }) => write_pane_info(stream, bus, window),
+        Ok(TmuxIpcRequest::SplitPane { window, horizontal, command }) => split_pane(stream, bus, control_tx, window, horizontal, command),
+        Ok(TmuxIpcRequest::SelectPane { window, pane }) => select_pane(stream, bus, control_tx, window, pane),
+        Ok(TmuxIpcRequest::KillPane { window, pane }) => kill_pane(stream, bus, control_tx, window, pane),
+        Ok(TmuxIpcRequest::ResizePane { window, pane, cols, rows }) => resize_pane(stream, bus, control_tx, (window, pane), (cols, rows)),
         Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             accept_control(stream, control_tx, TmuxControlEvent::Resize { cols, rows })
         }
@@ -73,28 +79,6 @@ pub(crate) fn handle_client(
     }
 }
 
-fn capture_pane(
-    stream: &mut LocalSocketStream,
-    bus: &TmuxSessionBus,
-    index: Option<u32>,
-) -> io::Result<()> {
-    match bus.window_replay_snapshot(index) {
-        Some(bytes) => write_response(stream, &TmuxIpcResponse::Captured { bytes }),
-        None => write_window_missing(stream, "current", index.unwrap_or_default() as usize),
-    }
-}
-
-fn clear_history(
-    stream: &mut LocalSocketStream,
-    bus: &TmuxSessionBus,
-    index: Option<u32>,
-) -> io::Result<()> {
-    if bus.clear_window_replay(index) {
-        write_response(stream, &TmuxIpcResponse::Accepted)
-    } else {
-        write_window_missing(stream, "current", index.unwrap_or_default() as usize)
-    }
-}
 
 fn write_info(
     stream: &mut LocalSocketStream,

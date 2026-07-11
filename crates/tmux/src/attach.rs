@@ -69,7 +69,10 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
             }
             TmuxIpcResponse::Detached | TmuxIpcResponse::Exit { .. } => return Ok(()),
             TmuxIpcResponse::Rejected { reason } => return Err(Box::new(io::Error::new(io::ErrorKind::PermissionDenied, reason))),
-            TmuxIpcResponse::Accepted | TmuxIpcResponse::Captured { .. } | TmuxIpcResponse::Info { .. } => {}
+            TmuxIpcResponse::Accepted
+            | TmuxIpcResponse::Captured { .. }
+            | TmuxIpcResponse::Info { .. }
+            | TmuxIpcResponse::Panes { .. } => {}
         }
     }
 }

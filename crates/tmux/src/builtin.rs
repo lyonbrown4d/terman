@@ -16,7 +16,10 @@ use crate::{
     },
     message::display_builtin_tmux_message,
     new_session::create_builtin_tmux_session,
-    pane_commands::{display_builtin_tmux_panes, kill_builtin_tmux_pane, list_builtin_tmux_panes, resize_builtin_tmux_pane, select_builtin_tmux_pane},
+    pane_commands::{
+        display_builtin_tmux_panes, kill_builtin_tmux_pane, list_builtin_tmux_panes,
+        resize_builtin_tmux_pane, select_builtin_tmux_pane, split_builtin_tmux_pane,
+    },
     refresh_client::refresh_builtin_tmux_client,
     send_keys::{send_builtin_tmux_keys, send_builtin_tmux_prefix},
     service::request_endpoint_response,
@@ -85,6 +88,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::SendPrefix => {
             send_builtin_tmux_prefix(args)?;
+            Ok(true)
+        }
+        TmuxCommand::SplitWindow => {
+            split_builtin_tmux_pane(args)?;
             Ok(true)
         }
         TmuxCommand::NewWindow => {

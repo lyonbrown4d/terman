@@ -3,7 +3,11 @@ use std::{error::Error, io};
 use serde::Serialize;
 
 use crate::{
-    args::{resize_pane_height_arg, resize_pane_width_arg, target_pane_index_arg, target_session_name_arg, target_window_index_arg},
+    args::{
+        resize_pane_height_arg, resize_pane_width_arg, split_window_command_arg,
+        split_window_horizontal_arg, target_pane_index_arg, target_session_name_arg,
+        target_window_index_arg,
+    },
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::{BuiltinTmuxSession, load_builtin_tmux_sessions},
@@ -25,151 +29,234 @@ struct TmuxPaneJson {
     active: bool,
 }
 
+struct TmuxPaneInfo {
+    window_index: u32,
+    window_name: String,
+    active_pane: u32,
+    pane_indexes: Vec<u32>,
+}
+
+pub(crate) fn split_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let (_, session) = target_session(args)?;
+    request_accepted(
+        &session,
+        TmuxIpcRequest::SplitPane {
+            window: target_window_index_arg(args).map(|index| index as u32),
+            horizontal: split_window_horizontal_arg(args),
+            command: split_window_command_arg(args),
+        },
+    )
+}
+
 pub(crate) fn list_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_name_arg(args)?;
-    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
-        return Err(session_not_found_error(&target));
-    };
-    let info = query_tmux_info(&session)?;
-    let window_index = target_window_index_arg(args).map(|index| index as u32).unwrap_or(info.active_window);
-    let Some(window_name) = info.window_name(window_index) else {
-        return Err(window_not_found_error(&target, window_index as usize));
-    };
-    let active = window_index == info.active_window;
+    let (target, session) = target_session(args)?;
+    let info = query_pane_info(
+        &session,
+        target_window_index_arg(args).map(|index| index as u32),
+    )?;
     if list_panes_json_requested(args) {
-        return print_panes_json(&target, window_index, window_name, active);
+        return print_panes_json(&target, &info);
     }
-    println!("{}", terman_common::builtin_tmux_pane_list_entry_hint(&target, window_index, 0, &window_name, active));
+    for pane in &info.pane_indexes {
+        println!(
+            "{}",
+            terman_common::builtin_tmux_pane_list_entry_hint(
+                &target,
+                info.window_index,
+                *pane,
+                &info.window_name,
+                *pane == info.active_pane,
+            )
+        );
+    }
     Ok(())
 }
 
 pub(crate) fn display_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_name_arg(args)?;
-    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
-        return Err(session_not_found_error(&target));
-    };
-    let info = query_tmux_info(&session)?;
-    let message = display_panes_message(&target, &info);
-    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::DisplayMessage { message })? {
-        TmuxIpcResponse::Accepted => Ok(()),
-        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
-        response => Err(unexpected_response_error(response)),
-    }
-}
-pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_name_arg(args)?;
-    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
-        return Err(session_not_found_error(&target));
-    };
-    let info = query_tmux_info(&session)?;
-    let window_index = target_window_index_arg(args).map(|index| index as u32).unwrap_or(info.active_window);
-    let pane_index = target_pane_index_arg(args).unwrap_or(0) as u32;
-    if pane_index != 0 {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_pane_not_found_hint(&target, window_index, pane_index),
-        )));
-    }
-    let cols = resize_pane_width_arg(args).ok_or_else(pane_size_required_error)?;
-    let rows = resize_pane_height_arg(args).ok_or_else(pane_size_required_error)?;
-    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::Resize { cols, rows })? {
-        TmuxIpcResponse::Accepted => Ok(()),
-        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
-        response => Err(unexpected_response_error(response)),
-    }
-}
-pub(crate) fn select_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_name_arg(args)?;
-    let Some(session) = load_builtin_tmux_sessions()?.into_iter().find(|session| session.name == target) else {
-        return Err(session_not_found_error(&target));
-    };
-    let info = query_tmux_info(&session)?;
-    let window_index = target_window_index_arg(args).map(|index| index as u32).unwrap_or(info.active_window);
-    let pane_index = target_pane_index_arg(args).unwrap_or(0) as u32;
-    if pane_index != 0 {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_pane_not_found_hint(&target, window_index, pane_index),
-        )));
-    }
-    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::SelectWindow { index: window_index })? {
-        TmuxIpcResponse::Accepted => Ok(()),
-        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
-        response => Err(unexpected_response_error(response)),
-    }
-}
-pub(crate) fn kill_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let target = required_target_session_name_arg(args)?;
-    let window_index = target_window_index_arg(args).unwrap_or(0) as u32;
-    let pane_index = target_pane_index_arg(args).unwrap_or(0) as u32;
-    if pane_index != 0 {
-        return Err(Box::new(io::Error::new(
-            io::ErrorKind::NotFound,
-            terman_common::builtin_tmux_pane_not_found_hint(&target, window_index, pane_index),
-        )));
-    }
-    kill_builtin_tmux_window_command(args)
-}
-struct TmuxPaneInfo {
-    active_window: u32,
-    window_indexes: Vec<u32>,
-    window_names: Vec<String>,
-}
-
-impl TmuxPaneInfo {
-    fn window_name(&self, index: u32) -> Option<String> {
-        self.window_indexes
-            .iter()
-            .position(|candidate| *candidate == index)
-            .map(|position| self.window_names.get(position).cloned().unwrap_or_else(|| index.to_string()))
-    }
-}
-
-fn display_panes_message(session: &str, info: &TmuxPaneInfo) -> String {
-    info.window_indexes
+    let (target, session) = target_session(args)?;
+    let info = query_pane_info(
+        &session,
+        target_window_index_arg(args).map(|index| index as u32),
+    )?;
+    let message = info
+        .pane_indexes
         .iter()
-        .filter_map(|index| info.window_name(*index).map(|name| (*index, name)))
-        .map(|(index, name)| {
+        .map(|pane| {
             terman_common::builtin_tmux_pane_list_entry_hint(
-                session,
-                index,
-                0,
-                &name,
-                index == info.active_window,
+                &target,
+                info.window_index,
+                *pane,
+                &info.window_name,
+                *pane == info.active_pane,
             )
         })
         .collect::<Vec<_>>()
-        .join(" | ")
+        .join(" | ");
+    request_accepted(&session, TmuxIpcRequest::DisplayMessage { message })
 }
-fn query_tmux_info(session: &BuiltinTmuxSession) -> Result<TmuxPaneInfo, Box<dyn Error>> {
-    match request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::Info)? {
-        TmuxIpcResponse::Info { active_window, window_indexes, window_names, .. } => Ok(TmuxPaneInfo { active_window, window_indexes, window_names }),
-        TmuxIpcResponse::Rejected { reason } => Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason))),
+
+pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let (_, session) = target_session(args)?;
+    let cols = resize_pane_width_arg(args);
+    let rows = resize_pane_height_arg(args);
+    if cols.is_none() && rows.is_none() {
+        return Err(pane_size_required_error());
+    }
+    let info = query_pane_info(
+        &session,
+        target_window_index_arg(args).map(|index| index as u32),
+    )?;
+    let pane = target_pane_index_arg(args)
+        .map(|index| index as u32)
+        .unwrap_or(info.active_pane);
+    require_pane(&info, pane)?;
+    request_accepted(
+        &session,
+        TmuxIpcRequest::ResizePane {
+            window: Some(info.window_index),
+            pane: Some(pane),
+            cols,
+            rows,
+        },
+    )
+}
+
+pub(crate) fn select_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let (_, session) = target_session(args)?;
+    let info = query_pane_info(
+        &session,
+        target_window_index_arg(args).map(|index| index as u32),
+    )?;
+    let pane = target_pane_index_arg(args)
+        .map(|index| index as u32)
+        .unwrap_or(info.active_pane);
+    require_pane(&info, pane)?;
+    request_accepted(
+        &session,
+        TmuxIpcRequest::SelectPane {
+            window: Some(info.window_index),
+            pane: Some(pane),
+        },
+    )
+}
+
+pub(crate) fn kill_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let (_, session) = target_session(args)?;
+    let info = query_pane_info(
+        &session,
+        target_window_index_arg(args).map(|index| index as u32),
+    )?;
+    let pane = target_pane_index_arg(args)
+        .map(|index| index as u32)
+        .unwrap_or(info.active_pane);
+    require_pane(&info, pane)?;
+    if info.pane_indexes.len() == 1 {
+        return kill_builtin_tmux_window_command(args);
+    }
+    request_accepted(
+        &session,
+        TmuxIpcRequest::KillPane {
+            window: Some(info.window_index),
+            pane: Some(pane),
+        },
+    )
+}
+
+fn target_session(args: &[String]) -> Result<(String, BuiltinTmuxSession), Box<dyn Error>> {
+    let target = target_session_name_arg(args).ok_or_else(target_required_error)?;
+    let Some(session) = load_builtin_tmux_sessions()?
+        .into_iter()
+        .find(|session| session.name == target)
+    else {
+        return Err(session_not_found_error(&target));
+    };
+    Ok((target, session))
+}
+
+fn query_pane_info(
+    session: &BuiltinTmuxSession,
+    window: Option<u32>,
+) -> Result<TmuxPaneInfo, Box<dyn Error>> {
+    match request_endpoint_response(&session_endpoint(session), TmuxIpcRequest::PaneInfo { window })?
+    {
+        TmuxIpcResponse::Panes {
+            window_index,
+            window_name,
+            active_pane,
+            pane_indexes,
+        } => Ok(TmuxPaneInfo {
+            window_index,
+            window_name,
+            active_pane,
+            pane_indexes,
+        }),
+        TmuxIpcResponse::Rejected { reason } => {
+            Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason)))
+        }
         response => Err(unexpected_response_error(response)),
     }
 }
 
-fn print_panes_json(
-    session: &str,
-    window_index: u32,
-    window_name: String,
-    active: bool,
+fn request_accepted(
+    session: &BuiltinTmuxSession,
+    request: TmuxIpcRequest,
 ) -> Result<(), Box<dyn Error>> {
-    let panes = vec![TmuxPaneJson { pane_index: 0, window_name, active }];
-    println!("{}", serde_json::to_string_pretty(&TmuxPaneListJson { schema_version: 1, session: session.to_string(), window_index, panes })?);
+    match request_endpoint_response(&session_endpoint(session), request)? {
+        TmuxIpcResponse::Accepted => Ok(()),
+        TmuxIpcResponse::Rejected { reason } => {
+            Err(Box::new(io::Error::new(io::ErrorKind::Unsupported, reason)))
+        }
+        response => Err(unexpected_response_error(response)),
+    }
+}
+
+fn require_pane(info: &TmuxPaneInfo, pane: u32) -> Result<(), Box<dyn Error>> {
+    if info.pane_indexes.contains(&pane) {
+        Ok(())
+    } else {
+        Err(Box::new(io::Error::new(
+            io::ErrorKind::NotFound,
+            terman_common::builtin_tmux_pane_not_found_hint(
+                "current",
+                info.window_index,
+                pane,
+            ),
+        )))
+    }
+}
+
+fn print_panes_json(session: &str, info: &TmuxPaneInfo) -> Result<(), Box<dyn Error>> {
+    let panes = info
+        .pane_indexes
+        .iter()
+        .map(|pane| TmuxPaneJson {
+            pane_index: *pane,
+            window_name: info.window_name.clone(),
+            active: *pane == info.active_pane,
+        })
+        .collect();
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&TmuxPaneListJson {
+            schema_version: 1,
+            session: session.to_string(),
+            window_index: info.window_index,
+            panes,
+        })?
+    );
     Ok(())
 }
 
 fn session_endpoint(session: &BuiltinTmuxSession) -> TmuxIpcEndpoint {
-    session.ipc_endpoint.as_deref().map(TmuxIpcEndpoint::from_raw_name).unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
+    session
+        .ipc_endpoint
+        .as_deref()
+        .map(TmuxIpcEndpoint::from_raw_name)
+        .unwrap_or_else(|| TmuxIpcEndpoint::for_session(&session.name))
 }
 
 fn list_panes_json_requested(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "--json")
-}
-
-fn required_target_session_name_arg(args: &[String]) -> Result<String, Box<dyn Error>> {
-    target_session_name_arg(args).ok_or_else(target_required_error)
 }
 
 fn pane_size_required_error() -> Box<dyn Error> {
@@ -178,18 +265,24 @@ fn pane_size_required_error() -> Box<dyn Error> {
         terman_common::builtin_tmux_pane_size_required_hint(),
     ))
 }
+
 fn target_required_error() -> Box<dyn Error> {
-    Box::new(io::Error::new(io::ErrorKind::InvalidInput, terman_common::builtin_tmux_target_required_hint()))
+    Box::new(io::Error::new(
+        io::ErrorKind::InvalidInput,
+        terman_common::builtin_tmux_target_required_hint(),
+    ))
 }
 
 fn session_not_found_error(target: &str) -> Box<dyn Error> {
-    Box::new(io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_session_not_found_hint(target)))
-}
-
-fn window_not_found_error(target: &str, index: usize) -> Box<dyn Error> {
-    Box::new(io::Error::new(io::ErrorKind::NotFound, terman_common::builtin_tmux_window_not_found_hint(target, index)))
+    Box::new(io::Error::new(
+        io::ErrorKind::NotFound,
+        terman_common::builtin_tmux_session_not_found_hint(target),
+    ))
 }
 
 fn unexpected_response_error(response: TmuxIpcResponse) -> Box<dyn Error> {
-    Box::new(io::Error::new(io::ErrorKind::InvalidData, terman_common::builtin_tmux_unexpected_info_response_hint(&format!("{response:?}"))))
+    Box::new(io::Error::new(
+        io::ErrorKind::InvalidData,
+        terman_common::builtin_tmux_unexpected_info_response_hint(&format!("{response:?}")),
+    ))
 }

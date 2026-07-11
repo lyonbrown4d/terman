@@ -9,11 +9,17 @@ pub(crate) struct TmuxSessionSubscriber {
     pub(crate) sender: mpsc::Sender<TmuxSessionEvent>,
 }
 
+pub(crate) struct TmuxPaneReplay {
+    pub(crate) index: u32,
+    pub(crate) capture: Vec<u8>,
+}
+
 pub(crate) struct TmuxWindowReplay {
     pub(crate) index: u32,
     pub(crate) name: String,
     pub(crate) replay: Vec<u8>,
-    pub(crate) capture: Vec<u8>,
+    pub(crate) active_pane: u32,
+    pub(crate) panes: Vec<TmuxPaneReplay>,
 }
 
 pub(crate) struct TmuxSessionState {
@@ -58,32 +64,61 @@ impl TmuxSessionState {
             .expect("active window exists")
     }
 
-    pub(crate) fn window_capture(&self, index: u32) -> Option<&[u8]> {
-        self.windows
+    pub(crate) fn window_capture(&self, window: u32, pane: Option<u32>) -> Option<&[u8]> {
+        let window = self.windows.iter().find(|item| item.index == window)?;
+        let pane = pane.unwrap_or(window.active_pane);
+        window
+            .panes
             .iter()
-            .find(|window| window.index == index)
-            .map(|window| window.capture.as_slice())
+            .find(|item| item.index == pane)
+            .map(|item| item.capture.as_slice())
     }
 
-    pub(crate) fn clear_window_capture(&mut self, index: u32) -> bool {
-        let Some(window) = self.windows.iter_mut().find(|window| window.index == index) else {
+    pub(crate) fn clear_window_capture(&mut self, window: u32, pane: Option<u32>) -> bool {
+        let Some(window) = self.windows.iter_mut().find(|item| item.index == window) else {
             return false;
         };
-        window.capture.clear();
+        let pane = pane.unwrap_or(window.active_pane);
+        let Some(pane) = window.panes.iter_mut().find(|item| item.index == pane) else {
+            return false;
+        };
+        pane.capture.clear();
         true
+    }
+
+    pub(crate) fn pane_status(&self, window: u32) -> Option<(String, u32, Vec<u32>)> {
+        let window = self.windows.iter().find(|item| item.index == window)?;
+        Some((
+            window.name.clone(),
+            window.active_pane,
+            window.panes.iter().map(|pane| pane.index).collect(),
+        ))
     }
 
     pub(crate) fn replace_window_output(
         &mut self,
         index: u32,
         replay: Vec<u8>,
-        capture: Vec<u8>,
+        active_pane: u32,
+        captures: Vec<(u32, Vec<u8>)>,
     ) {
         self.ensure_window(index, index.to_string());
-        if let Some(window) = self.windows.iter_mut().find(|window| window.index == index) {
-            window.replay = replay;
-            window.capture = capture;
+        let Some(window) = self.windows.iter_mut().find(|window| window.index == index) else {
+            return;
+        };
+        window.replay = replay;
+        window.active_pane = active_pane;
+        window.panes = captures
+            .into_iter()
+            .map(|(index, capture)| TmuxPaneReplay { index, capture })
+            .collect();
+        if !window.panes.iter().any(|pane| pane.index == active_pane) {
+            window.panes.push(TmuxPaneReplay {
+                index: active_pane,
+                capture: Vec::new(),
+            });
         }
+        window.panes.sort_by_key(|pane| pane.index);
     }
 
     pub(crate) fn has_window(&self, index: u32) -> bool {
@@ -96,7 +131,11 @@ impl TmuxSessionState {
                 index,
                 name,
                 replay: Vec::new(),
-                capture: Vec::new(),
+                active_pane: 0,
+                panes: vec![TmuxPaneReplay {
+                    index: 0,
+                    capture: Vec::new(),
+                }],
             });
             self.windows.sort_by_key(|window| window.index);
         }
@@ -104,15 +143,24 @@ impl TmuxSessionState {
 
     pub(crate) fn append_window_output(&mut self, index: u32, bytes: &[u8]) {
         self.ensure_window(index, index.to_string());
-        let replay = self.windows.iter_mut().find(|window| window.index == index).expect("window exists");
-        replay.replay.extend_from_slice(bytes);
-        replay.capture.extend_from_slice(bytes);
-        trim_replay(&mut replay.replay);
-        trim_replay(&mut replay.capture);
+        let window = self
+            .windows
+            .iter_mut()
+            .find(|window| window.index == index)
+            .expect("window exists");
+        window.replay.extend_from_slice(bytes);
+        trim_replay(&mut window.replay);
+        let active = window.active_pane;
+        if let Some(pane) = window.panes.iter_mut().find(|pane| pane.index == active) {
+            pane.capture.extend_from_slice(bytes);
+            trim_replay(&mut pane.capture);
+        }
     }
 
     pub(crate) fn set_window_count(&mut self, windows: u32) {
-        for index in 0..windows { self.ensure_window(index, index.to_string()); }
+        for index in 0..windows {
+            self.ensure_window(index, index.to_string());
+        }
         self.windows.retain(|window| window.index < windows);
         if !self.has_window(self.active_window) {
             self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
@@ -121,8 +169,12 @@ impl TmuxSessionState {
 
     pub(crate) fn remove_window(&mut self, index: u32) {
         self.windows.retain(|window| window.index != index);
-        if self.last_window == Some(index) { self.last_window = None; }
-        if self.windows.is_empty() { self.ensure_window(0, String::from("0")); }
+        if self.last_window == Some(index) {
+            self.last_window = None;
+        }
+        if self.windows.is_empty() {
+            self.ensure_window(0, String::from("0"));
+        }
         if !self.has_window(self.active_window) {
             self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
         }
@@ -144,5 +196,7 @@ pub(crate) fn select_window_state(state: &mut TmuxSessionState, index: u32) {
 }
 
 pub(crate) fn send_to_subscribers(state: &mut TmuxSessionState, event: TmuxSessionEvent) {
-    state.subscribers.retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
+    state
+        .subscribers
+        .retain(|subscriber| subscriber.sender.send(event.clone()).is_ok());
 }

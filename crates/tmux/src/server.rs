@@ -76,7 +76,7 @@ fn run_control_loop(
                 TmuxControlEvent::Resize { cols: next_cols, rows: next_rows } => {
                     cols = next_cols;
                     rows = next_rows;
-                    for window in windows.iter() { window.resize(cols, rows); }
+                    for window in windows.iter_mut() { window.resize(cols, rows); }
                     session_bus.publish_resize(cols, rows);
                 }
                 TmuxControlEvent::NewWindow { index, name, command } => {
@@ -101,6 +101,25 @@ fn run_control_loop(
                 }
                 TmuxControlEvent::SelectWindow { index } => {
                     if active_runtime(windows, index).is_some() { *active_window = index; }
+                }
+                TmuxControlEvent::SplitPane { window, horizontal, command } => {
+                    if let Some(runtime) = active_runtime(windows, window) {
+                        if let Err(err) = runtime.split(horizontal, command) { publish_error(session_bus, err); }
+                    }
+                }
+                TmuxControlEvent::SelectPane { window, pane } => {
+                    if let Some(runtime) = active_runtime(windows, window) {
+                        if runtime.select_pane(pane) && *active_window != window {
+                            *active_window = window;
+                            let _ = session_bus.select_window(window);
+                        }
+                    }
+                }
+                TmuxControlEvent::KillPane { window, pane } => {
+                    if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.kill_pane(pane); }
+                }
+                TmuxControlEvent::ResizePane { window, pane, cols, rows } => {
+                    if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.resize_pane(pane, cols, rows); }
                 }
                 TmuxControlEvent::Terminate => {
                     if !terminate_requested {

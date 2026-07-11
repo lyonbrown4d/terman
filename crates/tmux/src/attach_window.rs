@@ -23,6 +23,10 @@ pub(crate) fn handle_window_command(
         TmuxPrefixCommand::RenameWindow
         | TmuxPrefixCommand::ListWindows
         | TmuxPrefixCommand::LastWindow
+        | TmuxPrefixCommand::SplitHorizontal
+        | TmuxPrefixCommand::SplitVertical
+        | TmuxPrefixCommand::NextPane
+        | TmuxPrefixCommand::KillPane
         | TmuxPrefixCommand::Help => return Ok(()),
     };
     select_window(endpoint, index)

@@ -18,7 +18,6 @@ pub(crate) fn is_detach_key(key: &KeyEvent) -> bool {
         && !key.modifiers.contains(KeyModifiers::ALT)
 }
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum TmuxPrefixCommand {
     NextWindow,
@@ -28,27 +27,41 @@ pub(crate) enum TmuxPrefixCommand {
     RenameWindow,
     ListWindows,
     LastWindow,
+    SplitHorizontal,
+    SplitVertical,
+    NextPane,
+    KillPane,
     Help,
     SelectWindow(u32),
 }
 
 pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
-    if !is_key_press(key) || key.modifiers.contains(KeyModifiers::CONTROL) || key.modifiers.contains(KeyModifiers::ALT) {
+    if !is_key_press(key)
+        || key.modifiers.contains(KeyModifiers::CONTROL)
+        || key.modifiers.contains(KeyModifiers::ALT)
+    {
         return None;
     }
     match key.code {
         KeyCode::Char('n') => Some(TmuxPrefixCommand::NextWindow),
         KeyCode::Char('p') => Some(TmuxPrefixCommand::PreviousWindow),
         KeyCode::Char('c') => Some(TmuxPrefixCommand::CreateWindow),
-        KeyCode::Char('x') | KeyCode::Char('&') => Some(TmuxPrefixCommand::KillWindow),
+        KeyCode::Char('&') => Some(TmuxPrefixCommand::KillWindow),
+        KeyCode::Char('x') => Some(TmuxPrefixCommand::KillPane),
         KeyCode::Char(',') => Some(TmuxPrefixCommand::RenameWindow),
         KeyCode::Char('w') => Some(TmuxPrefixCommand::ListWindows),
         KeyCode::Char('l') => Some(TmuxPrefixCommand::LastWindow),
+        KeyCode::Char('%') => Some(TmuxPrefixCommand::SplitHorizontal),
+        KeyCode::Char('"') => Some(TmuxPrefixCommand::SplitVertical),
+        KeyCode::Char('o') => Some(TmuxPrefixCommand::NextPane),
         KeyCode::Char('?') => Some(TmuxPrefixCommand::Help),
-        KeyCode::Char(ch) if ch.is_ascii_digit() => ch.to_digit(10).map(TmuxPrefixCommand::SelectWindow),
+        KeyCode::Char(ch) if ch.is_ascii_digit() => {
+            ch.to_digit(10).map(TmuxPrefixCommand::SelectWindow)
+        }
         _ => None,
     }
 }
+
 pub(crate) fn tmux_prefix_bytes() -> Vec<u8> {
     vec![0x02]
 }
@@ -57,7 +70,6 @@ pub(crate) fn key_event_bytes(key: &KeyEvent) -> Option<Vec<u8>> {
     if !is_key_press(key) {
         return None;
     }
-
     match &key.code {
         KeyCode::Backspace => Some(vec![0x7f]),
         KeyCode::Enter => Some(vec![b'\r']),
@@ -85,13 +97,11 @@ fn char_key_bytes(ch: char, modifiers: KeyModifiers) -> Option<Vec<u8>> {
     if modifiers.contains(KeyModifiers::ALT) {
         bytes.push(0x1b);
     }
-
     if modifiers.contains(KeyModifiers::CONTROL) {
         bytes.extend(control_char_bytes(ch)?);
     } else {
         bytes.extend(encoded_char_bytes(ch));
     }
-
     Some(bytes)
 }
 
@@ -100,7 +110,6 @@ fn control_char_bytes(ch: char) -> Option<Vec<u8>> {
     if upper.is_ascii_uppercase() {
         return Some(vec![(upper as u8) - b'A' + 1]);
     }
-
     match ch {
         ' ' => Some(vec![0x00]),
         '[' => Some(vec![0x1b]),

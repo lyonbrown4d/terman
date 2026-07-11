@@ -9,6 +9,7 @@ pub(crate) struct TmuxPtyCommandSpec {
     pub(crate) session_name: String,
     pub(crate) window_index: u32,
     pub(crate) window_name: String,
+    pub(crate) pane_index: u32,
     pub(crate) command: Option<String>,
     pub(crate) login_shell: bool,
 }
@@ -19,7 +20,6 @@ pub(crate) fn build_tmux_pty_command(spec: &TmuxPtyCommandSpec) -> CommandBuilde
         Some(command) => build_shell_command(&shell, spec.login_shell, command),
         None => build_interactive_shell(&shell, spec.login_shell),
     };
-
     apply_tmux_environment(&mut builder, spec);
     builder
 }
@@ -46,6 +46,7 @@ fn build_interactive_shell(shell: &str, login_shell: bool) -> CommandBuilder {
 fn apply_tmux_environment(builder: &mut CommandBuilder, spec: &TmuxPtyCommandSpec) {
     builder.env("TERM", "tmux-256color");
     builder.env("WINDOW", spec.window_index.to_string());
+    builder.env("TMUX_PANE", format!("%{}", spec.pane_index));
     builder.env("TERMAN_TMUX_SESSION", spec.session_name.as_str());
     builder.env("TERMAN_TMUX_WINDOW", spec.window_name.as_str());
 }
@@ -60,11 +61,12 @@ mod tests {
             session_name: String::from("dev"),
             window_index: 0,
             window_name: String::from("shell"),
+            pane_index: 0,
             command: Some(String::from("echo hi")),
             login_shell: false,
         };
-
         assert_eq!(spec.session_name, "dev");
         assert_eq!(spec.window_name, "shell");
+        assert_eq!(spec.pane_index, 0);
     }
 }

@@ -1,7 +1,7 @@
 use std::{error::Error, io, io::Write};
 
 use crate::{
-    args::{target_session_name_arg, target_window_index_arg},
+    args::{target_pane_index_arg, target_session_name_arg, target_window_index_arg},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::{BuiltinTmuxSession, load_builtin_tmux_sessions},
@@ -9,18 +9,17 @@ use crate::{
 
 pub(crate) fn capture_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = target_session_name_arg(args).ok_or_else(target_required_error)?;
-    let index = target_window_index_arg(args).map(|index| index as u32);
     let Some(session) = load_builtin_tmux_sessions()?
         .into_iter()
         .find(|session| session.name == target)
     else {
         return Err(session_not_found_error(&target));
     };
-    if let Some(index) = index.filter(|index| !session.window_indices().contains(index)) {
-        return Err(window_not_found_error(&target, index as usize));
-    }
-
-    match request_endpoint_response(&session_endpoint(&session), TmuxIpcRequest::CapturePane { index })? {
+    let request = TmuxIpcRequest::CapturePane {
+        window: target_window_index_arg(args).map(|index| index as u32),
+        pane: target_pane_index_arg(args).map(|index| index as u32),
+    };
+    match request_endpoint_response(&session_endpoint(&session), request)? {
         TmuxIpcResponse::Captured { bytes } => {
             let mut stdout = io::stdout();
             stdout.write_all(&bytes)?;
@@ -56,12 +55,5 @@ fn session_not_found_error(target: &str) -> Box<dyn Error> {
     Box::new(io::Error::new(
         io::ErrorKind::NotFound,
         terman_common::builtin_tmux_session_not_found_hint(target),
-    ))
-}
-
-fn window_not_found_error(target: &str, index: usize) -> Box<dyn Error> {
-    Box::new(io::Error::new(
-        io::ErrorKind::NotFound,
-        terman_common::builtin_tmux_window_not_found_hint(target, index),
     ))
 }

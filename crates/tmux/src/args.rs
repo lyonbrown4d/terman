@@ -69,6 +69,15 @@ pub(crate) fn resize_pane_width_arg(args: &[String]) -> Option<u16> {
 pub(crate) fn resize_pane_height_arg(args: &[String]) -> Option<u16> {
     named_arg(args, "-y", "--height").and_then(|value| value.parse::<u16>().ok())
 }
+pub(crate) fn split_window_horizontal_arg(args: &[String]) -> bool {
+    args.iter().any(|arg| arg == "-h" || arg == "--horizontal")
+}
+
+pub(crate) fn split_window_command_arg(args: &[String]) -> Option<String> {
+    let payload = positional_args_after_command(args, &["split-window", "splitw"]).join(" ");
+    if payload.trim().is_empty() { None } else { Some(payload) }
+}
+
 pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
     positional_payload_after_command(args, &["display-message", "display"])
 }
@@ -187,6 +196,7 @@ fn named_arg(args: &[String], short: &str, long: &str) -> Option<String> {
 mod tests {
     use super::{
         display_message_arg, new_window_command_arg, new_window_name_arg, rename_session_name_arg, rename_window_name_arg, resize_pane_height_arg, resize_pane_width_arg, send_keys_args,
+        split_window_command_arg, split_window_horizontal_arg,
         session_name_arg, target_pane_index_arg, target_session_arg, target_session_name_arg, target_window_index_arg,
     };
 
@@ -237,6 +247,12 @@ mod tests {
         let args = ["neww".into(), "-tdev".into(), "-n".into(), "api".into(), "cargo".into(), "run".into()];
         assert_eq!(new_window_name_arg(&args), Some(String::from("api")));
         assert_eq!(new_window_command_arg(&args), Some(String::from("cargo run")));
+    }
+    #[test]
+    fn parses_split_window_args() {
+        let args = ["splitw".into(), "-h".into(), "-tdev:0".into(), "cargo".into(), "run".into()];
+        assert!(split_window_horizontal_arg(&args));
+        assert_eq!(split_window_command_arg(&args), Some(String::from("cargo run")));
     }
     #[test]
     fn parses_resize_pane_size() {

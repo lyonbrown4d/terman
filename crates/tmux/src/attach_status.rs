@@ -12,8 +12,12 @@ use crate::{
     service::request_endpoint_response,
 };
 
-pub(crate) const PREFIX_STATUS: &str = "tmux prefix | c new  x/& kill  n/p switch  d detach  mouse active";
-pub(crate) const KILL_CONFIRM_STATUS: &str = "tmux confirm | kill current window? y yes  n/Esc no";
+pub(crate) const PREFIX_STATUS: &str =
+    "tmux prefix | %/\" split  o next pane  x kill pane  & kill window  d detach";
+pub(crate) const KILL_PANE_CONFIRM_STATUS: &str =
+    "tmux confirm | kill current pane? y yes  n/Esc no";
+pub(crate) const KILL_WINDOW_CONFIRM_STATUS: &str =
+    "tmux confirm | kill current window? y yes  n/Esc no";
 
 pub(crate) fn query_status_line(endpoint: &TmuxIpcEndpoint) -> io::Result<String> {
     match request_endpoint_response(endpoint, TmuxIpcRequest::Info)? {

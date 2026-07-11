@@ -79,6 +79,10 @@ terman-tmux attach -t <session>
 terman-tmux attach-session -t <session>
 terman-tmux list-sessions
 terman-tmux list-windows -t dev
+terman-tmux split-window -t dev
+terman-tmux split-window -h -t dev "cargo run"
+terman-tmux list-panes -t dev
+terman-tmux select-pane -t dev:0.1
 terman-tmux --detached new -s dev
 ```
 
