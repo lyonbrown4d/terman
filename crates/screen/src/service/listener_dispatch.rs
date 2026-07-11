@@ -162,6 +162,14 @@ pub(super) fn handle_client(
             bus.set_monitor_enabled(enabled);
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetSilence { seconds }) => {
+            bus.set_silence_seconds(seconds);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::ToggleSilence) => {
+            bus.toggle_silence();
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Info) => write_info(stream, session_name, bus),
         Ok(ScreenIpcRequest::PasteBuffer) => {
             send_control_event(control_tx, ScreenControlEvent::Input(bus.paste_buffer_snapshot()))?;

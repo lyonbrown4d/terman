@@ -92,6 +92,28 @@ pub fn builtin_screen_monitor_activity_hint(window: usize, title: Option<&str>) 
         &[("window", &window), ("title", title.unwrap_or("-"))],
     )
 }
+pub fn builtin_screen_silence_status_hint(window: usize, seconds: Option<u64>) -> String {
+    let window = window.to_string();
+    let state = if seconds.is_some() { "on" } else { "off" };
+    let seconds = seconds.unwrap_or_default().to_string();
+    localized_message(
+        MessageKey::BuiltinScreenSilenceStatus,
+        &[("window", &window), ("seconds", &seconds), ("state", state)],
+    )
+}
+
+pub fn builtin_screen_silence_activity_hint(window: usize, title: Option<&str>, seconds: u64) -> String {
+    let window = window.to_string();
+    let seconds = seconds.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenSilenceActivity,
+        &[
+            ("window", &window),
+            ("title", title.unwrap_or("-")),
+            ("seconds", &seconds),
+        ],
+    )
+}
 
 pub fn builtin_screen_attach_hardcopy_path_unavailable_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachHardcopyPathUnavailable, &[])

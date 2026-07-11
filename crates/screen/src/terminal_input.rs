@@ -63,6 +63,11 @@ impl ScreenInputDecoder {
             {
                 Some(ScreenInputAction::Redisplay)
             }
+            KeyCode::Char('_')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::SilenceToggle)
+            }
             KeyCode::Char('M')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {

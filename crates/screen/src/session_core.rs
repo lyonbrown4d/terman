@@ -4,6 +4,7 @@ mod config;
 mod events;
 mod logging;
 mod monitor;
+mod silence;
 mod log_control;
 mod region_bus;
 mod region_layout;
@@ -14,6 +15,7 @@ mod status;
 mod window;
 
 pub(crate) use events::{ScreenControlEvent, ScreenSessionEvent};
+pub(crate) use silence::DEFAULT_SILENCE_SECONDS;
 pub(crate) use status::{ScreenSessionStatus, ScreenWindowStatus};
 use state::{ScreenRemovedWindow, ScreenSessionState, ScreenSessionSubscriber, fallback_status, session_status};
 use window::ScreenWindowState;

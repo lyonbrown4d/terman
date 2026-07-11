@@ -60,6 +60,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             active_window,
             copy_mode.is_none(),
         );
+        session_bus.poll_silence();
         if let Some(code) = handle_window_exit(&session_bus, &mut windows, &mut active_window) {
             session_bus.publish_exit(code);
             exit_code = Some(code);

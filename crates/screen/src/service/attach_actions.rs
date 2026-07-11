@@ -66,6 +66,9 @@ pub(super) fn handle_attach_action(
         ScreenInputAction::MonitorToggle => {
             send_control_request(endpoint, ScreenIpcRequest::SetMonitor { enabled: None })?;
         }
+        ScreenInputAction::SilenceToggle => {
+            send_control_request(endpoint, ScreenIpcRequest::ToggleSilence)?;
+        }
         ScreenInputAction::NewWindow => {
             send_control_request(endpoint, ScreenIpcRequest::NewWindow { command: None })?;
         }

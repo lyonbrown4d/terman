@@ -59,6 +59,7 @@ pub(crate) fn run_screen_server(args: ScreenArgs) -> Result<(), Box<dyn Error>> 
 
     let exit_code = loop {
         drain_server_window_output(&session_bus, &output_rx);
+        session_bus.poll_silence();
         if let Some(code) = handle_server_window_exit(
             &args,
             endpoint_name.as_str(),

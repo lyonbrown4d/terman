@@ -20,6 +20,7 @@ pub(crate) enum ScreenInputAction {
     LastWindow,
     LogToggle,
     MonitorToggle,
+    SilenceToggle,
     NewWindow,
     NextWindow,
     Number,

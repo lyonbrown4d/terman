@@ -59,6 +59,10 @@ pub fn builtin_screen_control_monitor_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlMonitorRequired, &[])
 }
 
+pub fn builtin_screen_control_silence_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlSilenceRequired, &[])
+}
+
 pub fn builtin_screen_control_logfile_required_hint() -> String {
     localized_message(MessageKey::BuiltinScreenControlLogfileRequired, &[])
 }

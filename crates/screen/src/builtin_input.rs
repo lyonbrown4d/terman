@@ -53,6 +53,10 @@ pub(crate) fn handle_builtin_input_action(
             bus.set_monitor_enabled(None);
             None
         }
+        ScreenInputAction::SilenceToggle => {
+            bus.toggle_silence();
+            None
+        }
         ScreenInputAction::Detach | ScreenInputAction::DetachAll => {
             bus.publish_detach();
             None

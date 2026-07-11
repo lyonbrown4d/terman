@@ -53,6 +53,10 @@ pub(crate) enum ScreenIpcRequest {
     SetMonitor {
         enabled: Option<bool>,
     },
+    SetSilence {
+        seconds: Option<u64>,
+    },
+    ToggleSilence,
     NewWindow {
         command: Option<String>,
     },

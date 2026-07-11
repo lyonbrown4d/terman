@@ -1,4 +1,5 @@
 use std::io;
+use std::time::{Duration, Instant};
 
 use super::{logging::ScreenOutputLog, replay::ScreenReplayBuffer, ScreenWindowStatus};
 
@@ -12,6 +13,9 @@ pub(super) struct ScreenWindowState {
     output_log: ScreenOutputLog,
     monitor_enabled: bool,
     activity_pending: bool,
+    silence_seconds: Option<u64>,
+    last_output_at: Instant,
+    silence_notified: bool,
     terminal: vt100::Parser,
 }
 
@@ -24,6 +28,9 @@ impl ScreenWindowState {
             output_log: ScreenOutputLog::new(index),
             monitor_enabled: false,
             activity_pending: false,
+            silence_seconds: None,
+            last_output_at: Instant::now(),
+            silence_notified: false,
             terminal: vt100::Parser::new(
                 DEFAULT_TERMINAL_ROWS,
                 DEFAULT_TERMINAL_COLS,
@@ -146,7 +153,29 @@ impl ScreenWindowState {
         self.replay.append(bytes, cols);
     }
 
+    pub(super) fn silence_seconds(&self) -> Option<u64> {
+        self.silence_seconds
+    }
+
+    pub(super) fn set_silence_seconds(&mut self, seconds: Option<u64>) {
+        self.silence_seconds = seconds;
+        self.last_output_at = Instant::now();
+        self.silence_notified = false;
+    }
+
+    pub(super) fn take_silence_notification(&mut self, now: Instant) -> Option<u64> {
+        let seconds = self.silence_seconds?;
+        if self.silence_notified
+            || now.duration_since(self.last_output_at) < Duration::from_secs(seconds)
+        {
+            return None;
+        }
+        self.silence_notified = true;
+        Some(seconds)
+    }
     pub(super) fn append_output(&mut self, bytes: &[u8], cols: Option<u16>) {
+        self.last_output_at = Instant::now();
+        self.silence_notified = false;
         self.append_replay(bytes, cols);
         self.output_log.append(bytes, self.title.as_deref());
     }
