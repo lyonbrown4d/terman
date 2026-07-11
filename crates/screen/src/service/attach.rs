@@ -20,6 +20,7 @@ use super::{
     attach_title::prompt_attach_title,
     attach_copy::{finish_attach_copy_mode, start_attach_copy_mode},
     attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
+    attach_select::prompt_attach_select,
     ipc_client::send_control_request,
 };
 use crate::{
@@ -113,6 +114,11 @@ pub(super) fn attach_interactive(
                             AttachActionResult::TitlePrompt => {
                                 run_attach_prompt(&endpoint, &output_paused, || {
                                     prompt_attach_title(&endpoint)
+                                })?;
+                            }
+                            AttachActionResult::SelectPrompt => {
+                                run_attach_prompt(&endpoint, &output_paused, || {
+                                    prompt_attach_select(&endpoint)
                                 })?;
                             }
                             AttachActionResult::Stop => {

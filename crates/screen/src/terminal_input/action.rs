@@ -35,6 +35,7 @@ pub(crate) enum ScreenInputAction {
     RemoveRegion,
     Reset,
     Resize,
+    SelectPrompt,
     SelectWindow(usize),
     SplitRegion(ScreenRegionAxis),
     Time,

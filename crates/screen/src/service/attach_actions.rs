@@ -20,6 +20,7 @@ use crate::{
 pub(super) enum AttachActionResult {
     CopyMode,
     CommandPrompt,
+    SelectPrompt,
     TitlePrompt,
     Continue,
     Stop,
@@ -105,6 +106,7 @@ pub(super) fn handle_attach_action(
             send_control_request(endpoint, ScreenIpcRequest::Redisplay)?;
         }
         ScreenInputAction::Resize => sync_attach_terminal_size(endpoint)?,
+        ScreenInputAction::SelectPrompt => return Ok(AttachActionResult::SelectPrompt),
         ScreenInputAction::SelectWindow(index) => {
             send_control_request(endpoint, ScreenIpcRequest::SelectWindow { index })?;
         }

@@ -79,6 +79,7 @@ pub(crate) fn handle_builtin_input_action(
             Some(ScreenControlEvent::Resize { cols, rows })
         }
         ScreenInputAction::CommandPrompt
+        | ScreenInputAction::SelectPrompt
         | ScreenInputAction::Displays
         | ScreenInputAction::DumpTermcap
         | ScreenInputAction::Hardcopy

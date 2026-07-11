@@ -8,6 +8,7 @@ mod attach_mouse;
 mod attach_number;
 mod attach_output;
 mod attach_prompt;
+mod attach_select;
 mod attach_size;
 mod attach_termcap;
 mod attach_title;

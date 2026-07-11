@@ -36,7 +36,7 @@ pub(super) fn request_select_command(
     }
 }
 
-fn resolve_window_selector(
+pub(super) fn resolve_window_selector(
     selector: &str,
     active_window: usize,
     windows: &[ScreenWindowInfo],

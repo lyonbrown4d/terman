@@ -123,7 +123,7 @@ builtin-screen-session-name-empty = Screen session name cannot be empty.
 builtin-screen-session-record-invalid = Built-in screen session record is invalid.
 builtin-screen-unexpected-response = Unexpected screen response: {$response}.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
-builtin-screen-attach-help = screen keys: Ctrl-A c/Ctrl-C new window | Ctrl-A d/Ctrl-D detach | Ctrl-A D detach all | Ctrl-A k/Ctrl-K kill current window | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A l redisplay | Ctrl-A m/Ctrl-M last message | Ctrl-A M monitor, Ctrl-A _ silence | Ctrl-A h hardcopy | Ctrl-A H log | Ctrl-A . dumptermcap | Ctrl-A ]/Ctrl-] paste buffer | Ctrl-A </>/= exchange buffer | Ctrl-A q xon | Ctrl-A s xoff | Ctrl-A i/Ctrl-I info | Ctrl-A n/Ctrl-N/Space next | Ctrl-A N number | Ctrl-A p/Ctrl-P/Backspace previous | Ctrl-A 0..9 select window | Ctrl-A * displays | Ctrl-A t/Ctrl-T time | Ctrl-A v version | Ctrl-A , license | Ctrl-A F fit | Ctrl-A W width | Ctrl-A w/Ctrl-W windows | Ctrl-A " windowlist | Ctrl-A \\ quit | Ctrl-A ? help | Ctrl-A A title | Ctrl-A : command | Ctrl-A Ctrl-A last window | Ctrl-A a send literal Ctrl-A | Mouse wheel next/previous | right-click windows | middle-click help | Ctrl-A [/Esc copy mode
+builtin-screen-attach-help = screen keys: Ctrl-A c/Ctrl-C new window | Ctrl-A d/Ctrl-D detach | Ctrl-A D detach all | Ctrl-A k/Ctrl-K kill current window | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A l redisplay | Ctrl-A m/Ctrl-M last message | Ctrl-A M monitor, Ctrl-A _ silence | Ctrl-A h hardcopy | Ctrl-A H log | Ctrl-A . dumptermcap | Ctrl-A ]/Ctrl-] paste buffer | Ctrl-A </>/= exchange buffer | Ctrl-A q xon | Ctrl-A s xoff | Ctrl-A i/Ctrl-I info | Ctrl-A n/Ctrl-N/Space next | Ctrl-A N number | Ctrl-A p/Ctrl-P/Backspace previous | Ctrl-A 0..9 select window | Ctrl-A ' select by number/title | Ctrl-A * displays | Ctrl-A t/Ctrl-T time | Ctrl-A v version | Ctrl-A , license | Ctrl-A F fit | Ctrl-A W width | Ctrl-A w/Ctrl-W windows | Ctrl-A " windowlist | Ctrl-A \\ quit | Ctrl-A ? help | Ctrl-A A title | Ctrl-A : command | Ctrl-A Ctrl-A last window | Ctrl-A a send literal Ctrl-A | Mouse wheel next/previous | right-click windows | middle-click help | Ctrl-A [/Esc copy mode
 builtin-screen-monitor-status =
     { $state ->
         [on] screen: monitoring window {$window}
@@ -137,6 +137,7 @@ builtin-screen-monitor-activity = screen: activity in window {$window} ({$title}
 builtin-screen-silence-activity = screen: silence in window {$window} ({$title}) for {$seconds} seconds
 builtin-screen-attach-hardcopy-path-unavailable = No available screen attach hardcopy path.
 builtin-screen-attach-title-prompt = Window title:
+builtin-screen-attach-select-prompt = Switch to window:
 builtin-screen-attach-command-prompt = screen command:
 builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
 builtin-screen-attach-output-thread-panicked = Screen attach output thread panicked.

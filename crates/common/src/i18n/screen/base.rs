@@ -122,6 +122,10 @@ pub fn builtin_screen_attach_hardcopy_path_unavailable_hint() -> String {
 pub fn builtin_screen_attach_title_prompt_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachTitlePrompt, &[])
 }
+
+pub fn builtin_screen_attach_select_prompt_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenAttachSelectPrompt, &[])
+}
 pub fn builtin_screen_attach_command_prompt_hint() -> String {
     localized_message(MessageKey::BuiltinScreenAttachCommandPrompt, &[])
 }
