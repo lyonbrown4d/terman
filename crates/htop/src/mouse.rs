@@ -94,6 +94,7 @@ fn right_click(row: u16, context: MouseContext<'_>) -> MouseAction {
 }
 
 fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
+    *context.sort_header_pressed = None;
     if context.kill_target.is_some() {
         return match handle_footer(column, row, &mut context) {
             MouseAction::Ignored => MouseAction::Handled,
@@ -117,8 +118,8 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
         return MouseAction::Handled;
     }
     if let Some(mode) = table_header_sort_at(column, row, &context) {
-        *context.sort = mode;
-        *context.sort_cursor = mode;
+        apply_header_sort(mode, &mut context);
+        *context.sort_header_pressed = Some(mode);
         return MouseAction::Handled;
     }
     if let Some(index) = row_process_at(row, &context) {
@@ -128,12 +129,14 @@ fn click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
     MouseAction::Ignored
 }
 
-fn release_click(column: u16, row: u16, context: MouseContext<'_>) -> MouseAction {
+fn release_click(column: u16, row: u16, mut context: MouseContext<'_>) -> MouseAction {
+    let pressed = context.sort_header_pressed.take();
     if context.kill_target.is_some() || *context.sort_menu_open { return MouseAction::Ignored; }
     if let Some(tab) = tab_at(column, row) { *context.tab = tab; return MouseAction::Handled; }
     if let Some(mode) = table_header_sort_at(column, row, &context) {
-        *context.sort = mode;
-        *context.sort_cursor = mode;
+        if pressed != Some(mode) {
+            apply_header_sort(mode, &mut context);
+        }
         return MouseAction::Handled;
     }
     let Some(index) = row_process_at(row, &context) else { return MouseAction::Ignored; };
@@ -153,7 +156,7 @@ fn drag_select(row: u16, context: MouseContext<'_>) -> MouseAction {
 
 fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> MouseAction {
     if row != terminal_area().height.saturating_sub(1) { return MouseAction::Ignored; }
-    match footer::footer_action_at(column, *context.sort, *context.tree, context.filter, context.search, context.refresh_ms, context.kill_target) {
+    match footer::footer_action_at(column, *context.sort, *context.sort_inverted, *context.tree, context.filter, context.search, context.refresh_ms, context.kill_target) {
         Some(FooterAction::Help) => *context.help_open = true,
         Some(FooterAction::Search) => return MouseAction::Search,
         Some(FooterAction::Filter) => return MouseAction::Filter,
@@ -171,6 +174,15 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
         None => return MouseAction::Ignored,
     }
     MouseAction::Handled
+}
+
+fn apply_header_sort(mode: SortMode, context: &mut MouseContext<'_>) {
+    if *context.sort == mode {
+        *context.sort_inverted = !*context.sort_inverted;
+    } else {
+        *context.sort = mode;
+    }
+    *context.sort_cursor = mode;
 }
 
 fn table_header_sort_at(column: u16, row: u16, context: &MouseContext<'_>) -> Option<SortMode> {

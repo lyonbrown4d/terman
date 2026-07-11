@@ -14,7 +14,8 @@ use crate::{
     },
     app_input::{
         adjust_refresh, clamp_selection, delay_key, filter_key, help_key, interrupt_key, kill_key,
-        move_selection, navigation_key, next_tab, quit_key, search_key, sort_key, tree_key,
+        invert_sort_key, move_selection, navigation_key, next_tab, quit_key, search_key, sort_key,
+        tree_key,
     },
     app_terminal::TerminalGuard,
     cli::HtopArgs,
@@ -36,8 +37,10 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut metrics = Metrics::new();
     let mut tab = Tab::Overview;
     let mut sort = SortMode::Cpu;
+    let mut sort_inverted = false;
     let mut sort_menu_open = false;
     let mut sort_cursor = sort;
+    let mut sort_header_pressed = None;
     let mut tree = false;
     let mut help_open = false;
     let mut kill_target: Option<String> = None;
@@ -45,7 +48,14 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut detail_scroll = 0usize;
     let mut io_scroll = 0usize;
     let mut network_scroll = 0usize;
-    let mut visibility_anchor: Option<(Tab, SortMode, Option<String>, Option<usize>, Option<(u16, u16)>)> = None;
+    let mut visibility_anchor: Option<(
+        Tab,
+        SortMode,
+        bool,
+        Option<String>,
+        Option<usize>,
+        Option<(u16, u16)>,
+    )> = None;
     let mut refresh_ms = args.refresh_ms.max(100);
     let mut filter = String::new();
     let mut filter_input: Option<String> = None;
@@ -59,7 +69,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let active_filter = filter_input.as_deref().unwrap_or(&filter);
         let active_search = search_input.as_deref().unwrap_or(&search);
         sort = normalize_sort_for_tab(tab, sort);
-        let snapshot = metrics.snapshot(sort, active_filter, tree);
+        let snapshot = metrics.snapshot(sort, sort_inverted, active_filter, tree);
         selected = clamp_selection(selected, snapshot.processes.len());
         io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));
         network_scroll = network_scroll
@@ -67,6 +77,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let next_visibility_anchor = (
             tab,
             sort,
+            sort_inverted,
             snapshot.processes.get(selected).map(|row| row.pid.clone()),
             selected_data_index(tab, &snapshot, selected),
             terman_common::current_terminal_size().ok(),
@@ -84,6 +95,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     &snapshot,
                     tab,
                     sort,
+                    sort_inverted,
                     tree,
                     selected,
                     active_filter,
@@ -110,8 +122,10 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut refresh_ms,
             &mut tab,
             &mut sort,
+            &mut sort_inverted,
             &mut sort_menu_open,
             &mut sort_cursor,
+            &mut sort_header_pressed,
             &mut tree,
             &mut help_open,
             &mut kill_target,
@@ -139,8 +153,10 @@ fn poll_until_refresh(
     refresh_ms: &mut u64,
     tab: &mut Tab,
     sort: &mut SortMode,
+    sort_inverted: &mut bool,
     sort_menu_open: &mut bool,
     sort_cursor: &mut SortMode,
+    sort_header_pressed: &mut Option<SortMode>,
     tree: &mut bool,
     help_open: &mut bool,
     kill_target: &mut Option<String>,
@@ -175,8 +191,10 @@ fn poll_until_refresh(
                     let action = mouse::handle_mouse(mouse_event, MouseContext {
                         tab,
                         sort,
+                        sort_inverted,
                         sort_menu_open,
                         sort_cursor,
+                        sort_header_pressed,
                         tree,
                         help_open,
                         selected,
@@ -252,6 +270,10 @@ fn poll_until_refresh(
                 Event::Key(key) if sort_key(key.code) => {
                     *sort_cursor = *sort;
                     *sort_menu_open = true;
+                    true
+                }
+                Event::Key(key) if invert_sort_key(key.code) => {
+                    *sort_inverted = !*sort_inverted;
                     true
                 }
                 Event::Key(key) if tree_key(key.code) => {

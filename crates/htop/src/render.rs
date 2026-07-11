@@ -50,6 +50,7 @@ pub(crate) fn draw(
     snapshot: &Snapshot,
     tab: Tab,
     sort: SortMode,
+    sort_inverted: bool,
     tree: bool,
     selected: usize,
     filter: &str,
@@ -73,7 +74,17 @@ pub(crate) fn draw(
         Tab::Io => draw_io(frame, chunks[1], snapshot, sort, io_scroll, selected),
         Tab::Network => draw_network(frame, chunks[1], snapshot, sort, network_scroll, selected),
     }
-    frame.render_widget(Paragraph::new(footer_line(sort, tree, filter, filtering, search, searching, refresh_ms, kill_target)), chunks[2]);
+    frame.render_widget(Paragraph::new(footer_line(
+        sort,
+        sort_inverted,
+        tree,
+        filter,
+        filtering,
+        search,
+        searching,
+        refresh_ms,
+        kill_target,
+    )), chunks[2]);
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {

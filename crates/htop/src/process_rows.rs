@@ -7,7 +7,7 @@ use sysinfo::{Process, System};
 
 use crate::model::{IoRow, ProcessRow, SortMode};
 
-pub(crate) fn process_rows(system: &System, sort: SortMode, filter: &str, tree: bool) -> Vec<ProcessRow> {
+pub(crate) fn process_rows(system: &System, sort: SortMode, inverted: bool, filter: &str, tree: bool) -> Vec<ProcessRow> {
     let mut rows: Vec<_> = system
         .processes()
         .iter()
@@ -32,10 +32,11 @@ pub(crate) fn process_rows(system: &System, sort: SortMode, filter: &str, tree: 
         .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
         .collect();
     rows.sort_by(|left, right| compare_process(left, right, sort));
+    if inverted { rows.reverse(); }
     if tree { tree_rows(rows) } else { rows }
 }
 
-pub(crate) fn io_rows(system: &System, sort: SortMode, filter: &str) -> Vec<IoRow> {
+pub(crate) fn io_rows(system: &System, sort: SortMode, inverted: bool, filter: &str) -> Vec<IoRow> {
     let mut rows: Vec<_> = system
         .processes()
         .iter()
@@ -54,6 +55,7 @@ pub(crate) fn io_rows(system: &System, sort: SortMode, filter: &str) -> Vec<IoRo
         .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
         .collect();
     rows.sort_by(|left, right| compare_io_row(left, right, sort));
+    if inverted { rows.reverse(); }
     rows
 }
 

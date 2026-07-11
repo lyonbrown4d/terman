@@ -21,6 +21,7 @@ pub(crate) enum FooterAction {
 }
 pub(crate) fn footer_line(
     sort: SortMode,
+    sort_inverted: bool,
     tree: bool,
     filter: &str,
     filtering: bool,
@@ -34,7 +35,7 @@ pub(crate) fn footer_line(
         key_span("F3"), value_span(format!(" Search:{} ", value_label(search))),
         key_span("F4"), value_span(format!(" Filter:{} ", value_label(filter))),
         key_span("F5"), value_span(format!(" {} ", view_label(tree))),
-        key_span("F6"), value_span(format!(" Sort:{} ", sort.label())),
+        key_span("F6"), value_span(sort_label(sort, sort_inverted)),
         key_span("F9"), value_span(" Kill ".to_string()),
         key_span("+/-"), value_span(format!(" Delay:{}ms ", refresh_ms)),
         key_span("F10"), value_span(" Quit ".to_string()),
@@ -46,6 +47,7 @@ pub(crate) fn footer_line(
 pub(crate) fn footer_action_at(
     column: u16,
     sort: SortMode,
+    sort_inverted: bool,
     tree: bool,
     filter: &str,
     search: &str,
@@ -57,7 +59,7 @@ pub(crate) fn footer_action_at(
         (FooterAction::Search, button_width("F3", format!(" Search:{} ", value_label(search)))),
         (FooterAction::Filter, button_width("F4", format!(" Filter:{} ", value_label(filter)))),
         (FooterAction::Tree, button_width("F5", format!(" {} ", view_label(tree)))),
-        (FooterAction::Sort, button_width("F6", format!(" Sort:{} ", sort.label()))),
+        (FooterAction::Sort, button_width("F6", sort_label(sort, sort_inverted))),
         (FooterAction::Kill, button_width("F9", " Kill ".to_string())),
         (FooterAction::DelayFaster, button_width("+/-", format!(" Delay:{}ms ", refresh_ms))),
         (FooterAction::Quit, button_width("F10", " Quit ".to_string())),
@@ -78,6 +80,10 @@ pub(crate) fn footer_action_at(
         start = end;
     }
     kill_target.and_then(|pid| kill_prompt_action_at(column.saturating_sub(start), pid))
+}
+
+fn sort_label(sort: SortMode, inverted: bool) -> String {
+    format!(" Sort:{} {} ", sort.label(), sort.direction_label(inverted))
 }
 
 fn prompt_spans(filtering: bool, searching: bool, kill_target: Option<&str>) -> Vec<Span<'static>> {
@@ -137,7 +143,7 @@ mod tests {
         let help = button_width("F1", " Help ".to_string());
         let search = button_width("F3", " Search:服务 ".to_string());
         let column = help.saturating_add(search).saturating_add(1);
-        let action = footer_action_at(column, SortMode::Cpu, false, "", "服务", 1000, None);
+        let action = footer_action_at(column, SortMode::Cpu, false, false, "", "服务", 1000, None);
         assert_eq!(action, Some(FooterAction::Filter));
     }
 }

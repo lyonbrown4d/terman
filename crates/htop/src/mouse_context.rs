@@ -6,8 +6,10 @@ use crate::{
 pub(crate) struct MouseContext<'a> {
     pub(crate) tab: &'a mut Tab,
     pub(crate) sort: &'a mut SortMode,
+    pub(crate) sort_inverted: &'a mut bool,
     pub(crate) sort_menu_open: &'a mut bool,
     pub(crate) sort_cursor: &'a mut SortMode,
+    pub(crate) sort_header_pressed: &'a mut Option<SortMode>,
     pub(crate) tree: &'a mut bool,
     pub(crate) help_open: &'a mut bool,
     pub(crate) selected: &'a mut usize,
