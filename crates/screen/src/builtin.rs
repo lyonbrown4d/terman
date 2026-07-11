@@ -16,6 +16,7 @@ use crate::{
 
 pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>> {
     let endpoint = screen_session_endpoint(&args);
+    let runtime_endpoint = endpoint.clone();
     let session_name_state = args
         .session_name
         .as_ref()
@@ -91,6 +92,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         if poll_terminal_event(
             &session_bus,
             &runtime_control_tx,
+            &runtime_endpoint,
             &mut input_decoder,
             &mut copy_mode,
             &mut blanker,

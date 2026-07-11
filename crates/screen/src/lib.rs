@@ -28,6 +28,7 @@ mod screen_exchange;
 mod sessions;
 mod shell;
 mod terminal_input;
+mod terminal_prompt;
 mod terminal_key;
 mod terminal_mouse;
 mod window_list_input;

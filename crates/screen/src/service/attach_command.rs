@@ -1,14 +1,14 @@
 use std::io::{self, Write};
 
 use super::{
-    attach_prompt::read_attach_prompt,
+
     control::request_screen_control_command,
 };
-use crate::ScreenArgs;
+use crate::{ScreenArgs, terminal_prompt::read_screen_prompt};
 
 pub(super) fn prompt_attach_command(session_name: &str) -> io::Result<()> {
     let prompt = terman_common::builtin_screen_attach_command_prompt_hint();
-    let Some(command) = read_attach_prompt(prompt.as_str())? else {
+    let Some(command) = read_screen_prompt(prompt.as_str())? else {
         return Ok(());
     };
     let command = command

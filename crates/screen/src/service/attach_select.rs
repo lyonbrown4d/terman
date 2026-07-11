@@ -1,15 +1,18 @@
 use std::io;
 
 use super::{
-    attach_prompt::read_attach_prompt,
+
     control_select::resolve_window_selector,
     ipc_client::{request_endpoint_response, send_control_request},
 };
-use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse};
+use crate::{
+    ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
+    terminal_prompt::read_screen_prompt,
+};
 
-pub(super) fn prompt_attach_select(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+pub(crate) fn prompt_screen_select(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     let prompt = terman_common::builtin_screen_attach_select_prompt_hint();
-    let Some(selector) = read_attach_prompt(prompt.as_str())? else {
+    let Some(selector) = read_screen_prompt(prompt.as_str())? else {
         return Ok(());
     };
     if selector == "-" {

@@ -16,6 +16,7 @@ use crate::{
     builtin_output::{publish_window_redraw, write_region_frame},
     copy_mode::{ScreenCopyMode, ScreenCopyResult},
     ipc::ScreenIpcEndpoint,
+    service::{prompt_screen_select, prompt_screen_title},
     session_core::{ScreenControlEvent, ScreenSessionBus},
     terminal_input::{ScreenInputAction, ScreenInputDecoder},
     window_runtime::{ScreenWindowRuntime, resize_windows},
@@ -53,6 +54,7 @@ pub(crate) fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16
 pub(crate) fn poll_terminal_event(
     session_bus: &ScreenSessionBus,
     control_tx: &mpsc::Sender<ScreenControlEvent>,
+    endpoint: &ScreenIpcEndpoint,
     input_decoder: &mut ScreenInputDecoder,
     copy_mode: &mut Option<ScreenCopyMode>,
     blanker: &mut ScreenBlanker,
@@ -121,6 +123,14 @@ pub(crate) fn poll_terminal_event(
                     }
                     ScreenInputAction::WindowList => {
                         open_builtin_window_list(session_bus, mouse_state);
+                    }
+                    ScreenInputAction::SelectPrompt => {
+                        prompt_screen_select(endpoint)?;
+                        restore_builtin_display(session_bus);
+                    }
+                    ScreenInputAction::Title => {
+                        prompt_screen_title(endpoint)?;
+                        restore_builtin_display(session_bus);
                     }
                     ScreenInputAction::Kill => {
                         if prompt_screen_confirmation(

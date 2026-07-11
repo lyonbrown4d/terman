@@ -17,10 +17,10 @@ use interprocess::local_socket::prelude::*;
 use super::{
     attach_actions::{AttachActionResult, handle_attach_action, sync_attach_terminal_size},
     attach_command::prompt_attach_command,
-    attach_title::prompt_attach_title,
+    attach_title::prompt_screen_title,
     attach_copy::{finish_attach_copy_mode, start_attach_copy_mode},
     attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse, handle_attach_window_list_key, open_attach_window_list},
-    attach_select::prompt_attach_select,
+    attach_select::prompt_screen_select,
     ipc_client::send_control_request,
 };
 use crate::{
@@ -179,12 +179,12 @@ pub(super) fn attach_interactive(
                             }
                             AttachActionResult::TitlePrompt => {
                                 run_attach_prompt(&endpoint, &output_paused, || {
-                                    prompt_attach_title(&endpoint)
+                                    prompt_screen_title(&endpoint)
                                 })?;
                             }
                             AttachActionResult::SelectPrompt => {
                                 run_attach_prompt(&endpoint, &output_paused, || {
-                                    prompt_attach_select(&endpoint)
+                                    prompt_screen_select(&endpoint)
                                 })?;
                             }
                             AttachActionResult::Stop => {

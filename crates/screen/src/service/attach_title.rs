@@ -1,14 +1,14 @@
 use std::io;
 
-use super::{
-    attach_prompt::read_attach_prompt,
-    ipc_client::send_control_request,
+use super::ipc_client::send_control_request;
+use crate::{
+    ipc::{ScreenIpcEndpoint, ScreenIpcRequest},
+    terminal_prompt::read_screen_prompt,
 };
-use crate::ipc::{ScreenIpcEndpoint, ScreenIpcRequest};
 
-pub(super) fn prompt_attach_title(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
+pub(crate) fn prompt_screen_title(endpoint: &ScreenIpcEndpoint) -> io::Result<()> {
     let prompt = terman_common::builtin_screen_attach_title_prompt_hint();
-    let Some(title) = read_attach_prompt(prompt.as_str())? else {
+    let Some(title) = read_screen_prompt(prompt.as_str())? else {
         return Ok(());
     };
     send_control_request(endpoint, ScreenIpcRequest::SetWindowTitle { title })
