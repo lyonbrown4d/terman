@@ -24,6 +24,7 @@ use super::{
     ipc_client::send_control_request,
 };
 use crate::{
+    blanker::ScreenBlanker,
     copy_mode::{ScreenCopyMode, ScreenCopyResult},
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_input::ScreenInputDecoder,
@@ -68,10 +69,18 @@ pub(super) fn attach_interactive(
     let mut input_decoder = ScreenInputDecoder::new();
     let mut mouse_state = AttachMouseState::default();
     let mut copy_mode: Option<ScreenCopyMode> = None;
+    let mut blanker = ScreenBlanker::default();
     while running.load(Ordering::Acquire) {
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
                 Ok(Event::Mouse(mouse)) => {
+                    if blanker.is_active() {
+                        if blanker.dismiss_mouse(&mouse)? {
+                            output_paused.store(false, Ordering::Release);
+                            finish_attach_copy_mode(&endpoint, None)?;
+                        }
+                        continue;
+                    }
                     if let Some(mode) = copy_mode.as_mut() {
                         if mode.handle_mouse(mouse) {
                             mode.render()?;
@@ -82,6 +91,13 @@ pub(super) fn attach_interactive(
                     }
                 }
                 Ok(Event::Key(key)) => {
+                    if blanker.is_active() {
+                        if blanker.dismiss_key(&key)? {
+                            output_paused.store(false, Ordering::Release);
+                            finish_attach_copy_mode(&endpoint, None)?;
+                        }
+                        continue;
+                    }
                     if let Some(mode) = copy_mode.as_mut() {
                         match mode.handle_key(key) {
                             ScreenCopyResult::Continue => mode.render()?,
@@ -104,6 +120,10 @@ pub(super) fn attach_interactive(
                     }
                     if let Some(action) = input_decoder.decode_key(key) {
                         match handle_attach_action(&endpoint, &client_id, action)? {
+                            AttachActionResult::Blank => {
+                                output_paused.store(true, Ordering::Release);
+                                blanker.activate()?;
+                            }
                             AttachActionResult::Continue => {}
                             AttachActionResult::CopyMode => {
                                 let mode = start_attach_copy_mode(&endpoint)?;
@@ -139,7 +159,9 @@ pub(super) fn attach_interactive(
                 }
                 Ok(Event::Resize(cols, rows)) => {
                     send_control_request(&endpoint, ScreenIpcRequest::Resize { cols, rows })?;
-                    if let Some(mode) = copy_mode.as_mut() {
+                    if blanker.is_active() {
+                        blanker.render()?;
+                    } else if let Some(mode) = copy_mode.as_mut() {
                         mode.resize(cols, rows);
                         mode.render()?;
                     } else if mouse_state.list_open() {

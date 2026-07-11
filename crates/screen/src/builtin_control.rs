@@ -7,9 +7,8 @@ use std::{
 };
 
 use crate::{
-    builtin_output::write_region_frame,
     ScreenArgs,
-    builtin_output::{publish_error, publish_window_redraw},
+    builtin_output::{publish_error, publish_window_redraw, write_region_frame},
     session_core::{ScreenControlEvent, ScreenSessionBus},
     window_runtime::{
         ScreenWindowOutput, ScreenWindowRuntime, ScreenWindowSwitch, apply_default_window_log,
@@ -40,9 +39,20 @@ pub(crate) fn drain_builtin_controls(
     active_window: &mut usize,
     defaults: &mut BuiltinControlDefaults,
     size: (u16, u16),
+    display_output: bool,
 ) -> bool {
     while let Ok(control) = control_rx.try_recv() {
-        if handle_control(args, session_bus, output_tx, windows, active_window, defaults, size, control) {
+        if handle_control(
+            args,
+            session_bus,
+            output_tx,
+            windows,
+            active_window,
+            defaults,
+            size,
+            display_output,
+            control,
+        ) {
             thread::sleep(Duration::from_millis(16));
             return true;
         }
@@ -50,6 +60,7 @@ pub(crate) fn drain_builtin_controls(
     false
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_control(
     args: &ScreenArgs,
     session_bus: &ScreenSessionBus,
@@ -58,6 +69,7 @@ fn handle_control(
     active_window: &mut usize,
     defaults: &mut BuiltinControlDefaults,
     size: (u16, u16),
+    display_output: bool,
     control: ScreenControlEvent,
 ) -> bool {
     match control {
@@ -67,14 +79,46 @@ fn handle_control(
         ScreenControlEvent::UnsetEnv { name } => { defaults.env.insert(name, None); }
         ScreenControlEvent::SetDefaultScrollback { lines } => defaults.scrollback_lines = lines,
         ScreenControlEvent::NewWindow { command } => {
-            spawn_control_window(args, session_bus, output_tx, windows, active_window, defaults, size, command);
+            spawn_control_window(
+                args,
+                session_bus,
+                output_tx,
+                windows,
+                active_window,
+                defaults,
+                size,
+                display_output,
+                command,
+            );
         }
-        ScreenControlEvent::SelectWindow { index } => {
-            switch_and_redraw(session_bus, windows, active_window, ScreenWindowSwitch::Select(index));
-        }
-        ScreenControlEvent::NextWindow => switch_and_redraw(session_bus, windows, active_window, ScreenWindowSwitch::Next),
-        ScreenControlEvent::PreviousWindow => switch_and_redraw(session_bus, windows, active_window, ScreenWindowSwitch::Previous),
-        ScreenControlEvent::LastWindow => switch_and_redraw(session_bus, windows, active_window, ScreenWindowSwitch::Last),
+        ScreenControlEvent::SelectWindow { index } => switch_and_redraw(
+            session_bus,
+            windows,
+            active_window,
+            ScreenWindowSwitch::Select(index),
+            display_output,
+        ),
+        ScreenControlEvent::NextWindow => switch_and_redraw(
+            session_bus,
+            windows,
+            active_window,
+            ScreenWindowSwitch::Next,
+            display_output,
+        ),
+        ScreenControlEvent::PreviousWindow => switch_and_redraw(
+            session_bus,
+            windows,
+            active_window,
+            ScreenWindowSwitch::Previous,
+            display_output,
+        ),
+        ScreenControlEvent::LastWindow => switch_and_redraw(
+            session_bus,
+            windows,
+            active_window,
+            ScreenWindowSwitch::Last,
+            display_output,
+        ),
         ScreenControlEvent::KillWindow => kill_active_window(windows, *active_window),
         ScreenControlEvent::NumberWindow { source, index } => {
             if renumber_screen_window(windows, source, index, active_window) {
@@ -84,32 +128,32 @@ fn handle_control(
         ScreenControlEvent::SplitRegion { axis } => {
             if let Some((index, frame)) = session_bus.split_region(axis) {
                 *active_window = index;
-                write_region_frame(&frame);
+                if display_output { write_region_frame(&frame); }
             }
         }
         ScreenControlEvent::FocusRegion { target } => {
             if let Some((index, frame)) = session_bus.focus_region(target) {
                 *active_window = index;
-                write_region_frame(&frame);
+                if display_output { write_region_frame(&frame); }
             }
         }
         ScreenControlEvent::RemoveRegion => {
             if let Some((index, frame)) = session_bus.remove_region() {
                 *active_window = index;
-                write_region_frame(&frame);
+                if display_output { write_region_frame(&frame); }
             }
         }
         ScreenControlEvent::OnlyRegion => {
             if let Some((index, frame)) = session_bus.only_region() {
                 *active_window = index;
-                write_region_frame(&frame);
+                if display_output { write_region_frame(&frame); }
             }
         }
         ScreenControlEvent::Resize { cols, rows } => {
             resize_windows(windows, cols, rows);
             session_bus.publish_resize(cols, rows);
             if let Some(frame) = session_bus.publish_region_redraw() {
-                write_region_frame(&frame);
+                if display_output { write_region_frame(&frame); }
             }
         }
         ScreenControlEvent::Terminate => {
@@ -120,6 +164,7 @@ fn handle_control(
     false
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_control_window(
     args: &ScreenArgs,
     session_bus: &ScreenSessionBus,
@@ -128,6 +173,7 @@ fn spawn_control_window(
     active_window: &mut usize,
     defaults: &BuiltinControlDefaults,
     size: (u16, u16),
+    display_output: bool,
     command: Option<String>,
 ) {
     let index = next_screen_window_index(windows);
@@ -148,7 +194,13 @@ fn spawn_control_window(
                 publish_error(session_bus, err);
             }
             windows.push(window);
-            switch_and_redraw(session_bus, windows, active_window, ScreenWindowSwitch::Select(index));
+            switch_and_redraw(
+                session_bus,
+                windows,
+                active_window,
+                ScreenWindowSwitch::Select(index),
+                display_output,
+            );
         }
         Err(err) => publish_error(session_bus, err),
     }
@@ -159,12 +211,13 @@ fn switch_and_redraw(
     windows: &[ScreenWindowRuntime],
     active_window: &mut usize,
     target: ScreenWindowSwitch,
+    display_output: bool,
 ) {
     if let Some(replay) = switch_screen_window(session_bus, windows, active_window, target) {
         if let Some(frame) = session_bus.publish_region_redraw() {
-            write_region_frame(&frame);
+            if display_output { write_region_frame(&frame); }
         } else {
-            publish_window_redraw(session_bus, &replay);
+            publish_window_redraw(session_bus, &replay, display_output);
         }
     }
 }

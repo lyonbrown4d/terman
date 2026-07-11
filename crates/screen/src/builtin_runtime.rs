@@ -7,6 +7,7 @@ use crossterm::{
 
 use crate::{
     ScreenArgs,
+    blanker::ScreenBlanker,
     builtin_input::handle_builtin_input_action,
     builtin_mouse::{
         ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse, handle_builtin_window_list_key, open_builtin_window_list,
@@ -53,6 +54,7 @@ pub(crate) fn poll_terminal_event(
     control_tx: &mpsc::Sender<ScreenControlEvent>,
     input_decoder: &mut ScreenInputDecoder,
     copy_mode: &mut Option<ScreenCopyMode>,
+    blanker: &mut ScreenBlanker,
     windows: &mut [ScreenWindowRuntime],
     active_window: &mut usize,
     mouse_state: &mut ScreenMouseState,
@@ -62,6 +64,12 @@ pub(crate) fn poll_terminal_event(
     }
     match event::read()? {
         Event::Mouse(mouse) => {
+            if blanker.is_active() {
+                if blanker.dismiss_mouse(&mouse)? {
+                    restore_builtin_display(session_bus);
+                }
+                return Ok(());
+            }
             if let Some(mode) = copy_mode.as_mut() {
                 if mode.handle_mouse(mouse) {
                     mode.render()?;
@@ -71,6 +79,12 @@ pub(crate) fn poll_terminal_event(
             }
         }
         Event::Key(key) => {
+            if blanker.is_active() {
+                if blanker.dismiss_key(&key)? {
+                    restore_builtin_display(session_bus);
+                }
+                return Ok(());
+            }
             if let Some(mode) = copy_mode.as_mut() {
                 match mode.handle_key(key) {
                     ScreenCopyResult::Continue => mode.render()?,
@@ -93,6 +107,7 @@ pub(crate) fn poll_terminal_event(
             ) {
             } else if let Some(action) = input_decoder.decode_key(key) {
                 match action {
+                    ScreenInputAction::Blank => blanker.activate()?,
                     ScreenInputAction::CopyMode => {
                         let (cols, rows) = terman_common::current_terminal_size()?;
                         let mode = ScreenCopyMode::from_replay(
@@ -113,7 +128,9 @@ pub(crate) fn poll_terminal_event(
         Event::Resize(cols, rows) => {
             resize_windows(windows, cols, rows);
             session_bus.publish_resize(cols, rows);
-            if let Some(mode) = copy_mode.as_mut() {
+            if blanker.is_active() {
+                blanker.render()?;
+            } else if let Some(mode) = copy_mode.as_mut() {
                 mode.resize(cols, rows);
                 mode.render()?;
             } else if mouse_state.list_open() {
@@ -131,6 +148,6 @@ fn restore_builtin_display(session_bus: &ScreenSessionBus) {
     if let Some(frame) = session_bus.publish_region_redraw() {
         write_region_frame(&frame);
     } else {
-        publish_window_redraw(session_bus, &session_bus.hardcopy_snapshot(false));
+        publish_window_redraw(session_bus, &session_bus.hardcopy_snapshot(false), true);
     }
 }

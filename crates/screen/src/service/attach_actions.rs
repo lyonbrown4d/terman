@@ -18,6 +18,7 @@ use crate::{
 };
 
 pub(super) enum AttachActionResult {
+    Blank,
     CopyMode,
     CommandPrompt,
     SelectPrompt,
@@ -33,6 +34,7 @@ pub(super) fn handle_attach_action(
     action: ScreenInputAction,
 ) -> io::Result<AttachActionResult> {
     match action {
+        ScreenInputAction::Blank => return Ok(AttachActionResult::Blank),
         ScreenInputAction::CopyMode => return Ok(AttachActionResult::CopyMode),
         ScreenInputAction::CommandPrompt => return Ok(AttachActionResult::CommandPrompt),
         ScreenInputAction::Bytes(bytes) => {

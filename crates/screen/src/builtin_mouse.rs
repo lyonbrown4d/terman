@@ -39,7 +39,7 @@ pub(crate) fn handle_builtin_window_list_key(
                 active_window,
                 ScreenWindowSwitch::Select(index),
             ) {
-                publish_window_redraw(bus, &replay);
+                publish_window_redraw(bus, &replay, true);
             } else {
                 redraw_active_window(bus);
             }
@@ -111,7 +111,7 @@ fn select_or_forward(
     if let Some(index) = state.window_at(event.row, event.column) {
         state.clear();
         if let Some(replay) = switch_screen_window(bus, windows, active_window, ScreenWindowSwitch::Select(index)) {
-            publish_window_redraw(bus, &replay);
+            publish_window_redraw(bus, &replay, true);
         }
         return;
     }
@@ -130,7 +130,7 @@ fn close_window_list(bus: &ScreenSessionBus, state: &mut ScreenMouseState) {
 
 fn redraw_active_window(bus: &ScreenSessionBus) {
     let replay = bus.hardcopy_snapshot(false);
-    publish_window_redraw(bus, &replay);
+    publish_window_redraw(bus, &replay, true);
 }
 
 fn right_click(
@@ -186,7 +186,7 @@ fn switch_with_mouse(
 ) {
     state.clear();
     if let Some(replay) = switch_screen_window(bus, windows, active_window, target) {
-        publish_window_redraw(bus, &replay);
+        publish_window_redraw(bus, &replay, true);
     }
 }
 

@@ -45,6 +45,11 @@ impl ScreenInputDecoder {
     }
 
         match key.code {
+            KeyCode::Char('b')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::CONTROL =>
+            {
+                Some(ScreenInputAction::Blank)
+            }
             KeyCode::Char('r') | KeyCode::Char('R') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::WrapToggle)
             }

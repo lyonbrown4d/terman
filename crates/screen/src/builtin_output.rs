@@ -9,14 +9,20 @@ use crate::{
     window_runtime::{ScreenWindowOutput, ScreenWindowRuntime, take_exited_window},
 };
 
-pub(crate) fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
+pub(crate) fn publish_window_redraw(
+    bus: &ScreenSessionBus,
+    replay: &[u8],
+    display_output: bool,
+) {
     bus.publish_transient_output(b"c");
     if !replay.is_empty() {
         bus.publish_transient_output(replay);
     }
-    let mut bytes = b"c".to_vec();
-    bytes.extend_from_slice(replay);
-    write_region_frame(&bytes);
+    if display_output {
+        let mut bytes = b"c".to_vec();
+        bytes.extend_from_slice(replay);
+        write_region_frame(&bytes);
+    }
 }
 
 pub(crate) fn write_region_frame(frame: &[u8]) {
@@ -49,6 +55,7 @@ pub(crate) fn handle_window_exit(
     bus: &ScreenSessionBus,
     windows: &mut Vec<ScreenWindowRuntime>,
     active_window: &mut usize,
+    display_output: bool,
 ) -> Option<i32> {
     let exit = take_exited_window(windows)?;
     let removal = bus.remove_window(exit.index)?;
@@ -60,9 +67,11 @@ pub(crate) fn handle_window_exit(
     }
     if removal.redraw {
         if let Some(frame) = bus.publish_region_redraw() {
-            write_region_frame(&frame);
+            if display_output {
+                write_region_frame(&frame);
+            }
         } else {
-            publish_window_redraw(bus, &removal.replay);
+            publish_window_redraw(bus, &removal.replay, display_output);
         }
     }
     None
