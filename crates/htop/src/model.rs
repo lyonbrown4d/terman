@@ -28,10 +28,6 @@ impl SortMode {
         }
     }
 
-    pub(crate) fn direction_label(self, inverted: bool) -> &'static str {
-        let descending = matches!(self, Self::Cpu | Self::Memory | Self::Time | Self::Io) ^ inverted;
-        if descending { "DESC" } else { "ASC" }
-    }
 }
 
 #[derive(Clone, Debug)]

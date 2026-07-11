@@ -103,7 +103,69 @@ pub fn builtin_htop_setup_toggle_hint(enabled: bool) -> String {
 pub fn builtin_htop_setup_direction_hint(inverted: bool) -> String {
     let key = if inverted { MessageKey::BuiltinHtopSetupAscending } else { MessageKey::BuiltinHtopSetupDescending };
     localized_message(key, &[])
-}pub fn builtin_htop_tag() -> String {
+}
+
+pub fn builtin_htop_footer_help_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterHelp, &[])
+}
+
+pub fn builtin_htop_footer_search_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterSearch, &[])
+}
+
+pub fn builtin_htop_footer_filter_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterFilter, &[])
+}
+
+pub fn builtin_htop_footer_priority_higher_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterPriorityHigher, &[])
+}
+
+pub fn builtin_htop_footer_priority_lower_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterPriorityLower, &[])
+}
+
+pub fn builtin_htop_footer_kill_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterKill, &[])
+}
+
+pub fn builtin_htop_footer_delay_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterDelay, &[])
+}
+
+pub fn builtin_htop_footer_quit_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterQuit, &[])
+}
+
+pub fn builtin_htop_footer_yes_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterYes, &[])
+}
+
+pub fn builtin_htop_footer_no_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterNo, &[])
+}
+
+pub fn builtin_htop_footer_search_prompt_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterSearchPrompt, &[])
+}
+
+pub fn builtin_htop_footer_filter_prompt_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterFilterPrompt, &[])
+}
+
+pub fn builtin_htop_footer_tree_prompt_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterTreePrompt, &[])
+}
+
+pub fn builtin_htop_footer_select_prompt_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterSelectPrompt, &[])
+}
+
+pub fn builtin_htop_footer_view_flat_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopFooterViewFlat, &[])
+}
+
+pub fn builtin_htop_tag() -> String {
     localized_message(MessageKey::BuiltinHtopTag, &[])
 }
 
