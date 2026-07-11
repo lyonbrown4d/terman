@@ -19,6 +19,20 @@ pub fn builtin_tmux_prefix_status_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxPrefixStatus, &[])
 }
 
+pub fn builtin_tmux_rename_session_prompt(input: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxRenameSessionPrompt,
+        &[("input", input)],
+    )
+}
+
+pub fn builtin_tmux_rename_window_prompt(input: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxRenameWindowPrompt,
+        &[("input", input)],
+    )
+}
+
 pub fn builtin_tmux_session_list_entry_hint(
     name: &str,
     windows: u32,

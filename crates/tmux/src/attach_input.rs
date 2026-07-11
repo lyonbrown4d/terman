@@ -12,7 +12,7 @@ use crate::{
         kill_current_pane, select_next_pane, split_current_pane, swap_current_pane,
         toggle_current_pane_zoom,
     },
-    attach_rename::handle_rename_input,
+    attach_rename::{RenameTarget, handle_rename_input, render_rename_prompt},
     attach_status::{
         KILL_PANE_CONFIRM_STATUS, KILL_WINDOW_CONFIRM_STATUS, query_status_line,
         render_status_line,
@@ -43,7 +43,7 @@ pub(crate) struct AttachInputMode {
     command_prompt: CommandPromptState,
     prefix_pending: bool,
     kill_pending: Option<KillTarget>,
-    rename_input: Option<String>,
+    rename_input: Option<(RenameTarget, String)>,
     last_window: Option<u32>,
 }
 
@@ -87,10 +87,10 @@ impl AttachInputMode {
     }
 
     fn handle_rename(&mut self, endpoint: &TmuxIpcEndpoint, key: &KeyEvent) -> io::Result<bool> {
-        let Some(input) = self.rename_input.as_mut() else {
+        let Some((target, input)) = self.rename_input.as_mut() else {
             return Ok(false);
         };
-        handle_rename_input(endpoint, key, input)?;
+        handle_rename_input(endpoint, key, *target, input)?;
         if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
             self.rename_input = None;
         }
@@ -170,9 +170,14 @@ impl AttachInputMode {
                 )?;
                 let _ = render_current_status(endpoint);
             }
-            TmuxPrefixCommand::RenameWindow => {
-                self.rename_input = Some(String::new());
-                let _ = render_status_line("tmux rename | ");
+            TmuxPrefixCommand::RenameSession | TmuxPrefixCommand::RenameWindow => {
+                let target = if matches!(command, TmuxPrefixCommand::RenameSession) {
+                    RenameTarget::Session
+                } else {
+                    RenameTarget::Window
+                };
+                self.rename_input = Some((target, String::new()));
+                let _ = render_rename_prompt(target, "");
             }
             TmuxPrefixCommand::ListWindows => {
                 let _ = render_window_list_status(endpoint)?;
@@ -198,7 +203,7 @@ impl AttachInputMode {
     }
 
     pub(crate) fn blocks_mouse(&self) -> bool {
-        self.command_prompt.is_active()
+        self.command_prompt.is_active() || self.rename_input.is_some()
     }
     fn select_last_window(&mut self, endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
         let Some(index) = self.last_window else {
