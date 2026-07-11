@@ -51,7 +51,8 @@ builtin-htop-setup-sort-direction = 排序方向
 builtin-htop-setup-enabled = 开启
 builtin-htop-setup-disabled = 关闭
 builtin-htop-setup-ascending = 升序
-builtin-htop-setup-descending = 降序builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
+builtin-htop-setup-descending = 降序
+builtin-screen-no-sessions = 未发现内置 screen 会话。使用 `terman-screen -S <name>` 创建命名会话。
 builtin-screen-cli-about = 跨平台 screen 终端会话工具（自实现内置后端）。
 builtin-screen-cli-examples =
     常见用法示例：

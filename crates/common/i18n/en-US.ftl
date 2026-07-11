@@ -51,7 +51,8 @@ builtin-htop-setup-sort-direction = Sort direction
 builtin-htop-setup-enabled = Enabled
 builtin-htop-setup-disabled = Disabled
 builtin-htop-setup-ascending = Ascending
-builtin-htop-setup-descending = Descendingbuiltin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
+builtin-htop-setup-descending = Descending
+builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
 builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
 builtin-screen-cli-examples =
     Common examples:
