@@ -84,6 +84,7 @@ impl PaneLayout {
         }
     }
 
+
     pub(crate) fn pane_indexes(&self) -> Vec<u32> {
         let mut indexes = Vec::new();
         self.collect_indexes(&mut indexes);
@@ -151,6 +152,7 @@ impl PaneLayout {
             },
         }
     }
+
 
     fn collect_indexes(&self, indexes: &mut Vec<u32>) {
         match self {

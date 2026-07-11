@@ -102,6 +102,32 @@ pub(crate) fn select_pane(
     )
 }
 
+pub(crate) fn swap_pane(
+    stream: &mut LocalSocketStream,
+    bus: &TmuxSessionBus,
+    control_tx: &mpsc::Sender<TmuxControlEvent>,
+    window: Option<u32>,
+    source: Option<u32>,
+    target: Option<u32>,
+    forward: bool,
+) -> io::Result<()> {
+    let Some((status, source)) = resolve_pane(stream, bus, window, source)? else {
+        return Ok(());
+    };
+    let target = target.unwrap_or_else(|| adjacent_pane(&status.pane_indexes, source, forward));
+    if !status.pane_indexes.contains(&target) {
+        return write_pane_missing(stream, status.window_index, target);
+    }
+    accept_control(
+        stream,
+        control_tx,
+        TmuxControlEvent::SwapPane {
+            window: status.window_index,
+            source,
+            target,
+        },
+    )
+}
 pub(crate) fn kill_pane(
     stream: &mut LocalSocketStream,
     bus: &TmuxSessionBus,
@@ -164,6 +190,14 @@ pub(crate) fn resize_pane(
     )
 }
 
+fn adjacent_pane(panes: &[u32], pane: u32, forward: bool) -> u32 {
+    let position = panes.iter().position(|candidate| *candidate == pane).unwrap_or(0);
+    let offset = if forward { 1 } else { panes.len().saturating_sub(1) };
+    panes
+        .get((position + offset) % panes.len().max(1))
+        .copied()
+        .unwrap_or(pane)
+}
 fn resolve_pane(
     stream: &mut LocalSocketStream,
     bus: &TmuxSessionBus,

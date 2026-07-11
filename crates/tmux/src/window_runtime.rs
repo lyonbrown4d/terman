@@ -145,6 +145,19 @@ impl TmuxWindowRuntime {
         selected
     }
 
+    pub(crate) fn swap_panes(&mut self, source: u32, target: u32) -> bool {
+        let changed = self
+            .view
+            .lock()
+            .map(|mut view| view.swap_panes(source, target))
+            .unwrap_or(false);
+        if changed {
+            self.resize_from_view();
+            self.publish_frame();
+        }
+        changed
+    }
+
     pub(crate) fn toggle_pane_zoom(&mut self, index: u32) -> bool {
         let changed = self
             .view

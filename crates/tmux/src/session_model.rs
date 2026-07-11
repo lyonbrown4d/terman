@@ -16,6 +16,7 @@ pub(crate) enum TmuxControlEvent {
     SelectWindow { index: u32 },
     SplitPane { window: u32, horizontal: bool, command: Option<String> },
     SelectPane { window: u32, pane: u32 },
+    SwapPane { window: u32, source: u32, target: u32 },
     KillPane { window: u32, pane: u32 },
     TogglePaneZoom { window: u32, pane: u32 },
     ResizePane {

@@ -52,6 +52,21 @@ pub(crate) fn select_next_pane(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     )
 }
 
+pub(crate) fn swap_current_pane(
+    endpoint: &TmuxIpcEndpoint,
+    forward: bool,
+) -> io::Result<()> {
+    send_request(
+        endpoint,
+        TmuxIpcRequest::SwapPane {
+            window: None,
+            source: None,
+            target: None,
+            forward,
+        },
+    )
+}
+
 pub(crate) fn kill_current_pane(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let panes = query_panes(endpoint)?;
     if panes.pane_indexes.len() <= 1 {

@@ -7,7 +7,8 @@ use interprocess::local_socket::prelude::*;
 
 use crate::{
     ipc::{TmuxIpcRequest, TmuxIpcResponse},
-    pane_service::{capture_pane, clear_history, kill_pane, resize_pane, select_pane, toggle_pane_zoom, split_pane, write_pane_info},
+    pane_service::{capture_pane, clear_history, kill_pane, resize_pane, select_pane,
+        split_pane, swap_pane, toggle_pane_zoom, write_pane_info},
     service_codec::write_response,
     service_buffer::{delete_buffer, get_buffer, list_buffers, paste_buffer, set_buffer},
     session_core::{TmuxControlEvent, TmuxSessionBus, TmuxSessionEvent},
@@ -86,6 +87,9 @@ pub(crate) fn handle_client(
         Ok(TmuxIpcRequest::PaneInfo { window }) => write_pane_info(stream, bus, window),
         Ok(TmuxIpcRequest::SplitPane { window, horizontal, command }) => split_pane(stream, bus, control_tx, window, horizontal, command),
         Ok(TmuxIpcRequest::SelectPane { window, pane }) => select_pane(stream, bus, control_tx, window, pane),
+        Ok(TmuxIpcRequest::SwapPane { window, source, target, forward }) => {
+            swap_pane(stream, bus, control_tx, window, source, target, forward)
+        }
         Ok(TmuxIpcRequest::KillPane { window, pane }) => kill_pane(stream, bus, control_tx, window, pane),
         Ok(TmuxIpcRequest::TogglePaneZoom { window, pane }) => toggle_pane_zoom(stream, bus, control_tx, window, pane),
         Ok(TmuxIpcRequest::ResizePane { window, pane, cols, rows }) => resize_pane(stream, bus, control_tx, (window, pane), (cols, rows)),

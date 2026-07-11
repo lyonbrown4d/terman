@@ -102,6 +102,14 @@ impl TmuxWindowView {
         true
     }
 
+    pub(crate) fn swap_panes(&mut self, source: u32, target: u32) -> bool {
+        if !self.layout.swap_panes(source, target) {
+            return false;
+        }
+        self.resize(self.cols, self.rows);
+        true
+    }
+
     pub(crate) fn toggle_zoom(&mut self, index: u32) -> bool {
         if self.panes.len() <= 1 || !self.select_pane(index) {
             return false;
@@ -167,9 +175,14 @@ impl TmuxWindowView {
             .collect::<Vec<_>>();
         let mut rendered = render_terminal(&panes, &geometry.separators);
         rendered.captures = self
-            .panes
-            .iter()
-            .map(|pane| (pane.index, pane.parser.screen().contents().into_bytes()))
+            .layout
+            .pane_indexes()
+            .into_iter()
+            .filter_map(|index| {
+                self.panes.iter().find(|pane| pane.index == index).map(|pane| {
+                    (index, pane.parser.screen().contents().into_bytes())
+                })
+            })
             .collect();
         (self.active_pane, rendered)
     }

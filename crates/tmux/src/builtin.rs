@@ -21,6 +21,7 @@ use crate::{
         display_builtin_tmux_panes, kill_builtin_tmux_pane, list_builtin_tmux_panes,
         resize_builtin_tmux_pane, select_builtin_tmux_pane, split_builtin_tmux_pane,
     },
+    pane_swap_command::swap_builtin_tmux_pane,
     refresh_client::refresh_builtin_tmux_client,
     send_keys::{send_builtin_tmux_keys, send_builtin_tmux_prefix},
     service::request_endpoint_response,
@@ -101,6 +102,10 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::SplitWindow => {
             split_builtin_tmux_pane(args)?;
+            Ok(true)
+        }
+        TmuxCommand::SwapPane => {
+            swap_builtin_tmux_pane(args)?;
             Ok(true)
         }
         TmuxCommand::NewWindow => {

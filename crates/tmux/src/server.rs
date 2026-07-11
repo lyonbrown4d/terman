@@ -115,6 +115,11 @@ fn run_control_loop(
                         }
                     }
                 }
+                TmuxControlEvent::SwapPane { window, source, target } => {
+                    if let Some(runtime) = active_runtime(windows, window) {
+                        let _ = runtime.swap_panes(source, target);
+                    }
+                }
                 TmuxControlEvent::KillPane { window, pane } => {
                     if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.kill_pane(pane); }
                 }
