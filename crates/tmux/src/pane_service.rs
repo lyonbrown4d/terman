@@ -122,6 +122,25 @@ pub(crate) fn kill_pane(
     )
 }
 
+pub(crate) fn toggle_pane_zoom(
+    stream: &mut LocalSocketStream,
+    bus: &TmuxSessionBus,
+    control_tx: &mpsc::Sender<TmuxControlEvent>,
+    window: Option<u32>,
+    pane: Option<u32>,
+) -> io::Result<()> {
+    let Some((status, pane)) = resolve_pane(stream, bus, window, pane)? else {
+        return Ok(());
+    };
+    accept_control(
+        stream,
+        control_tx,
+        TmuxControlEvent::TogglePaneZoom {
+            window: status.window_index,
+            pane,
+        },
+    )
+}
 pub(crate) fn resize_pane(
     stream: &mut LocalSocketStream,
     bus: &TmuxSessionBus,

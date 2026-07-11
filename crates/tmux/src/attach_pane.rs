@@ -20,6 +20,15 @@ pub(crate) fn split_current_pane(
     )
 }
 
+pub(crate) fn toggle_current_pane_zoom(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+    send_request(
+        endpoint,
+        TmuxIpcRequest::TogglePaneZoom {
+            window: None,
+            pane: None,
+        },
+    )
+}
 pub(crate) fn select_next_pane(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     let panes = query_panes(endpoint)?;
     let position = panes

@@ -191,7 +191,8 @@ builtin-tmux-cli-examples =
       - 先查看会话：terman-tmux list-sessions
       - 名称冲突：terman-tmux new -s demo
       - 再复现冲突：terman-tmux new -s demo
-builtin-tmux-attach-help = tmux 快捷键：Ctrl-B c 新建窗口 | Ctrl-B d 断开连接 | Ctrl-B %/" 拆分 pane | Ctrl-B o 切换 pane | Ctrl-B x 结束 pane | Ctrl-B & 结束窗口 | Ctrl-B , 重命名窗口 | Ctrl-B n/p 前后切换 | Ctrl-B l 上一个窗口 | Ctrl-B 0..9 选择窗口 | Ctrl-B ? 帮助 | 鼠标：状态栏点击/滚轮切换，右键显示窗口列表，中键显示帮助
+builtin-tmux-attach-help = tmux 快捷键：Ctrl-B c 新建窗口 | Ctrl-B d 断开连接 | Ctrl-B %/" 拆分 pane | Ctrl-B o 切换 pane | Ctrl-B z 缩放 pane | Ctrl-B x 结束 pane | Ctrl-B & 结束窗口 | Ctrl-B , 重命名窗口 | Ctrl-B n/p 前后切换 | Ctrl-B l 上一个窗口 | Ctrl-B 0..9 选择窗口 | Ctrl-B ? 帮助 | 鼠标：状态栏点击/滚轮切换，右键显示窗口列表，中键显示帮助
+builtin-tmux-prefix-status = tmux 前缀 | %/" 拆分 | o 切换 pane | z 缩放 pane | x 结束 pane | & 结束窗口 | d 断开
 builtin-tmux-attach-window-list = 窗口：{$windows}
 builtin-tmux-session-list-entry = {$name}：{$windows} 个窗口（已连接 {$attached_clients} 个客户端）
 builtin-tmux-client-list-entry = {$session}：已连接 {$attached_clients} 个客户端

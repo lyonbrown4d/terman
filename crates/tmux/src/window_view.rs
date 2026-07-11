@@ -28,6 +28,7 @@ pub(crate) struct TmuxWindowView {
     next_pane: u32,
     cols: u16,
     rows: u16,
+    zoomed: bool,
 }
 
 impl TmuxWindowView {
@@ -44,6 +45,7 @@ impl TmuxWindowView {
             next_pane: 1,
             cols,
             rows,
+            zoomed: false,
         }
     }
 
@@ -59,6 +61,7 @@ impl TmuxWindowView {
         if !self.layout.split(self.active_pane, index, direction) {
             return None;
         }
+        self.zoomed = false;
         self.next_pane = self.next_pane.saturating_add(1);
         self.panes.push(PaneTerminal {
             index,
@@ -82,12 +85,10 @@ impl TmuxWindowView {
         }
         self.panes.retain(|pane| pane.index != index);
         if self.active_pane == index {
-            self.active_pane = self
-                .layout
-                .pane_indexes()
-                .into_iter()
-                .next()
-                .unwrap_or(0);
+            self.active_pane = self.layout.pane_indexes().into_iter().next().unwrap_or(0);
+        }
+        if self.panes.len() <= 1 {
+            self.zoomed = false;
         }
         self.resize(self.cols, self.rows);
         true
@@ -98,6 +99,15 @@ impl TmuxWindowView {
             return false;
         }
         self.active_pane = index;
+        true
+    }
+
+    pub(crate) fn toggle_zoom(&mut self, index: u32) -> bool {
+        if self.panes.len() <= 1 || !self.select_pane(index) {
+            return false;
+        }
+        self.zoomed = !self.zoomed;
+        self.resize(self.cols, self.rows);
         true
     }
 
@@ -155,14 +165,32 @@ impl TmuxWindowView {
             .iter()
             .filter_map(|(index, rect)| self.pane_render(*index, *rect))
             .collect::<Vec<_>>();
-        (
-            self.active_pane,
-            render_terminal(&panes, &geometry.separators),
-        )
+        let mut rendered = render_terminal(&panes, &geometry.separators);
+        rendered.captures = self
+            .panes
+            .iter()
+            .map(|pane| (pane.index, pane.parser.screen().contents().into_bytes()))
+            .collect();
+        (self.active_pane, rendered)
     }
 
     fn geometry(&self) -> PaneGeometry {
-        self.layout.geometry(self.cols, self.rows)
+        if self.zoomed {
+            PaneGeometry {
+                panes: vec![(
+                    self.active_pane,
+                    PaneRect {
+                        x: 0,
+                        y: 0,
+                        cols: self.cols,
+                        rows: self.rows,
+                    },
+                )],
+                separators: Vec::new(),
+            }
+        } else {
+            self.layout.geometry(self.cols, self.rows)
+        }
     }
 
     fn pane_render(&self, index: u32, rect: PaneRect) -> Option<PaneRender<'_>> {
@@ -177,3 +205,7 @@ impl TmuxWindowView {
             })
     }
 }
+
+#[cfg(test)]
+#[path = "window_view_tests.rs"]
+mod tests;

@@ -7,10 +7,12 @@ use crate::{
         TmuxPrefixCommand, is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes,
         tmux_prefix_bytes, tmux_prefix_command,
     },
-    attach_pane::{kill_current_pane, select_next_pane, split_current_pane},
+    attach_pane::{
+        kill_current_pane, select_next_pane, split_current_pane, toggle_current_pane_zoom,
+    },
     attach_rename::handle_rename_input,
     attach_status::{
-        KILL_PANE_CONFIRM_STATUS, KILL_WINDOW_CONFIRM_STATUS, PREFIX_STATUS, query_status_line,
+        KILL_PANE_CONFIRM_STATUS, KILL_WINDOW_CONFIRM_STATUS, query_status_line,
         render_status_line,
     },
     attach_window::{current_active_window, handle_window_command, kill_current_window, select_window},
@@ -57,7 +59,7 @@ impl AttachInputMode {
         }
         if is_tmux_prefix_key(&key) {
             self.prefix_pending = true;
-            let _ = render_status_line(PREFIX_STATUS);
+            let _ = render_status_line(&terman_common::builtin_tmux_prefix_status_hint());
             return Ok(true);
         }
         if let Some(bytes) = key_event_bytes(&key) {
@@ -122,6 +124,10 @@ impl AttachInputMode {
             }
             TmuxPrefixCommand::SplitVertical => {
                 split_current_pane(endpoint, false)?;
+                let _ = render_current_status(endpoint);
+            }
+            TmuxPrefixCommand::TogglePaneZoom => {
+                toggle_current_pane_zoom(endpoint)?;
                 let _ = render_current_status(endpoint);
             }
             TmuxPrefixCommand::NextPane => {

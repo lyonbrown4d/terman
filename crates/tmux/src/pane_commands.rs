@@ -4,7 +4,8 @@ use serde::Serialize;
 
 use crate::{
     args::{
-        resize_pane_height_arg, resize_pane_width_arg, split_window_command_arg,
+        resize_pane_height_arg, resize_pane_width_arg, resize_pane_zoom_arg,
+        split_window_command_arg,
         split_window_horizontal_arg, target_pane_index_arg, target_session_name_arg,
         target_window_index_arg,
     },
@@ -97,9 +98,10 @@ pub(crate) fn display_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn 
 
 pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
     let (_, session) = target_session(args)?;
+    let zoom = resize_pane_zoom_arg(args);
     let cols = resize_pane_width_arg(args);
     let rows = resize_pane_height_arg(args);
-    if cols.is_none() && rows.is_none() {
+    if !zoom && cols.is_none() && rows.is_none() {
         return Err(pane_size_required_error());
     }
     let info = query_pane_info(
@@ -110,15 +112,20 @@ pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Er
         .map(|index| index as u32)
         .unwrap_or(info.active_pane);
     require_pane(&info, pane)?;
-    request_accepted(
-        &session,
+    let request = if zoom {
+        TmuxIpcRequest::TogglePaneZoom {
+            window: Some(info.window_index),
+            pane: Some(pane),
+        }
+    } else {
         TmuxIpcRequest::ResizePane {
             window: Some(info.window_index),
             pane: Some(pane),
             cols,
             rows,
-        },
-    )
+        }
+    };
+    request_accepted(&session, request)
 }
 
 pub(crate) fn select_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {

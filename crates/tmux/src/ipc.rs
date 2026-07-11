@@ -97,6 +97,7 @@ pub(crate) enum TmuxIpcRequest {
     SplitPane { window: Option<u32>, horizontal: bool, command: Option<String> },
     SelectPane { window: Option<u32>, pane: Option<u32> },
     KillPane { window: Option<u32>, pane: Option<u32> },
+    TogglePaneZoom { window: Option<u32>, pane: Option<u32> },
     ResizePane { window: Option<u32>, pane: Option<u32>, cols: Option<u16>, rows: Option<u16> },
     Resize { cols: u16, rows: u16 },
 }

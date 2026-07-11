@@ -26,6 +26,7 @@ pub(crate) fn handle_window_command(
         | TmuxPrefixCommand::SplitHorizontal
         | TmuxPrefixCommand::SplitVertical
         | TmuxPrefixCommand::NextPane
+        | TmuxPrefixCommand::TogglePaneZoom
         | TmuxPrefixCommand::KillPane
         | TmuxPrefixCommand::Help => return Ok(()),
     };

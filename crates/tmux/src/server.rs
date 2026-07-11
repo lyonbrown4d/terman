@@ -118,6 +118,11 @@ fn run_control_loop(
                 TmuxControlEvent::KillPane { window, pane } => {
                     if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.kill_pane(pane); }
                 }
+                TmuxControlEvent::TogglePaneZoom { window, pane } => {
+                    if let Some(runtime) = active_runtime(windows, window) {
+                        let _ = runtime.toggle_pane_zoom(pane);
+                    }
+                }
                 TmuxControlEvent::ResizePane { window, pane, cols, rows } => {
                     if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.resize_pane(pane, cols, rows); }
                 }

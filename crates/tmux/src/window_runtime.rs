@@ -139,9 +139,23 @@ impl TmuxWindowRuntime {
             .map(|mut view| view.select_pane(index))
             .unwrap_or(false);
         if selected {
+            self.resize_from_view();
             self.publish_frame();
         }
         selected
+    }
+
+    pub(crate) fn toggle_pane_zoom(&mut self, index: u32) -> bool {
+        let changed = self
+            .view
+            .lock()
+            .map(|mut view| view.toggle_zoom(index))
+            .unwrap_or(false);
+        if changed {
+            self.resize_from_view();
+            self.publish_frame();
+        }
+        changed
     }
 
     pub(crate) fn kill_pane(&mut self, index: u32) -> bool {
