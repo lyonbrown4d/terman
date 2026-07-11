@@ -54,6 +54,10 @@ pub(super) fn handle_client(
             bus.publish_display_control(b"\x1b[2J\x1b[H");
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SetWrap { enabled }) => {
+            bus.set_wrap_enabled(enabled);
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Echo { message }) => {
             let mut bytes = message.into_bytes();
             bytes.extend_from_slice(b"\r\n");

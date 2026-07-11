@@ -129,7 +129,7 @@ builtin-screen-session-name-empty = screen 会话名不能为空。
 builtin-screen-session-record-invalid = 内置 screen 会话记录无效。
 builtin-screen-unexpected-response = 非预期的 screen 响应：{$response}。
 builtin-screen-attach-unsupported = 内置 screen 暂未开放 attach。跨平台 attach 将由内置会话服务处理。
-builtin-screen-attach-help = screen 快捷键：Ctrl-A c/Ctrl-C 新建窗口 | Ctrl-A d/Ctrl-D 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k/Ctrl-K 结束当前窗口 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 同步尺寸 | Ctrl-A l 重绘 | Ctrl-A m/Ctrl-M 显示最后消息 | Ctrl-A M 切换活动监控，Ctrl-A _ 切换静默监控 | Ctrl-A h 生成 hardcopy | Ctrl-A H 切换日志 | Ctrl-A . 生成 termcap | Ctrl-A ]/Ctrl-] 粘贴 paste buffer | Ctrl-A </>/= 交换 buffer | Ctrl-A q 发送 xon | Ctrl-A s 发送 xoff | Ctrl-A i/Ctrl-I 显示信息 | Ctrl-A n/Ctrl-N/Space 下一个窗口 | Ctrl-A N 显示窗口编号 | Ctrl-A p/Ctrl-P/Backspace 上一个窗口 | Ctrl-A 0..9 选择窗口 | Ctrl-A ' 按编号/标题选择窗口 | Ctrl-A * 显示 displays | Ctrl-A t/Ctrl-T 显示时间 | Ctrl-A v 显示版本 | Ctrl-A , 显示 license | Ctrl-A F 适配尺寸 | Ctrl-A W 切换宽度 | Ctrl-A w/Ctrl-W 显示窗口 | Ctrl-A " 显示 windowlist | Ctrl-A \\ 退出 screen | Ctrl-A ? 显示帮助 | Ctrl-A A 设置标题 | Ctrl-A : 命令 | Ctrl-A Ctrl-A 上一个活动窗口 | Ctrl-A a 发送字面 Ctrl-A | 鼠标滚轮前后切换窗口 | 右键显示窗口列表 | 中键显示帮助 | Ctrl-A [/Esc 复制模式
+builtin-screen-attach-help = screen 快捷键：Ctrl-A c/Ctrl-C 新建窗口 | Ctrl-A d/Ctrl-D 断开连接 | Ctrl-A D 断开全部连接 | Ctrl-A k/Ctrl-K 结束当前窗口 | Ctrl-A C 清屏 | Ctrl-A Z 重置终端 | Ctrl-A r 自动换行 | Ctrl-A S/| 拆分区域 | Ctrl-A Tab 切换区域 | Ctrl-A X 删除区域 | Ctrl-A Q 保留当前区域 | Ctrl-A l 重绘 | Ctrl-A m/Ctrl-M 显示最后消息 | Ctrl-A M 切换活动监控，Ctrl-A _ 切换静默监控 | Ctrl-A h 生成 hardcopy | Ctrl-A H 切换日志 | Ctrl-A . 生成 termcap | Ctrl-A ]/Ctrl-] 粘贴 paste buffer | Ctrl-A </>/= 交换 buffer | Ctrl-A q 发送 xon | Ctrl-A s 发送 xoff | Ctrl-A i/Ctrl-I 显示信息 | Ctrl-A n/Ctrl-N/Space 下一个窗口 | Ctrl-A N 显示窗口编号 | Ctrl-A p/Ctrl-P/Backspace 上一个窗口 | Ctrl-A 0..9 选择窗口 | Ctrl-A ' 按编号/标题选择窗口 | Ctrl-A * 显示 displays | Ctrl-A t/Ctrl-T 显示时间 | Ctrl-A v 显示版本 | Ctrl-A , 显示 license | Ctrl-A F 适配尺寸 | Ctrl-A W 切换宽度 | Ctrl-A w/Ctrl-W 显示窗口 | Ctrl-A " 显示 windowlist | Ctrl-A \\ 退出 screen | Ctrl-A ? 显示帮助 | Ctrl-A A 设置标题 | Ctrl-A : 命令 | Ctrl-A Ctrl-A 上一个活动窗口 | Ctrl-A a 发送字面 Ctrl-A | 鼠标滚轮前后切换窗口 | 右键显示窗口列表 | 中键显示帮助 | Ctrl-A [/Esc 复制模式
 builtin-screen-monitor-status =
     { $state ->
         [on] screen：已监控窗口 {$window}
@@ -155,7 +155,7 @@ builtin-screen-internal-server-session-required = 内置 screen server 需要会
 builtin-screen-internal-server-exited = 内置 screen server 已退出，退出码 {$code}。
 builtin-screen-failure = 内置 screen 执行失败，退出码 {$code}。
 builtin-screen-control-command-required = 请指定 screen 控制命令。
-builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、lastmsg、monitor、silence、stuff、meta、xon、xoff、screen、shell、defshell、shelltitle、term、chdir、setenv、unsetenv、paste、pastefile、bufferfile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、fit、width、height、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、license、info、dinfo、dumptermcap、displays、windows、windowlist、hardcopy、hardcopydir、hardcopy_append、clear、reset、redisplay、eval、at、colon、sessionname、split、focus、remove、only。
+builtin-screen-control-command-unsupported = 暂不支持 screen 控制命令 `{$command}`。目前支持：quit、kill、bell、help、commands、echo、wall、lastmsg、monitor、silence、wrap、stuff、meta、xon、xoff、screen、shell、defshell、shelltitle、term、chdir、setenv、unsetenv、paste、pastefile、bufferfile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、fit、width、height、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、license、info、dinfo、dumptermcap、displays、windows、windowlist、hardcopy、hardcopydir、hardcopy_append、clear、reset、redisplay、eval、at、colon、sessionname、split、focus、remove、only。
 builtin-screen-control-chdir-directory-required = 请按 screen -X chdir <路径> 指定一个已存在的目录。
 builtin-screen-control-chdir-home-required = screen -X chdir 无法找到 HOME 或 USERPROFILE。
 builtin-screen-control-echo-required = 请为 screen -X echo 或 screen -X wall 指定要广播的文本。
@@ -170,7 +170,7 @@ builtin-screen-control-log-required = 请按 screen -X log [on|off] 指定日志
 builtin-screen-control-monitor-required = 请使用 screen -X monitor [on|off|toggle]。builtin-screen-control-silence-required = 请使用 screen -X silence [秒数|on|off|toggle]。
 builtin-screen-control-logfile-required = 请按 screen -X logfile <路径> 指定日志文件路径，或按 screen -X logfile flush <秒数> 指定刷新间隔。
 builtin-screen-control-logtstamp-required = 请按 logtstamp [on|off]、logtstamp after <秒数> 或 logtstamp string <文本> 指定日志时间戳。
-builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、monitor、silence、stuff、meta、xon、xoff、screen、shell、defshell、shelltitle、term、chdir、setenv、unsetenv、paste、pastefile、bufferfile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、fit、width、height、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、license、info、dinfo、dumptermcap、displays、windows、windowlist、hardcopy、hardcopydir、hardcopy_append、clear、reset、redisplay、eval、at、colon、sessionname、split、focus、remove、only。
+builtin-screen-control-help = 支持的 screen -X 命令：quit、kill、bell、help、commands、echo、wall、lastmsg、monitor、silence、wrap、stuff、meta、xon、xoff、screen、shell、defshell、shelltitle、term、chdir、setenv、unsetenv、paste、pastefile、bufferfile、process、register、readreg、readbuf、removebuf、writebuf、source、detach、pow_detach、resize、fit、width、height、select、number、next、prev、previous、other、scrollback、defscrollback、logfile、log、deflog、logtstamp、title、aka、sleep、time、version、license、info、dinfo、dumptermcap、displays、windows、windowlist、hardcopy、hardcopydir、hardcopy_append、clear、reset、redisplay、eval、at、colon、sessionname、split、focus、remove、only。
 builtin-screen-control-stuff-required = 请为 screen -X stuff 指定要输入的文本。
 builtin-screen-control-register-required = 请按 screen -X register [-e encoding] <寄存器> <文本> 指定寄存器文本。
 builtin-screen-control-resize-required = 请按 `screen -X resize <列数> <行数>` 指定 resize 尺寸。
@@ -269,3 +269,6 @@ builtin-tmux-command-parse-error = tmux 命令包含未结束的引号或转义
 builtin-screen-control-readbuf-complete = 已从 screen 缓冲区 {$path} 读取 { $bytes } 字节
 builtin-screen-control-removebuf-complete = 已删除 screen 缓冲区文件 {$path}
 builtin-screen-control-buffer-io-error = Screen 缓冲区文件 {$path}：{$reason}
+
+builtin-screen-wrap-status = screen 窗口 {$window} 自动换行：{$state}
+builtin-screen-control-wrap-required = 请使用 screen -X wrap [on|off|toggle]。

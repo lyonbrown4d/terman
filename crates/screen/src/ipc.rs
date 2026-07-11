@@ -36,6 +36,9 @@ pub(crate) enum ScreenIpcRequest {
     DetachAll,
     Bell,
     Clear,
+    SetWrap {
+        enabled: Option<bool>,
+    },
     Echo {
         message: String,
     },
@@ -242,6 +245,3 @@ mod tests {
         );
     }
 }
-
-
-

@@ -46,7 +46,7 @@ impl ScreenInputDecoder {
 
         match key.code {
             KeyCode::Char('r') | KeyCode::Char('R') if key.modifiers.is_empty() => {
-                Some(ScreenInputAction::Resize)
+                Some(ScreenInputAction::WrapToggle)
             }
             KeyCode::Char('F')
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>

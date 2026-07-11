@@ -105,7 +105,7 @@ pub(super) fn handle_attach_action(
         ScreenInputAction::Redisplay => {
             send_control_request(endpoint, ScreenIpcRequest::Redisplay)?;
         }
-        ScreenInputAction::Resize => sync_attach_terminal_size(endpoint)?,
+        ScreenInputAction::WrapToggle => send_control_request(endpoint, ScreenIpcRequest::SetWrap { enabled: None })?,
         ScreenInputAction::SelectPrompt => return Ok(AttachActionResult::SelectPrompt),
         ScreenInputAction::SelectWindow(index) => {
             send_control_request(endpoint, ScreenIpcRequest::SelectWindow { index })?;

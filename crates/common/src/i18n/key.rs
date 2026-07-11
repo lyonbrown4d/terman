@@ -61,7 +61,7 @@ pub enum MessageKey {
     BuiltinScreenUnexpectedResponse,
     BuiltinScreenAttachUnsupported,
     BuiltinScreenAttachHelp,
-    BuiltinScreenCopyStatus, BuiltinScreenCopySelectionStatus, BuiltinScreenMonitorStatus, BuiltinScreenMonitorActivity, BuiltinScreenSilenceStatus, BuiltinScreenSilenceActivity, BuiltinScreenControlMonitorRequired, BuiltinScreenControlSilenceRequired,
+    BuiltinScreenCopyStatus, BuiltinScreenCopySelectionStatus, BuiltinScreenMonitorStatus, BuiltinScreenMonitorActivity, BuiltinScreenSilenceStatus, BuiltinScreenSilenceActivity, BuiltinScreenControlMonitorRequired, BuiltinScreenControlSilenceRequired, BuiltinScreenWrapStatus, BuiltinScreenControlWrapRequired,
     BuiltinScreenAttachHardcopyPathUnavailable,
     BuiltinScreenAttachTitlePrompt, BuiltinScreenAttachSelectPrompt, BuiltinScreenAttachCommandPrompt,
     BuiltinScreenAttachTargetRequired,
@@ -190,7 +190,7 @@ impl MessageKey {
             Self::BuiltinScreenAttachUnsupported => "builtin-screen-attach-unsupported",
             Self::BuiltinScreenAttachHelp => "builtin-screen-attach-help",
 Self::BuiltinScreenCopyStatus => "builtin-screen-copy-status", Self::BuiltinScreenCopySelectionStatus => "builtin-screen-copy-selection-status",
-Self::BuiltinScreenMonitorStatus => "builtin-screen-monitor-status", Self::BuiltinScreenMonitorActivity => "builtin-screen-monitor-activity", Self::BuiltinScreenSilenceStatus => "builtin-screen-silence-status", Self::BuiltinScreenSilenceActivity => "builtin-screen-silence-activity", Self::BuiltinScreenControlMonitorRequired => "builtin-screen-control-monitor-required", Self::BuiltinScreenControlSilenceRequired => "builtin-screen-control-silence-required",
+Self::BuiltinScreenMonitorStatus => "builtin-screen-monitor-status", Self::BuiltinScreenMonitorActivity => "builtin-screen-monitor-activity", Self::BuiltinScreenSilenceStatus => "builtin-screen-silence-status", Self::BuiltinScreenSilenceActivity => "builtin-screen-silence-activity", Self::BuiltinScreenControlMonitorRequired => "builtin-screen-control-monitor-required", Self::BuiltinScreenControlSilenceRequired => "builtin-screen-control-silence-required", Self::BuiltinScreenWrapStatus => "builtin-screen-wrap-status", Self::BuiltinScreenControlWrapRequired => "builtin-screen-control-wrap-required",
             Self::BuiltinScreenAttachHardcopyPathUnavailable => {
                 "builtin-screen-attach-hardcopy-path-unavailable"
             }

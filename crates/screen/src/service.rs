@@ -30,6 +30,7 @@ mod control_local;
 mod control_log;
 mod control_monitor;
 mod control_silence;
+mod control_wrap;
 mod control_number;
 mod control_parse;
 mod control_register;

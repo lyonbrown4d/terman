@@ -85,6 +85,19 @@ pub fn builtin_screen_monitor_status_hint(window: usize, enabled: bool) -> Strin
     )
 }
 
+pub fn builtin_screen_wrap_status_hint(window: usize, enabled: bool) -> String {
+    let window = window.to_string();
+    let state = if enabled { "on" } else { "off" };
+    localized_message(
+        MessageKey::BuiltinScreenWrapStatus,
+        &[("window", &window), ("state", state)],
+    )
+}
+
+pub fn builtin_screen_control_wrap_required_hint() -> String {
+    localized_message(MessageKey::BuiltinScreenControlWrapRequired, &[])
+}
+
 pub fn builtin_screen_monitor_activity_hint(window: usize, title: Option<&str>) -> String {
     let window = window.to_string();
     localized_message(

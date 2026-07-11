@@ -13,6 +13,7 @@ mod replay;
 mod registers; mod state;
 mod status;
 mod window;
+mod wrap;
 
 pub(crate) use events::{ScreenControlEvent, ScreenSessionEvent};
 pub(crate) use silence::DEFAULT_SILENCE_SECONDS;
@@ -68,7 +69,7 @@ impl ScreenSessionBus {
         let replay = if let Ok(mut state) = self.inner.lock() {
             let replay = state
                 .active_window()
-                .map(ScreenWindowState::replay_snapshot)
+                .map(ScreenWindowState::attach_replay)
                 .unwrap_or_default();
             state.subscribers.push(ScreenSessionSubscriber {
                 client_id,

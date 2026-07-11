@@ -5,6 +5,8 @@ use super::{logging::ScreenOutputLog, replay::ScreenReplayBuffer, ScreenWindowSt
 
 const DEFAULT_TERMINAL_ROWS: u16 = 24;
 const DEFAULT_TERMINAL_COLS: u16 = 80;
+const WRAP_ENABLED_CONTROL: &[u8] = b"\x1b[?7h";
+const WRAP_DISABLED_CONTROL: &[u8] = b"\x1b[?7l";
 
 pub(super) struct ScreenWindowState {
     index: usize,
@@ -16,6 +18,7 @@ pub(super) struct ScreenWindowState {
     silence_seconds: Option<u64>,
     last_output_at: Instant,
     silence_notified: bool,
+    wrap_enabled: bool,
     terminal: vt100::Parser,
 }
 
@@ -31,6 +34,7 @@ impl ScreenWindowState {
             silence_seconds: None,
             last_output_at: Instant::now(),
             silence_notified: false,
+            wrap_enabled: true,
             terminal: vt100::Parser::new(
                 DEFAULT_TERMINAL_ROWS,
                 DEFAULT_TERMINAL_COLS,
@@ -87,9 +91,29 @@ impl ScreenWindowState {
             .set_size(rows.max(1), cols.max(1));
     }
 
-    pub(super) fn replay_snapshot(&self) -> Vec<u8> {
-        self.replay.snapshot()
+    pub(super) fn wrap_enabled(&self) -> bool {
+        self.wrap_enabled
     }
+
+    pub(super) fn set_wrap_enabled(&mut self, enabled: bool, cols: Option<u16>) {
+        self.wrap_enabled = enabled;
+        self.append_replay(wrap_control(enabled), cols);
+    }
+
+    pub(super) fn wrap_control(&self) -> &'static [u8] {
+        wrap_control(self.wrap_enabled)
+    }
+
+    pub(super) fn attach_replay(&self) -> Vec<u8> {
+        let replay = self.replay.snapshot();
+        let control = self.wrap_control();
+        let mut output = Vec::with_capacity(replay.len() + control.len() * 2);
+        output.extend_from_slice(control);
+        output.extend_from_slice(&replay);
+        output.extend_from_slice(control);
+        output
+    }
+
 
     pub(super) fn hardcopy_snapshot(
         &self,
@@ -191,5 +215,13 @@ impl ScreenWindowState {
             active,
             replay_bytes: self.replay.len(),
         }
+    }
+}
+
+fn wrap_control(enabled: bool) -> &'static [u8] {
+    if enabled {
+        WRAP_ENABLED_CONTROL
+    } else {
+        WRAP_DISABLED_CONTROL
     }
 }

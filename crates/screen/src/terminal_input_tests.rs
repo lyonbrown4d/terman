@@ -16,13 +16,13 @@ fn maps_arrow_key_to_escape_sequence() {
 }
 
 #[test]
-fn detects_screen_resize_prefix() {
+fn detects_screen_wrap_prefix() {
     let mut decoder = ScreenInputDecoder::new();
     let prefix = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-    let resize = KeyEvent::new(KeyCode::Char('r'), KeyModifiers::empty());
+    let wrap = KeyEvent::new(KeyCode::Char('r'), KeyModifiers::empty());
 
     assert_eq!(decoder.decode_key(prefix), None);
-    assert_eq!(decoder.decode_key(resize), Some(ScreenInputAction::Resize));
+    assert_eq!(decoder.decode_key(wrap), Some(ScreenInputAction::WrapToggle));
 }
 #[test]
 fn detects_screen_reset_prefix() {

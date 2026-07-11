@@ -90,7 +90,7 @@ impl ScreenSessionState {
     }
 
     pub(super) fn select_window(&mut self, index: usize) -> Option<Vec<u8>> {
-        let replay = self.window(index)?.replay_snapshot();
+        let replay = self.window(index)?.attach_replay();
         self.activate_window(index);
         self.regions.select_window(index);
         Some(replay)
@@ -156,7 +156,7 @@ impl ScreenSessionState {
         self.regions.replace_window(index, self.active_window);
         let replay = self
             .active_window()
-            .map(ScreenWindowState::replay_snapshot)
+            .map(ScreenWindowState::attach_replay)
             .unwrap_or_default();
         Some(ScreenRemovedWindow {
             active_window: Some(self.active_window),
@@ -197,12 +197,16 @@ impl ScreenSessionState {
     }
 
     pub(super) fn render_regions(&self) -> Vec<u8> {
-        render_regions(
+        let mut frame = render_regions(
             &self.regions,
             &self.windows,
             self.rows.unwrap_or(24),
             self.cols.unwrap_or(80),
-        )
+        );
+        if let Some(window) = self.active_window() {
+            frame.extend_from_slice(window.wrap_control());
+        }
+        frame
     }
 
     pub(super) fn resize_terminals(&mut self, rows: u16, cols: u16) {
