@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use sysinfo::{Process, System};
+use sysinfo::{Process, System, Users};
 
 use crate::{
     model::{IoRow, ProcessRow, SortMode},
@@ -13,6 +13,7 @@ use crate::{
 
 pub(crate) fn process_rows(
     system: &System,
+    users: &Users,
     sort: SortMode,
     inverted: bool,
     filter: &str,
@@ -25,10 +26,12 @@ pub(crate) fn process_rows(
         .map(|(pid, process)| {
             let usage = process.disk_usage();
             let pid = pid.to_string();
-            let nice = process_priority::nice_value(pid.as_str());
+            let user = process_user(process, users);
+        let nice = process_priority::nice_value(pid.as_str());
             ProcessRow {
                 pid,
                 parent_pid: process.parent().map(|parent| parent.to_string()),
+                user,
                 depth: 0,
                 has_children: false,
                 collapsed: false,
@@ -45,7 +48,7 @@ pub(crate) fn process_rows(
                 name: process.name().to_string_lossy().into_owned(),
             }
         })
-        .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
+        .filter(|row| process_matches(row.pid.as_str(), row.user.as_str(), row.name.as_str(), row.command.as_str(), filter))
         .collect();
     rows.sort_by(|left, right| compare_process(left, right, sort));
     if inverted { rows.reverse(); }
@@ -68,7 +71,7 @@ pub(crate) fn io_rows(system: &System, sort: SortMode, inverted: bool, filter: &
                 command: command_line(process),
             }
         })
-        .filter(|row| process_matches(row.pid.as_str(), row.name.as_str(), row.command.as_str(), filter))
+        .filter(|row| process_matches(row.pid.as_str(), "", row.name.as_str(), row.command.as_str(), filter))
         .collect();
     rows.sort_by(|left, right| compare_io_row(left, right, sort));
     if inverted { rows.reverse(); }
@@ -128,11 +131,21 @@ fn command_line(process: &Process) -> String {
         .join(" ")
 }
 
-fn process_matches(pid: &str, name: &str, command: &str, filter: &str) -> bool {
+fn process_user(process: &Process, users: &Users) -> String {
+    process
+        .user_id()
+        .and_then(|id| users.get_user_by_id(id))
+        .map(|user| user.name().to_string())
+        .unwrap_or_else(|| "-".to_string())
+}
+fn process_matches(pid: &str, user: &str, name: &str, command: &str, filter: &str) -> bool {
     let filter = filter.trim();
     let lowered = filter.to_lowercase();
     filter.is_empty()
         || pid.contains(filter)
+        || user
+            .to_lowercase()
+            .contains(filter.to_lowercase().as_str())
         || name.to_lowercase().contains(&lowered)
         || command.to_lowercase().contains(&lowered)
 }
@@ -144,7 +157,11 @@ fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ord
         SortMode::Time => right.run_time.cmp(&left.run_time),
         SortMode::Io => compare_process_io(left, right),
         SortMode::Pid => left.pid.cmp(&right.pid),
-        SortMode::Nice => left.nice.unwrap_or_default().cmp(&right.nice.unwrap_or_default())
+        SortMode::User => left
+            .user
+            .to_lowercase()
+            .cmp(&right.user.to_lowercase())
+            .then_with(|| left.pid.cmp(&right.pid)),        SortMode::Nice => left.nice.unwrap_or_default().cmp(&right.nice.unwrap_or_default())
             .then_with(|| left.pid.cmp(&right.pid)),
         SortMode::ParentPid => left.parent_pid.as_deref().unwrap_or("")
             .cmp(right.parent_pid.as_deref().unwrap_or(""))

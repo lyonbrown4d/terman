@@ -12,6 +12,7 @@ pub(crate) fn process_detail_lines(row: Option<&ProcessRow>) -> Vec<Line<'static
     let mut lines = vec![
         detail_line("PID", row.pid.as_str()),
         detail_line("PPID", row.parent_pid.as_deref().unwrap_or("-")),
+        detail_line("User", row.user.as_str()),
         detail_line("Status", row.status.as_str()),
         detail_line("CPU", format!("{:.1}%", row.cpu).as_str()),
         detail_line("Memory", format_bytes(row.memory).as_str()),

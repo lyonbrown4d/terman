@@ -11,6 +11,9 @@ use crate::{
     window_view::{PaneSize, TmuxWindowView},
 };
 
+#[path = "window_runtime_config.rs"]
+mod config;
+
 pub(crate) struct TmuxWindowRuntimeConfig {
     pub(crate) session_name: String,
     pub(crate) index: u32,
@@ -48,7 +51,7 @@ impl TmuxWindowRuntime {
                 rows: config.rows.max(1),
             });
         let pane = TmuxPaneRuntime::spawn(
-            pane_config(&config, 0, size.cols, size.rows, config.command.clone()),
+            config::pane_config(&config, 0, size.cols, size.rows, config.command.clone()),
             view.clone(),
             bus.clone(),
         )?;
@@ -293,21 +296,4 @@ impl TmuxWindowRuntime {
     }
 }
 
-fn pane_config(
-    config: &TmuxWindowRuntimeConfig,
-    pane_index: u32,
-    cols: u16,
-    rows: u16,
-    command: Option<String>,
-) -> TmuxPaneRuntimeConfig {
-    TmuxPaneRuntimeConfig {
-        session_name: config.session_name.clone(),
-        window_index: config.index,
-        window_name: config.name.clone(),
-        pane_index,
-        command,
-        cols,
-        rows,
-        login_shell: config.login_shell,
-    }
-}
+

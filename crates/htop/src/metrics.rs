@@ -1,3 +1,4 @@
+use sysinfo::Users;
 use sysinfo::{Networks, Signal, System};
 
 use crate::{
@@ -10,6 +11,7 @@ use crate::{
 
 pub(crate) struct Metrics {
     system: System,
+    users: Users,
     networks: Networks,
 }
 
@@ -17,6 +19,7 @@ impl Metrics {
     pub(crate) fn new() -> Self {
         Self {
             system: System::new_all(),
+            users: Users::new_with_refreshed_list(),
             networks: Networks::new_with_refreshed_list(),
         }
     }
@@ -54,7 +57,7 @@ impl Metrics {
         tree_state: &ProcessTreeState,
     ) -> Snapshot {
         let networks = self.network_rows();
-        let processes = process_rows(&self.system, sort, inverted, filter, tree, tree_state);
+        let processes = process_rows(&self.system, &self.users, sort, inverted, filter, tree, tree_state);
         let io = io_rows(&self.system, sort, inverted, filter);
         let sockets = socket_rows(&self.system, sort, inverted);
         let received = networks.iter().map(|row| row.received).sum();

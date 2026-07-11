@@ -12,25 +12,25 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crossterm::{
-    event::{Event, read},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
+use crossterm::event::{Event, read};
 use interprocess::local_socket::prelude::*;
 
 use crate::{
     args::target_session_arg,
     attach_copy::{finish_attach_copy_mode, start_attach_copy_mode},
     attach_input::{AttachInputMode, AttachInputResult},
-    attach_mouse::{
-        AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse,
-    },
+    attach_mouse::{AttachMouseState, handle_attach_mouse},
     attach_status::{query_status_line, render_status_line_with_override},
     copy_mode::{TmuxCopyMode, TmuxCopyResult},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
     sessions::load_builtin_tmux_sessions,
 };
+
+#[path = "attach_raw_mode.rs"]
+mod raw_mode;
+
+use raw_mode::RawModeGuard;
 
 pub(crate) fn attach_builtin_tmux_session(args: &[String]) -> Result<(), Box<dyn Error>> {
     let target = required_target_session_arg(args)?;
@@ -292,19 +292,3 @@ fn json_io_error(error: serde_json::Error) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, error)
 }
 
-struct RawModeGuard;
-
-impl RawModeGuard {
-    fn enable() -> io::Result<Self> {
-        enable_raw_mode()?;
-        enable_mouse_capture()?;
-        Ok(Self)
-    }
-}
-
-impl Drop for RawModeGuard {
-    fn drop(&mut self) {
-        disable_mouse_capture();
-        let _ = disable_raw_mode();
-    }
-}

@@ -161,13 +161,6 @@ fn visible_offset(cursor: usize, count: usize, visible: usize) -> usize {
         .min(count.saturating_sub(visible))
 }
 
-fn default_cursor() -> usize {
-    SUPPORTED_SIGNALS
-        .iter()
-        .position(|signal| *signal == Signal::Term)
-        .or_else(|| SUPPORTED_SIGNALS.iter().position(|signal| *signal == Signal::Kill))
-        .unwrap_or(0)
-}
 
 fn signal_label(signal: Signal) -> String {
     let debug = format!("{signal:?}");
