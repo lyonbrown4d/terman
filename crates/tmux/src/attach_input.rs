@@ -4,6 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     attach_command_prompt::{CommandPromptResult, CommandPromptState},
+    attach_find::{FindWindowResult, FindWindowState},
     attach_kill::{KillTarget, handle_kill_confirmation},
     attach_keys::{
         TmuxPrefixCommand, is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes,
@@ -39,6 +40,7 @@ pub(crate) enum AttachInputResult {
 #[derive(Default)]
 pub(crate) struct AttachInputMode {
     command_prompt: CommandPromptState,
+    find_window: FindWindowState,
     pane_chooser: PaneChooserState,
     prefix_pending: bool,
     resize_repeat: PaneResizeRepeat,
@@ -56,6 +58,16 @@ impl AttachInputMode {
     ) -> io::Result<AttachInputResult> {
         if !is_key_press(&key) {
             return Ok(AttachInputResult::Continue);
+        }
+        match self.find_window.handle_key(endpoint, &key)? {
+            FindWindowResult::Inactive => {}
+            FindWindowResult::Handled => {
+                return Ok(AttachInputResult::Continue);
+            }
+            FindWindowResult::Selected(previous) => {
+                self.last_window = Some(previous);
+                return Ok(AttachInputResult::Continue);
+            }
         }
         if self.pane_chooser.handle_key(endpoint, &key)? {
             return Ok(AttachInputResult::Continue);
@@ -146,6 +158,7 @@ impl AttachInputMode {
     ) -> io::Result<()> {
         match command {
             TmuxPrefixCommand::CommandPrompt => self.command_prompt.begin()?,
+            TmuxPrefixCommand::FindWindow => self.find_window.begin()?,
             TmuxPrefixCommand::DisplayPanes => self.pane_chooser.open(endpoint)?,
             TmuxPrefixCommand::KillPane => {
                 self.kill_pending = Some(KillTarget::Pane);
@@ -222,11 +235,13 @@ impl AttachInputMode {
     pub(crate) fn status_override(&self) -> Option<String> {
         self.command_prompt
             .status_override()
+            .or_else(|| self.find_window.status_override())
             .or_else(|| self.pane_chooser.status_override())
     }
 
     pub(crate) fn blocks_mouse(&self) -> bool {
         self.command_prompt.is_active()
+            || self.find_window.is_active()
             || self.pane_chooser.is_active()
             || self.rename_input.is_some()
     }

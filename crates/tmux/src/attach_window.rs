@@ -21,6 +21,7 @@ pub(crate) fn handle_window_command(
         TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
         TmuxPrefixCommand::CommandPrompt
+        | TmuxPrefixCommand::FindWindow
         | TmuxPrefixCommand::RenameSession
         | TmuxPrefixCommand::RenameWindow
         | TmuxPrefixCommand::ListWindows

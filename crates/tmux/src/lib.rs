@@ -4,6 +4,8 @@ mod args;
 mod attach;
 mod attach_command_exec;
 mod attach_command_prompt;
+mod attach_find;
+mod attach_prompt;
 mod copy_history;
 mod copy_mode;
 mod attach_copy;

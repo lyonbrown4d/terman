@@ -261,3 +261,13 @@ pub fn builtin_tmux_command_prompt_hint(command: &str) -> String {
 pub fn builtin_tmux_command_parse_error_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxCommandParseError, &[])
 }
+pub fn builtin_tmux_find_prompt_hint(query: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxFindPrompt, &[("query", query)])
+}
+
+pub fn builtin_tmux_find_no_match_hint(query: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxFindNoMatch,
+        &[("query", query)],
+    )
+}

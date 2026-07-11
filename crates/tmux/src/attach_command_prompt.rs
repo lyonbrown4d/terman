@@ -1,10 +1,11 @@
 use std::io;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     attach_command_exec::execute_attached_command,
     attach_keys::is_key_press,
+    attach_prompt::{PromptAction, edit_prompt},
     attach_status::{query_status_line, render_status_line},
     ipc::TmuxIpcEndpoint,
 };
@@ -114,38 +115,6 @@ impl CommandPromptState {
     }
 }
 
-enum PromptAction {
-    Editing,
-    Cancel,
-    Execute(String),
-}
-
-fn edit_prompt(key: &KeyEvent, input: &mut String) -> PromptAction {
-    match key.code {
-        KeyCode::Enter => PromptAction::Execute(std::mem::take(input)),
-        KeyCode::Esc => PromptAction::Cancel,
-        KeyCode::Char('c' | 'C') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            PromptAction::Cancel
-        }
-        KeyCode::Backspace => {
-            input.pop();
-            PromptAction::Editing
-        }
-        KeyCode::Char('u' | 'U') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            input.clear();
-            PromptAction::Editing
-        }
-        KeyCode::Char(ch)
-            if !key
-                .modifiers
-                .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
-        {
-            input.push(ch);
-            PromptAction::Editing
-        }
-        _ => PromptAction::Editing,
-    }
-}
 
 fn render_current_status(endpoint: &TmuxIpcEndpoint) {
     if let Ok(status) = query_status_line(endpoint) {
