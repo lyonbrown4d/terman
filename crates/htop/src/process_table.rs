@@ -10,17 +10,19 @@ use crate::{
 
 const PID_WIDTH: u16 = 8;
 const PPID_WIDTH: u16 = 8;
+const NICE_WIDTH: u16 = 4;
 const STATE_WIDTH: u16 = 3;
 const CPU_WIDTH: u16 = 6;
 const MEM_WIDTH: u16 = 6;
 const RES_WIDTH: u16 = 9;
 const TIME_WIDTH: u16 = 10;
-const COMMAND_START: u16 = PID_WIDTH + PPID_WIDTH + STATE_WIDTH + CPU_WIDTH + MEM_WIDTH + RES_WIDTH + TIME_WIDTH;
+const COMMAND_START: u16 = PID_WIDTH + PPID_WIDTH + NICE_WIDTH + STATE_WIDTH + CPU_WIDTH + MEM_WIDTH + RES_WIDTH + TIME_WIDTH;
 
 pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
     let pid_end = PID_WIDTH;
     let ppid_end = pid_end + PPID_WIDTH;
-    let state_end = ppid_end + STATE_WIDTH;
+    let nice_end = ppid_end + NICE_WIDTH;
+    let state_end = nice_end + STATE_WIDTH;
     let cpu_end = state_end + CPU_WIDTH;
     let mem_end = cpu_end + MEM_WIDTH;
     let res_end = mem_end + RES_WIDTH;
@@ -28,6 +30,7 @@ pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
     match column {
         c if c < pid_end => Some(SortMode::Pid),
         c if c < ppid_end => Some(SortMode::ParentPid),
+        c if c < nice_end => Some(SortMode::Nice),
         c if c < state_end => Some(SortMode::State),
         c if c < cpu_end => Some(SortMode::Cpu),
         c if c < mem_end || c < res_end => Some(SortMode::Memory),
@@ -40,6 +43,7 @@ pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
     Line::from(vec![
         header_span(format!("{:<8}", "PID"), sort == SortMode::Pid),
         header_span(format!("{:<8}", "PPID"), sort == SortMode::ParentPid),
+        header_span(format!("{:>3} ", "NI"), sort == SortMode::Nice),
         header_span(" S ".to_string(), sort == SortMode::State),
         header_span(format!("{:>5} ", "CPU%"), sort == SortMode::Cpu),
         header_span(format!("{:>5} ", "MEM%"), sort == SortMode::Memory),
@@ -52,15 +56,17 @@ pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
 pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, table_width: u16) -> Line<'static> {
     let memory_percent = memory_percent(row.memory, total_memory);
     let state = status_char(row.status.as_str());
+    let nice = row.nice.map(|value| value.to_string()).unwrap_or_else(|| "-".to_string());
     let ppid = row.parent_pid.as_deref().unwrap_or("-");
     let command = command_cell(tree_name(row.depth, command_text(row)).as_str(), table_width);
-    let text = process_text(row, ppid, state.as_str(), memory_percent, command.as_str());
+    let text = process_text(row, ppid, nice.as_str(), state.as_str(), memory_percent, command.as_str());
     if selected {
         return Line::from(Span::styled(text, selected_style()));
     }
     Line::from(vec![
         Span::styled(format!("{:<8}", row.pid), Style::default().fg(Color::Gray)),
         Span::styled(format!("{:<8}", ppid), Style::default().fg(Color::DarkGray)),
+        Span::styled(format!("{:>3} ", nice), Style::default().fg(Color::Yellow)),
         Span::raw(" "),
         Span::styled(format!("{state:<1}"), status_style(state.as_str())),
         Span::raw(" "),
@@ -72,11 +78,12 @@ pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, 
     ])
 }
 
-fn process_text(row: &ProcessRow, ppid: &str, state: &str, memory_percent: f64, command: &str) -> String {
+fn process_text(row: &ProcessRow, ppid: &str, nice: &str, state: &str, memory_percent: f64, command: &str) -> String {
     format!(
-        "{:<8}{:<8} {:<1} {:>5.1} {:>5.1} {:>8} {:>9} {}",
+        "{:<8}{:<8}{:>3}  {:<1} {:>5.1} {:>5.1} {:>8} {:>9} {}",
         row.pid,
         ppid,
+        nice,
         state,
         row.cpu,
         memory_percent,

@@ -5,7 +5,7 @@ use std::{
 
 use sysinfo::{Process, System};
 
-use crate::model::{IoRow, ProcessRow, SortMode};
+use crate::{model::{IoRow, ProcessRow, SortMode}, process_priority};
 
 pub(crate) fn process_rows(system: &System, sort: SortMode, inverted: bool, filter: &str, tree: bool) -> Vec<ProcessRow> {
     let mut rows: Vec<_> = system
@@ -13,10 +13,13 @@ pub(crate) fn process_rows(system: &System, sort: SortMode, inverted: bool, filt
         .iter()
         .map(|(pid, process)| {
             let usage = process.disk_usage();
+            let pid = pid.to_string();
+            let nice = process_priority::nice_value(pid.as_str());
             ProcessRow {
-                pid: pid.to_string(),
+                pid,
                 parent_pid: process.parent().map(|parent| parent.to_string()),
                 depth: 0,
+                nice,
                 status: format!("{:?}", process.status()),
                 run_time: process.run_time(),
                 command: command_line(process),
@@ -124,6 +127,8 @@ fn compare_process(left: &ProcessRow, right: &ProcessRow, sort: SortMode) -> Ord
         SortMode::Time => right.run_time.cmp(&left.run_time),
         SortMode::Io => compare_process_io(left, right),
         SortMode::Pid => left.pid.cmp(&right.pid),
+        SortMode::Nice => left.nice.unwrap_or_default().cmp(&right.nice.unwrap_or_default())
+            .then_with(|| left.pid.cmp(&right.pid)),
         SortMode::ParentPid => left.parent_pid.as_deref().unwrap_or("")
             .cmp(right.parent_pid.as_deref().unwrap_or(""))
             .then_with(|| left.pid.cmp(&right.pid)),

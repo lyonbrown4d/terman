@@ -4,7 +4,7 @@ builtin-htop-tab-overview = 概览
 builtin-htop-tab-processes = 进程
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = 网络
-builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，F5/t 树视图，F6/s 排序菜单，I 反向排序，F9 选择信号，F10/q/Esc 退出，+/- 调整刷新间隔。鼠标：点击标签/页脚/Overview 或 Processes 进程行/表头，滚轮滚动列表、详情、I/O 或网络页，右键进程行打开信号菜单。
+builtin-htop-help = F1 帮助，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，F5/t 树视图，F6/s 排序菜单，I 反向排序，F9 选择信号，F10/q/Esc 退出，+/- 调整刷新间隔。鼠标：点击标签/页脚/Overview 或 Processes 进程行/表头，滚轮滚动列表、详情、I/O 或网络页，右键进程行打开信号菜单。，F7/F8 调整优先级
 builtin-htop-help-panel =
     terman htop
 
@@ -16,6 +16,7 @@ builtin-htop-help-panel =
     F4 或 /：按 PID、名称或完整命令行过滤进程。
     F5 或 t：切换平铺/树状进程视图。
     F6 或 s：打开排序菜单。
+    F7/F8: 降低/提高 nice 值，调整所选进程优先级。
     I：反转当前排序方向。
     F9：选择当前平台支持的信号并发送给选中进程。
     +/-：调整刷新间隔。

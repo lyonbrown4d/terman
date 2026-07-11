@@ -3,6 +3,7 @@ use sysinfo::{Networks, Signal, System};
 use crate::{
     model::{CpuCore, LoadAverage, NetworkRow, Snapshot, SortMode, SystemSummary},
     network::socket_rows,
+    process_priority,
     process_rows::{io_rows, process_rows},
 };
 
@@ -31,6 +32,10 @@ impl Metrics {
             .find(|(candidate, _)| candidate.to_string() == pid)
             .and_then(|(_, process)| process.kill_with(signal))
             .unwrap_or(false)
+    }
+
+    pub(crate) fn adjust_process_priority(&mut self, pid: &str, delta: i32) -> bool {
+        process_priority::adjust(pid, delta).is_ok()
     }
 
     pub(crate) fn snapshot(&self, sort: SortMode, inverted: bool, filter: &str, tree: bool) -> Snapshot {

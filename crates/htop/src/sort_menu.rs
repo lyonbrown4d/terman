@@ -9,13 +9,14 @@ use ratatui::{
 
 use crate::model::SortMode;
 
-const SORT_MODES: [SortMode; 8] = [
+const SORT_MODES: [SortMode; 9] = [
     SortMode::Cpu,
     SortMode::Memory,
     SortMode::Time,
     SortMode::Io,
     SortMode::Pid,
     SortMode::ParentPid,
+    SortMode::Nice,
     SortMode::State,
     SortMode::Name,
 ];
@@ -47,7 +48,7 @@ pub(crate) fn move_cursor(cursor: &mut SortMode, forward: bool) {
 }
 
 pub(crate) fn draw(frame: &mut Frame<'_>, cursor: SortMode) {
-    let area = centered_rect(frame.area(), 42, 10);
+    let area = centered_rect(frame.area(), 42, 11);
     let mut lines = vec![Line::from(Span::styled(
         terman_common::builtin_htop_sort_menu_help_hint(),
         Style::default().fg(Color::DarkGray),
@@ -63,7 +64,7 @@ pub(crate) fn draw(frame: &mut Frame<'_>, cursor: SortMode) {
 
 
 pub(crate) fn mode_at(area: Rect, column: u16, row: u16) -> Option<SortMode> {
-    let menu = centered_rect(area, 42, 10);
+    let menu = centered_rect(area, 42, 11);
     let inside_x = column > menu.x && column < menu.x.saturating_add(menu.width).saturating_sub(1);
     if !inside_x || row < menu.y.saturating_add(2) {
         return None;

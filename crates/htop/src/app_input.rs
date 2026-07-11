@@ -75,6 +75,14 @@ pub(crate) fn delay_key(code: KeyCode) -> bool {
     )
 }
 
+pub(crate) fn priority_delta(code: KeyCode) -> Option<i32> {
+    match code {
+        KeyCode::F(7) => Some(-1),
+        KeyCode::F(8) => Some(1),
+        _ => None,
+    }
+}
+
 pub(crate) fn kill_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::F(9))
 }

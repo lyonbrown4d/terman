@@ -12,3 +12,9 @@ ratatui = { workspace = true }
 sysinfo = { workspace = true }
 terman-common = { workspace = true }
 tokio = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true }

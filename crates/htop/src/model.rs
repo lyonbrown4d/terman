@@ -6,6 +6,7 @@ pub(crate) enum SortMode {
     Io,
     Pid,
     ParentPid,
+    Nice,
     State,
     Name,
 }
@@ -19,6 +20,7 @@ impl SortMode {
             Self::Io => "I/O",
             Self::Pid => "PID",
             Self::ParentPid => "PPID",
+            Self::Nice => "NI",
             Self::State => "STATE",
             Self::Name => "NAME",
         }
@@ -78,6 +80,7 @@ pub(crate) struct ProcessRow {
     pub(crate) pid: String,
     pub(crate) parent_pid: Option<String>,
     pub(crate) depth: usize,
+    pub(crate) nice: Option<i32>,
     pub(crate) status: String,
     pub(crate) run_time: u64,
     pub(crate) command: String,
