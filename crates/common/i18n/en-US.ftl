@@ -13,16 +13,16 @@ builtin-htop-help-panel =
     Arrows, Home, End, PgUp, PgDn: move process selection.
     Space: tag or untag a process. U: clear all process tags.
     F: follow the selected PID across sorting and refreshes. e: view its environment.
-    F3: search visible process PID, user, name, or command.
-    F4 or /: filter processes by PID, user, name, or command line.
+    F3 /: search visible process PID, user, name, or command.
+    F4 \ or /: filter processes by PID, user, name, or command line.
     u: select an exact process owner; choose All users to clear.
     F5 or t: toggle flat/tree process view.
     +/-/*: in tree view, + expands, - collapses, and * toggles all branches.
-    F6 or s: open the sort menu.
+    F6 . or s: open the sort menu.
     P/M/T/N: sort by CPU, memory, cumulative time, or PID.
     F7/F8: decrease/increase nice for the selected process.
     I: invert the current sort order.
-    F9: choose and send a supported signal to the selected process.
+    F9 k: choose and send a supported signal to the selected process.
     +/-: adjust refresh delay.
     F10, q, or Esc: quit.
     Mouse: click tabs, footer actions, Overview TOP PROCESSES rows, Processes rows, and Processes table headers.

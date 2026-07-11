@@ -59,11 +59,11 @@ pub(crate) fn environment_key(code: KeyCode) -> bool {
 }
 
 pub(crate) fn search_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::F(3))
+    matches!(code, KeyCode::Char('/') | KeyCode::F(3))
 }
 
 pub(crate) fn filter_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('/') | KeyCode::F(4))
+    matches!(code, KeyCode::Char('\\') | KeyCode::F(4))
 }
 
 pub(crate) fn user_filter_key(code: KeyCode) -> bool {
@@ -71,7 +71,7 @@ pub(crate) fn user_filter_key(code: KeyCode) -> bool {
 }
 
 pub(crate) fn sort_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::Char('s') | KeyCode::F(6))
+    matches!(code, KeyCode::Char('.') | KeyCode::Char('s') | KeyCode::F(6))
 }
 
 pub(crate) fn apply_direct_sort(
@@ -142,7 +142,7 @@ pub(crate) fn priority_delta(code: KeyCode) -> Option<i32> {
 }
 
 pub(crate) fn kill_key(code: KeyCode) -> bool {
-    matches!(code, KeyCode::F(9))
+    matches!(code, KeyCode::Char('k') | KeyCode::F(9))
 }
 
 pub(crate) fn navigation_key(code: KeyCode) -> bool {
