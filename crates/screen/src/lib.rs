@@ -3,6 +3,7 @@ mod copy_mode;
 use std::error::Error;
 
 mod blanker;
+mod confirmation;
 mod builtin;
 mod builtin_control;
 mod builtin_input;

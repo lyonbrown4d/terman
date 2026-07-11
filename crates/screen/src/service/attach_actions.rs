@@ -20,6 +20,8 @@ use crate::{
 pub(super) enum AttachActionResult {
     Blank,
     CopyMode,
+    KillPrompt,
+    QuitPrompt,
     CommandPrompt,
     SelectPrompt,
     TitlePrompt,
@@ -60,7 +62,7 @@ pub(super) fn handle_attach_action(
         ScreenInputAction::Hardcopy => print_attach_hardcopy(endpoint)?,
         ScreenInputAction::Help => print_attach_help()?,
         ScreenInputAction::Info => print_attach_info(endpoint)?,
-        ScreenInputAction::Kill => send_control_request(endpoint, ScreenIpcRequest::KillWindow)?,
+        ScreenInputAction::Kill => return Ok(AttachActionResult::KillPrompt),
         ScreenInputAction::LastMessage => {
             send_control_request(endpoint, ScreenIpcRequest::LastMessage)?;
         }
@@ -98,10 +100,8 @@ pub(super) fn handle_attach_action(
         ScreenInputAction::OnlyRegion => {
             send_control_request(endpoint, ScreenIpcRequest::OnlyRegion)?;
         }
-        ScreenInputAction::Quit => {
-            send_control_request(endpoint, ScreenIpcRequest::Quit)?;
-            return Ok(AttachActionResult::Stop);
-        }
+        ScreenInputAction::Quit => return Ok(AttachActionResult::QuitPrompt),
+
         ScreenInputAction::ReadBuffer => read_attach_buffer(endpoint)?,
         ScreenInputAction::RemoveBuffer => remove_attach_buffer(endpoint)?,
         ScreenInputAction::Reset => send_control_request(endpoint, ScreenIpcRequest::Reset)?,

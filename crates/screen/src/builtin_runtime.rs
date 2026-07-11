@@ -8,6 +8,7 @@ use crossterm::{
 use crate::{
     ScreenArgs,
     blanker::ScreenBlanker,
+    confirmation::{ScreenConfirmation, prompt_screen_confirmation},
     builtin_input::handle_builtin_input_action,
     builtin_mouse::{
         ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse, handle_builtin_window_list_key, open_builtin_window_list,
@@ -121,7 +122,37 @@ pub(crate) fn poll_terminal_event(
                     ScreenInputAction::WindowList => {
                         open_builtin_window_list(session_bus, mouse_state);
                     }
-                    action => handle_builtin_input_action(session_bus, control_tx, action)?,
+                    ScreenInputAction::Kill => {
+                        if prompt_screen_confirmation(
+                            ScreenConfirmation::KillWindow,
+                        )? {
+                            handle_builtin_input_action(
+                                session_bus,
+                                control_tx,
+                                ScreenInputAction::Kill,
+                            )?;
+                        }
+                        restore_builtin_display(session_bus);
+                    }
+                    ScreenInputAction::Quit => {
+                        if prompt_screen_confirmation(
+                            ScreenConfirmation::QuitSession,
+                        )? {
+                            handle_builtin_input_action(
+                                session_bus,
+                                control_tx,
+                                ScreenInputAction::Quit,
+                            )?;
+                        }
+                        restore_builtin_display(session_bus);
+                    }
+                    action => {
+                        handle_builtin_input_action(
+                            session_bus,
+                            control_tx,
+                            action,
+                        )?;
+                    }
                 }
             }
         }

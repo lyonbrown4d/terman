@@ -25,6 +25,7 @@ use super::{
 };
 use crate::{
     blanker::ScreenBlanker,
+    confirmation::{ScreenConfirmation, prompt_screen_confirmation},
     copy_mode::{ScreenCopyMode, ScreenCopyResult},
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_input::ScreenInputDecoder,
@@ -125,6 +126,42 @@ pub(super) fn attach_interactive(
                                 blanker.activate()?;
                             }
                             AttachActionResult::Continue => {}
+                            AttachActionResult::KillPrompt => {
+                                let confirmed = run_attach_prompt(
+                                    &endpoint,
+                                    &output_paused,
+                                    || {
+                                        prompt_screen_confirmation(
+                                            ScreenConfirmation::KillWindow,
+                                        )
+                                    },
+                                )?;
+                                if confirmed {
+                                    send_control_request(
+                                        &endpoint,
+                                        ScreenIpcRequest::KillWindow,
+                                    )?;
+                                }
+                            }
+                            AttachActionResult::QuitPrompt => {
+                                let confirmed = run_attach_prompt(
+                                    &endpoint,
+                                    &output_paused,
+                                    || {
+                                        prompt_screen_confirmation(
+                                            ScreenConfirmation::QuitSession,
+                                        )
+                                    },
+                                )?;
+                                if confirmed {
+                                    send_control_request(
+                                        &endpoint,
+                                        ScreenIpcRequest::Quit,
+                                    )?;
+                                    running.store(false, Ordering::Release);
+                                    return Ok(());
+                                }
+                            }
                             AttachActionResult::CopyMode => {
                                 let mode = start_attach_copy_mode(&endpoint)?;
                                 output_paused.store(true, Ordering::Release);
@@ -185,17 +222,17 @@ pub(super) fn attach_interactive(
     }
 }
 
-fn run_attach_prompt(
+fn run_attach_prompt<T>(
     endpoint: &ScreenIpcEndpoint,
     output_paused: &AtomicBool,
-    prompt: impl FnOnce() -> io::Result<()>,
-) -> io::Result<()> {
+    prompt: impl FnOnce() -> io::Result<T>,
+) -> io::Result<T> {
     output_paused.store(true, Ordering::Release);
     let result = prompt();
     output_paused.store(false, Ordering::Release);
-    result?;
+    let value = result?;
     let _ = send_control_request(endpoint, ScreenIpcRequest::Redisplay);
-    Ok(())
+    Ok(value)
 }
 fn read_attach_stream(
     stream: LocalSocketStream,

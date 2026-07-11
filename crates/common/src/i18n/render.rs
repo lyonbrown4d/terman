@@ -9,10 +9,12 @@ use super::MessageKey;
 const ZH_CN_MESSAGES: &[&[u8]] = &[
     include_bytes!("../../i18n/zh-CN.ftl"),
     include_bytes!("../../i18n/zh-CN.htop.ftl"),
+    include_bytes!("../../i18n/zh-CN.screen.ftl"),
 ];
 const EN_US_MESSAGES: &[&[u8]] = &[
     include_bytes!("../../i18n/en-US.ftl"),
     include_bytes!("../../i18n/en-US.htop.ftl"),
+    include_bytes!("../../i18n/en-US.screen.ftl"),
 ];
 
 thread_local! {
