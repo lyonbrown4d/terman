@@ -19,6 +19,7 @@ pub(crate) enum TmuxControlEvent {
     SwapPane { window: u32, source: u32, target: u32 },
     KillPane { window: u32, pane: u32 },
     TogglePaneZoom { window: u32, pane: u32 },
+    SetSynchronizePanes { window: u32, enabled: Option<bool> },
     ResizePane {
         window: u32,
         pane: u32,

@@ -105,6 +105,7 @@ pub(crate) enum TmuxIpcRequest {
     SwapPane { window: Option<u32>, source: Option<u32>, target: Option<u32>, forward: bool },
     KillPane { window: Option<u32>, pane: Option<u32> },
     TogglePaneZoom { window: Option<u32>, pane: Option<u32> },
+    SetSynchronizePanes { window: Option<u32>, enabled: Option<bool> },
     ResizePane { window: Option<u32>, pane: Option<u32>, cols: Option<u16>, rows: Option<u16> },
     Resize { cols: u16, rows: u16 },
 }

@@ -184,6 +184,16 @@ pub fn builtin_tmux_pane_not_found_hint(session: &str, window: u32, pane: u32) -
 pub fn builtin_tmux_pane_size_required_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxPaneSizeRequired, &[])
 }
+pub fn builtin_tmux_window_option_unsupported_hint(option: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinTmuxWindowOptionUnsupported,
+        &[("option", option)],
+    )
+}
+
+pub fn builtin_tmux_synchronize_panes_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxSynchronizePanesRequired, &[])
+}
 
 pub fn builtin_tmux_copy_status_hint(
     line: usize,

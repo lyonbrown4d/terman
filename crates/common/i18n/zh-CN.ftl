@@ -203,6 +203,7 @@ builtin-tmux-cli-examples =
       - terman-tmux list-sessions
       - terman-tmux list-clients
       - terman-tmux list-windows -t dev
+      - terman-tmux setw -t dev:0 synchronize-panes on
       - terman-tmux --detached new -s dev
 
     排查示例：
@@ -219,6 +220,8 @@ builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
 builtin-tmux-pane-list-entry = {$session}:{$window}.{$pane}: {$name} active={$active}
 builtin-tmux-pane-not-found = 未找到 tmux 会话 {$session} 中的 pane {$window}.{$pane}
 builtin-tmux-pane-size-required = 请使用 resize-pane -x <列数> -y <行数> 指定 pane 尺寸
+builtin-tmux-window-option-unsupported = 暂不支持 tmux 窗口选项 {$option}；当前支持 synchronize-panes
+builtin-tmux-synchronize-panes-required = 请使用 set-window-option synchronize-panes [on|off|toggle]
 builtin-tmux-session-killed = 已结束 tmux 会话 {$name}
 builtin-tmux-session-not-found = 未找到 tmux 会话 {$name}
 builtin-tmux-target-required = 请使用 -t <名称> 指定目标会话

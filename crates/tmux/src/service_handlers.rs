@@ -12,6 +12,7 @@ use crate::{
     service_codec::write_response,
     service_buffer::{delete_buffer, get_buffer, list_buffers, paste_buffer, set_buffer},
     session_core::{TmuxControlEvent, TmuxSessionBus, TmuxSessionEvent},
+    window_option_service::set_synchronize_panes,
 };
 
 pub(crate) fn handle_client(
@@ -92,6 +93,8 @@ pub(crate) fn handle_client(
         }
         Ok(TmuxIpcRequest::KillPane { window, pane }) => kill_pane(stream, bus, control_tx, window, pane),
         Ok(TmuxIpcRequest::TogglePaneZoom { window, pane }) => toggle_pane_zoom(stream, bus, control_tx, window, pane),
+        Ok(TmuxIpcRequest::SetSynchronizePanes { window, enabled }) =>
+            set_synchronize_panes(stream, bus, control_tx, window, enabled),
         Ok(TmuxIpcRequest::ResizePane { window, pane, cols, rows }) => resize_pane(stream, bus, control_tx, (window, pane), (cols, rows)),
         Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             accept_control(stream, control_tx, TmuxControlEvent::Resize { cols, rows })

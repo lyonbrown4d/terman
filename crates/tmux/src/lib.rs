@@ -52,6 +52,8 @@ mod terminal_frame;
 mod terminal_mouse;
 mod window_command_support;
 mod window_commands;
+mod window_option_service;
+mod window_options;
 mod window_runtime;
 mod window_view;
 

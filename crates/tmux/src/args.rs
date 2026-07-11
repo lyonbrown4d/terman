@@ -88,6 +88,20 @@ pub(crate) fn display_message_arg(args: &[String]) -> Option<String> {
 pub(crate) fn send_keys_args(args: &[String]) -> Vec<String> {
     positional_args_after_command(args, &["send-keys", "send"])
 }
+pub(crate) fn window_option_name_arg(args: &[String]) -> Option<String> {
+    window_option_args(args).first().cloned()
+}
+
+pub(crate) fn window_option_value_arg(args: &[String]) -> Option<String> {
+    window_option_args(args).get(1).cloned()
+}
+
+fn window_option_args(args: &[String]) -> Vec<String> {
+    positional_args_after_command(
+        args,
+        &["set-window-option", "setw", "set-option", "set"],
+    )
+}
 
 fn new_window_command_args(args: &[String]) -> Vec<String> {
     let mut seen_command = false;

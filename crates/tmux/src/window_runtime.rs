@@ -26,6 +26,7 @@ pub(crate) struct TmuxWindowRuntime {
     index: u32,
     name: String,
     login_shell: bool,
+    synchronize_panes: bool,
     panes: Vec<TmuxPaneRuntime>,
     view: Arc<Mutex<TmuxWindowView>>,
     bus: TmuxSessionBus,
@@ -57,6 +58,7 @@ impl TmuxWindowRuntime {
             index: config.index,
             name: config.name,
             login_shell: config.login_shell,
+            synchronize_panes: false,
             panes: vec![pane],
             view,
             bus,
@@ -79,11 +81,34 @@ impl TmuxWindowRuntime {
             .lock()
             .map(|view| view.active_pane())
             .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
-        self.panes
-            .iter_mut()
-            .find(|pane| pane.index() == active)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "active tmux pane missing"))?
-            .write_input(bytes)
+        if !self.synchronize_panes {
+            return self
+                .panes
+                .iter_mut()
+                .find(|pane| pane.index() == active)
+                .ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::NotFound, "active tmux pane missing")
+                })?
+                .write_input(bytes);
+        }
+        let mut active_result = None;
+        for pane in &mut self.panes {
+            let is_active = pane.index() == active;
+            let result = pane.write_input(bytes);
+            if is_active {
+                active_result = Some(result);
+            }
+        }
+        active_result.unwrap_or_else(|| {
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "active tmux pane missing",
+            ))
+        })
+    }
+    pub(crate) fn set_synchronize_panes(&mut self, enabled: Option<bool>) -> bool {
+        self.synchronize_panes = enabled.unwrap_or(!self.synchronize_panes);
+        self.synchronize_panes
     }
 
     pub(crate) fn split(

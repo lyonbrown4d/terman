@@ -128,6 +128,11 @@ fn run_control_loop(
                         let _ = runtime.toggle_pane_zoom(pane);
                     }
                 }
+                TmuxControlEvent::SetSynchronizePanes { window, enabled } => {
+                    if let Some(runtime) = active_runtime(windows, window) {
+                        runtime.set_synchronize_panes(enabled);
+                    }
+                }
                 TmuxControlEvent::ResizePane { window, pane, cols, rows } => {
                     if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.resize_pane(pane, cols, rows); }
                 }

@@ -27,6 +27,7 @@ pub(crate) enum TmuxCommand {
     SelectPane,
     DisplayPanes,
     ResizePane,
+    SetWindowOption,
     RefreshClient,
     SelectWindow,
     NextWindow,
@@ -68,6 +69,12 @@ impl TmuxCommand {
             Some("select-pane" | "selectp") => Self::SelectPane,
             Some("display-panes" | "displayp") => Self::DisplayPanes,
             Some("resize-pane" | "resizep") => Self::ResizePane,
+            Some("set-window-option" | "setw") => Self::SetWindowOption,
+            Some("set-option" | "set")
+                if args.iter().any(|arg| arg == "-w" || arg == "--window") =>
+            {
+                Self::SetWindowOption
+            }
             Some("refresh-client" | "refresh") => Self::RefreshClient,
             Some("select-window" | "selectw") => Self::SelectWindow,
             Some("next-window" | "next") => Self::NextWindow,
@@ -122,6 +129,8 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["selectp".into()]), TmuxCommand::SelectPane);
         assert_eq!(TmuxCommand::parse(&["displayp".into()]), TmuxCommand::DisplayPanes);
         assert_eq!(TmuxCommand::parse(&["resizep".into()]), TmuxCommand::ResizePane);
+        assert_eq!(TmuxCommand::parse(&["setw".into()]), TmuxCommand::SetWindowOption);
+        assert_eq!(TmuxCommand::parse(&["set".into(), "-w".into()]), TmuxCommand::SetWindowOption);
         assert_eq!(TmuxCommand::parse(&["refresh".into()]), TmuxCommand::RefreshClient);
         assert_eq!(TmuxCommand::parse(&["selectw".into()]), TmuxCommand::SelectWindow);
         assert_eq!(TmuxCommand::parse(&["next".into()]), TmuxCommand::NextWindow);
