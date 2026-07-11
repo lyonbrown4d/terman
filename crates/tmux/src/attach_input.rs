@@ -107,7 +107,7 @@ impl AttachInputMode {
         match tmux_prefix_command(key) {
             Some(TmuxPrefixCommand::CopyMode) => Ok(AttachInputResult::EnterCopyMode),
             Some(TmuxPrefixCommand::PasteBuffer) => {
-                send_request(endpoint, TmuxIpcRequest::PasteBuffer)?;
+                send_request(endpoint, TmuxIpcRequest::PasteBuffer { name: None })?;
                 let _ = render_current_status(endpoint);
                 Ok(AttachInputResult::Continue)
             }

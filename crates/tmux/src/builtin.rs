@@ -2,6 +2,7 @@ use std::{error::Error, io};
 
 use crate::{
     attach::attach_builtin_tmux_session,
+    buffer_commands::run_builtin_tmux_buffer_command,
     capture::capture_builtin_tmux_pane,
     clients::list_builtin_tmux_clients,
     args::{
@@ -72,6 +73,14 @@ pub(crate) fn try_run_builtin_tmux_command(
         }
         TmuxCommand::CapturePane => {
             capture_builtin_tmux_pane(args)?;
+            Ok(true)
+        }
+        TmuxCommand::DeleteBuffer
+        | TmuxCommand::ListBuffers
+        | TmuxCommand::PasteBuffer
+        | TmuxCommand::SetBuffer
+        | TmuxCommand::ShowBuffer => {
+            run_builtin_tmux_buffer_command(command, args)?;
             Ok(true)
         }
         TmuxCommand::ClearHistory => {

@@ -38,7 +38,7 @@ pub(crate) fn finish_attach_copy_mode(
     if let Some(bytes) = copied {
         expect_accepted(request_endpoint_response(
             endpoint,
-            TmuxIpcRequest::SetBuffer { bytes },
+            TmuxIpcRequest::SetBuffer { name: None, bytes },
         )?)?;
     }
     let replay = match request_endpoint_response(endpoint, TmuxIpcRequest::RefreshClient)? {

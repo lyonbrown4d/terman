@@ -9,6 +9,7 @@ use crate::{
     ipc::{TmuxIpcRequest, TmuxIpcResponse},
     pane_service::{capture_pane, clear_history, kill_pane, resize_pane, select_pane, toggle_pane_zoom, split_pane, write_pane_info},
     service_codec::write_response,
+    service_buffer::{delete_buffer, get_buffer, list_buffers, paste_buffer, set_buffer},
     session_core::{TmuxControlEvent, TmuxSessionBus, TmuxSessionEvent},
 };
 
@@ -33,19 +34,11 @@ pub(crate) fn handle_client(
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
         Ok(TmuxIpcRequest::CapturePane { window, pane }) => capture_pane(stream, bus, window, pane),
-        Ok(TmuxIpcRequest::GetBuffer) => write_response(
-            stream,
-            &TmuxIpcResponse::Buffer {
-                bytes: bus.buffer_snapshot(),
-            },
-        ),
-        Ok(TmuxIpcRequest::PasteBuffer) => {
-            let bytes = bus.buffer_snapshot();
-            if bytes.is_empty() {
-                write_response(stream, &TmuxIpcResponse::Accepted)
-            } else {
-                accept_control(stream, control_tx, TmuxControlEvent::Input(bytes))
-            }
+        Ok(TmuxIpcRequest::DeleteBuffer { name }) => delete_buffer(stream, bus, name),
+        Ok(TmuxIpcRequest::GetBuffer { name }) => get_buffer(stream, bus, name),
+        Ok(TmuxIpcRequest::ListBuffers) => list_buffers(stream, bus),
+        Ok(TmuxIpcRequest::PasteBuffer { name }) => {
+            paste_buffer(stream, bus, control_tx, name)
         }
         Ok(TmuxIpcRequest::RefreshClient) => write_response(
             stream,
@@ -53,9 +46,8 @@ pub(crate) fn handle_client(
                 bytes: bus.replay_snapshot(),
             },
         ),
-        Ok(TmuxIpcRequest::SetBuffer { bytes }) => {
-            bus.set_buffer(bytes);
-            write_response(stream, &TmuxIpcResponse::Accepted)
+        Ok(TmuxIpcRequest::SetBuffer { name, bytes }) => {
+            set_buffer(stream, bus, name, bytes)
         }
         Ok(TmuxIpcRequest::DetachAll) => {
             bus.publish_detach();

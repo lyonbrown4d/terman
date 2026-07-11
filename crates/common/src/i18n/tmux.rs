@@ -201,3 +201,27 @@ pub fn builtin_tmux_copy_status_hint(
         &[("line", &line), ("total", &total)],
     )
 }
+
+pub fn builtin_tmux_buffer_data_required_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxBufferDataRequired, &[])
+}
+
+pub fn builtin_tmux_buffer_not_found_hint(name: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxBufferNotFound, &[("name", name)])
+}
+
+pub fn builtin_tmux_buffer_unavailable_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxBufferUnavailable, &[])
+}
+
+pub fn builtin_tmux_buffer_list_item_hint(
+    name: &str,
+    bytes: usize,
+    preview: &str,
+) -> String {
+    let bytes = bytes.to_string();
+    localized_message(
+        MessageKey::BuiltinTmuxBufferListItem,
+        &[("name", name), ("bytes", &bytes), ("preview", preview)],
+    )
+}

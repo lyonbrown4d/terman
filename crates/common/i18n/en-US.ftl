@@ -225,3 +225,7 @@ builtin-screen-copy-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgD
 builtin-screen-copy-selection-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel
 builtin-tmux-copy-status = tmux copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
 builtin-tmux-copy-selection-status = tmux copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel
+builtin-tmux-buffer-data-required = set-buffer requires buffer data.
+builtin-tmux-buffer-list-item = {$name}: {$bytes} bytes: "{$preview}"
+builtin-tmux-buffer-not-found = tmux buffer "{$name}" was not found.
+builtin-tmux-buffer-unavailable = tmux buffer state is unavailable.

@@ -10,6 +10,11 @@ pub(crate) enum TmuxCommand {
     RenameSession,
     DisplayMessage,
     CapturePane,
+    DeleteBuffer,
+    ListBuffers,
+    PasteBuffer,
+    SetBuffer,
+    ShowBuffer,
     ClearHistory,
     DetachClient,
     SendKeys,
@@ -45,6 +50,11 @@ impl TmuxCommand {
             Some("rename-session") => Self::RenameSession,
             Some("display-message" | "display") => Self::DisplayMessage,
             Some("capture-pane" | "capturep") => Self::CapturePane,
+            Some("delete-buffer" | "deleteb") => Self::DeleteBuffer,
+            Some("list-buffers" | "lsb") => Self::ListBuffers,
+            Some("paste-buffer" | "pasteb") => Self::PasteBuffer,
+            Some("set-buffer" | "setb") => Self::SetBuffer,
+            Some("show-buffer" | "showb") => Self::ShowBuffer,
             Some("clear-history") => Self::ClearHistory,
             Some("detach-client" | "detach") => Self::DetachClient,
             Some("send-keys" | "send") => Self::SendKeys,
@@ -94,6 +104,11 @@ mod tests {
         assert_eq!(TmuxCommand::parse(&["rename-session".into()]), TmuxCommand::RenameSession);
         assert_eq!(TmuxCommand::parse(&["display".into()]), TmuxCommand::DisplayMessage);
         assert_eq!(TmuxCommand::parse(&["capturep".into()]), TmuxCommand::CapturePane);
+        assert_eq!(TmuxCommand::parse(&["deleteb".into()]), TmuxCommand::DeleteBuffer);
+        assert_eq!(TmuxCommand::parse(&["lsb".into()]), TmuxCommand::ListBuffers);
+        assert_eq!(TmuxCommand::parse(&["pasteb".into()]), TmuxCommand::PasteBuffer);
+        assert_eq!(TmuxCommand::parse(&["setb".into()]), TmuxCommand::SetBuffer);
+        assert_eq!(TmuxCommand::parse(&["showb".into()]), TmuxCommand::ShowBuffer);
         assert_eq!(TmuxCommand::parse(&["clear-history".into()]), TmuxCommand::ClearHistory);
         assert_eq!(TmuxCommand::parse(&["detach".into()]), TmuxCommand::DetachClient);
         assert_eq!(TmuxCommand::parse(&["send".into()]), TmuxCommand::SendKeys);

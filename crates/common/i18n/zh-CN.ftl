@@ -225,3 +225,7 @@ builtin-screen-copy-status = 复制模式 | 第 {$line}/{$total} 行 | 方向键
 builtin-screen-copy-selection-status = 复制模式 | 第 {$line}/{$total} 行 | 方向键/PgUp/PgDn 移动 | Space/Enter 复制 | Esc 取消
 builtin-tmux-copy-status = tmux 复制模式 | 第 {$line}/{$total} 行 | 方向键/PgUp/PgDn 移动 | Space/Enter 标记 | Esc 取消
 builtin-tmux-copy-selection-status = tmux 复制模式 | 第 {$line}/{$total} 行 | 方向键/PgUp/PgDn 移动 | Space/Enter 复制 | Esc 取消
+builtin-tmux-buffer-data-required = set-buffer 需要 buffer 内容。
+builtin-tmux-buffer-list-item = {$name}: {$bytes} 字节：“{$preview}”
+builtin-tmux-buffer-not-found = tmux buffer “{$name}”不存在。
+builtin-tmux-buffer-unavailable = tmux buffer 状态暂时不可用。

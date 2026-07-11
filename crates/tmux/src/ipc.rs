@@ -80,10 +80,12 @@ pub(crate) enum TmuxIpcRequest {
     DetachClient { client_id: String },
     DetachAll,
     CapturePane { window: Option<u32>, pane: Option<u32> },
-    GetBuffer,
-    PasteBuffer,
+    DeleteBuffer { name: Option<String> },
+    GetBuffer { name: Option<String> },
+    ListBuffers,
+    PasteBuffer { name: Option<String> },
     RefreshClient,
-    SetBuffer { bytes: Vec<u8> },
+    SetBuffer { name: Option<String>, bytes: Vec<u8> },
     ClearHistory { window: Option<u32>, pane: Option<u32> },
     DisplayMessage { message: String },
     Info,
@@ -106,12 +108,19 @@ pub(crate) enum TmuxIpcRequest {
     Resize { cols: u16, rows: u16 },
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub(crate) struct TmuxBufferInfo {
+    pub(crate) name: String,
+    pub(crate) bytes: Vec<u8>,
+}
+
 #[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub(crate) enum TmuxIpcResponse {
     Accepted,
     Attached { replay: Vec<u8> },
-    Buffer { bytes: Vec<u8> },
+    Buffer { name: String, bytes: Vec<u8> },
+    Buffers { buffers: Vec<TmuxBufferInfo> },
     Detached,
     Captured { bytes: Vec<u8> },
     Info {

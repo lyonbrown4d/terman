@@ -9,6 +9,11 @@ pub(crate) struct TmuxSessionSubscriber {
     pub(crate) sender: mpsc::Sender<TmuxSessionEvent>,
 }
 
+pub(crate) struct TmuxPasteBuffer {
+    pub(crate) name: String,
+    pub(crate) bytes: Vec<u8>,
+}
+
 pub(crate) struct TmuxPaneReplay {
     pub(crate) index: u32,
     pub(crate) capture: Vec<u8>,
@@ -30,7 +35,8 @@ pub(crate) struct TmuxSessionState {
     pub(crate) last_window: Option<u32>,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
-    pub(crate) buffer: Vec<u8>,
+    pub(crate) buffers: Vec<TmuxPasteBuffer>,
+    pub(crate) next_buffer: u64,
 }
 
 impl TmuxSessionState {
@@ -43,7 +49,8 @@ impl TmuxSessionState {
             last_window: None,
             cols: None,
             rows: None,
-            buffer: Vec::new(),
+            buffers: Vec::new(),
+            next_buffer: 0,
         };
         state.set_window_count(windows.max(1));
         state

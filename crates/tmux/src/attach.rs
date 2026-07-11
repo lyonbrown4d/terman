@@ -111,6 +111,7 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
             }
             TmuxIpcResponse::Accepted
             | TmuxIpcResponse::Buffer { .. }
+            | TmuxIpcResponse::Buffers { .. }
             | TmuxIpcResponse::Captured { .. }
             | TmuxIpcResponse::Info { .. }
             | TmuxIpcResponse::Panes { .. } => {}
