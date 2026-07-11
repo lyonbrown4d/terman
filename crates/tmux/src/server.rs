@@ -115,6 +115,14 @@ fn run_control_loop(
                         }
                     }
                 }
+                TmuxControlEvent::SelectPaneDirection { window, direction } => {
+                    if let Some(runtime) = active_runtime(windows, window) {
+                        if runtime.select_pane_direction(direction) && *active_window != window {
+                            *active_window = window;
+                            let _ = session_bus.select_window(window);
+                        }
+                    }
+                }
                 TmuxControlEvent::SwapPane { window, source, target } => {
                     if let Some(runtime) = active_runtime(windows, window) {
                         let _ = runtime.swap_panes(source, target);

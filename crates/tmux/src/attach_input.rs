@@ -9,8 +9,8 @@ use crate::{
         tmux_prefix_bytes, tmux_prefix_command,
     },
     attach_pane::{
-        kill_current_pane, select_next_pane, split_current_pane, swap_current_pane,
-        toggle_current_pane_zoom,
+        kill_current_pane, select_next_pane, select_pane_direction, split_current_pane,
+        swap_current_pane, toggle_current_pane_zoom,
     },
     attach_rename::{RenameTarget, handle_rename_input, render_rename_prompt},
     attach_status::{
@@ -161,6 +161,10 @@ impl AttachInputMode {
             }
             TmuxPrefixCommand::NextPane => {
                 select_next_pane(endpoint)?;
+                let _ = render_current_status(endpoint);
+            }
+            TmuxPrefixCommand::SelectPane(direction) => {
+                select_pane_direction(endpoint, direction)?;
                 let _ = render_current_status(endpoint);
             }
             TmuxPrefixCommand::SwapPaneUp | TmuxPrefixCommand::SwapPaneDown => {

@@ -28,6 +28,7 @@ mod ipc;
 mod lifecycle;
 mod new_session;
 mod pane_commands;
+mod pane_select_command;
 mod pane_layout;
 mod pane_layout_swap;
 mod pane_runtime;

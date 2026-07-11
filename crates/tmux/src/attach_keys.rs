@@ -1,3 +1,4 @@
+use crate::pane_layout::PaneDirection;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 pub(crate) fn is_key_press(key: &KeyEvent) -> bool {
@@ -31,6 +32,7 @@ pub(crate) enum TmuxPrefixCommand {
     SplitHorizontal,
     SplitVertical,
     NextPane,
+    SelectPane(PaneDirection),
     SwapPaneUp,
     SwapPaneDown,
     TogglePaneZoom,
@@ -62,6 +64,10 @@ pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
         KeyCode::Char('%') => Some(TmuxPrefixCommand::SplitHorizontal),
         KeyCode::Char('"') => Some(TmuxPrefixCommand::SplitVertical),
         KeyCode::Char('o') => Some(TmuxPrefixCommand::NextPane),
+        KeyCode::Left => Some(TmuxPrefixCommand::SelectPane(PaneDirection::Left)),
+        KeyCode::Right => Some(TmuxPrefixCommand::SelectPane(PaneDirection::Right)),
+        KeyCode::Up => Some(TmuxPrefixCommand::SelectPane(PaneDirection::Up)),
+        KeyCode::Down => Some(TmuxPrefixCommand::SelectPane(PaneDirection::Down)),
         KeyCode::Char('{') => Some(TmuxPrefixCommand::SwapPaneUp),
         KeyCode::Char('}') => Some(TmuxPrefixCommand::SwapPaneDown),
         KeyCode::Char('z') => Some(TmuxPrefixCommand::TogglePaneZoom),

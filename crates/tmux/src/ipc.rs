@@ -1,3 +1,4 @@
+use crate::pane_layout::PaneDirection;
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
@@ -102,6 +103,7 @@ pub(crate) enum TmuxIpcRequest {
     PaneInfo { window: Option<u32> },
     SplitPane { window: Option<u32>, horizontal: bool, command: Option<String> },
     SelectPane { window: Option<u32>, pane: Option<u32> },
+    SelectPaneDirection { window: Option<u32>, direction: PaneDirection },
     SwapPane { window: Option<u32>, source: Option<u32>, target: Option<u32>, forward: bool },
     KillPane { window: Option<u32>, pane: Option<u32> },
     TogglePaneZoom { window: Option<u32>, pane: Option<u32> },

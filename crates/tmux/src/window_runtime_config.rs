@@ -1,5 +1,8 @@
-use super::TmuxWindowRuntimeConfig;
-use crate::pane_runtime::TmuxPaneRuntimeConfig;
+use super::{TmuxWindowRuntime, TmuxWindowRuntimeConfig};
+use crate::{
+    pane_layout::PaneDirection,
+    pane_runtime::TmuxPaneRuntimeConfig,
+};
 
 pub(super) fn pane_config(
     config: &TmuxWindowRuntimeConfig,
@@ -18,4 +21,20 @@ pub(super) fn pane_config(
         rows,
         login_shell: config.login_shell,
     }
+}
+
+pub(super) fn select_pane_direction(
+    runtime: &mut TmuxWindowRuntime,
+    direction: PaneDirection,
+) -> bool {
+    let selected = runtime
+        .view
+        .lock()
+        .map(|mut view| view.select_pane_direction(direction))
+        .unwrap_or(false);
+    if selected {
+        runtime.resize_from_view();
+        runtime.publish_frame();
+    }
+    selected
 }

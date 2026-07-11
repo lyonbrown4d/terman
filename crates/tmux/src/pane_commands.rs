@@ -30,11 +30,11 @@ struct TmuxPaneJson {
     active: bool,
 }
 
-struct TmuxPaneInfo {
-    window_index: u32,
-    window_name: String,
-    active_pane: u32,
-    pane_indexes: Vec<u32>,
+pub(crate) struct TmuxPaneInfo {
+    pub(crate) window_index: u32,
+    pub(crate) window_name: String,
+    pub(crate) active_pane: u32,
+    pub(crate) pane_indexes: Vec<u32>,
 }
 
 pub(crate) fn split_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
@@ -128,25 +128,6 @@ pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Er
     request_accepted(&session, request)
 }
 
-pub(crate) fn select_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
-    let (_, session) = target_session(args)?;
-    let info = query_pane_info(
-        &session,
-        target_window_index_arg(args).map(|index| index as u32),
-    )?;
-    let pane = target_pane_index_arg(args)
-        .map(|index| index as u32)
-        .unwrap_or(info.active_pane);
-    require_pane(&info, pane)?;
-    request_accepted(
-        &session,
-        TmuxIpcRequest::SelectPane {
-            window: Some(info.window_index),
-            pane: Some(pane),
-        },
-    )
-}
-
 pub(crate) fn kill_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
     let (_, session) = target_session(args)?;
     let info = query_pane_info(
@@ -169,7 +150,7 @@ pub(crate) fn kill_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Erro
     )
 }
 
-fn target_session(args: &[String]) -> Result<(String, BuiltinTmuxSession), Box<dyn Error>> {
+pub(crate) fn target_session(args: &[String]) -> Result<(String, BuiltinTmuxSession), Box<dyn Error>> {
     let target = target_session_name_arg(args).ok_or_else(target_required_error)?;
     let Some(session) = load_builtin_tmux_sessions()?
         .into_iter()
@@ -180,7 +161,7 @@ fn target_session(args: &[String]) -> Result<(String, BuiltinTmuxSession), Box<d
     Ok((target, session))
 }
 
-fn query_pane_info(
+pub(crate) fn query_pane_info(
     session: &BuiltinTmuxSession,
     window: Option<u32>,
 ) -> Result<TmuxPaneInfo, Box<dyn Error>> {
@@ -204,7 +185,7 @@ fn query_pane_info(
     }
 }
 
-fn request_accepted(
+pub(crate) fn request_accepted(
     session: &BuiltinTmuxSession,
     request: TmuxIpcRequest,
 ) -> Result<(), Box<dyn Error>> {
@@ -217,7 +198,7 @@ fn request_accepted(
     }
 }
 
-fn require_pane(info: &TmuxPaneInfo, pane: u32) -> Result<(), Box<dyn Error>> {
+pub(crate) fn require_pane(info: &TmuxPaneInfo, pane: u32) -> Result<(), Box<dyn Error>> {
     if info.pane_indexes.contains(&pane) {
         Ok(())
     } else {

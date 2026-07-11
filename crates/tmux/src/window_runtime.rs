@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    pane_layout::SplitDirection,
+    pane_layout::{PaneDirection, SplitDirection},
     pane_runtime::{TmuxPaneRuntime, TmuxPaneRuntimeConfig},
     session_core::TmuxSessionBus,
     window_view::{PaneSize, TmuxWindowView},
@@ -160,6 +160,8 @@ impl TmuxWindowRuntime {
         }
     }
 
+    pub(crate) fn select_pane_direction(&mut self, direction: PaneDirection) -> bool { config::select_pane_direction(self, direction) }
+
     pub(crate) fn select_pane(&mut self, index: u32) -> bool {
         let selected = self
             .view
@@ -295,5 +297,3 @@ impl TmuxWindowRuntime {
         }
     }
 }
-
-

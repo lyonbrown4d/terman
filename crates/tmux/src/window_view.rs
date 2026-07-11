@@ -1,5 +1,8 @@
+#[path = "pane_navigation.rs"]
+mod navigation;
+
 use crate::{
-    pane_layout::{PaneGeometry, PaneLayout, PaneRect, SplitDirection},
+    pane_layout::{PaneDirection, PaneGeometry, PaneLayout, PaneRect, SplitDirection},
     terminal_frame::{PaneRender, RenderedTerminal, render_terminal},
 };
 
@@ -100,6 +103,14 @@ impl TmuxWindowView {
         }
         self.active_pane = index;
         true
+    }
+
+    pub(crate) fn select_pane_direction(&mut self, direction: PaneDirection) -> bool {
+        let geometry = self.layout.geometry(self.cols, self.rows);
+        let Some(index) = navigation::neighboring_pane(&geometry, self.active_pane, direction) else {
+            return false;
+        };
+        self.select_pane(index)
     }
 
     pub(crate) fn swap_panes(&mut self, source: u32, target: u32) -> bool {

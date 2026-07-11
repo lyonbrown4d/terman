@@ -1,7 +1,17 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum SplitDirection {
     Horizontal,
     Vertical,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub(crate) enum PaneDirection {
+    Left,
+    Right,
+    Up,
+    Down,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

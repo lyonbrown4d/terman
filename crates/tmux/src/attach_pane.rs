@@ -1,3 +1,4 @@
+use crate::pane_layout::PaneDirection;
 use std::io;
 
 use crate::{
@@ -48,6 +49,19 @@ pub(crate) fn select_next_pane(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
         TmuxIpcRequest::SelectPane {
             window: Some(panes.window_index),
             pane: Some(pane),
+        },
+    )
+}
+
+pub(crate) fn select_pane_direction(
+    endpoint: &TmuxIpcEndpoint,
+    direction: PaneDirection,
+) -> io::Result<()> {
+    send_request(
+        endpoint,
+        TmuxIpcRequest::SelectPaneDirection {
+            window: None,
+            direction,
         },
     )
 }

@@ -251,3 +251,23 @@ fn write_pane_missing(
         },
     )
 }
+
+pub(crate) fn select_pane_direction(
+    stream: &mut LocalSocketStream,
+    bus: &TmuxSessionBus,
+    control_tx: &mpsc::Sender<TmuxControlEvent>,
+    window: Option<u32>,
+    direction: crate::pane_layout::PaneDirection,
+) -> io::Result<()> {
+    let Some(status) = bus.pane_status_snapshot(window) else {
+        return write_window_missing(stream, window.unwrap_or_default());
+    };
+    accept_control(
+        stream,
+        control_tx,
+        TmuxControlEvent::SelectPaneDirection {
+            window: status.window_index,
+            direction,
+        },
+    )
+}
