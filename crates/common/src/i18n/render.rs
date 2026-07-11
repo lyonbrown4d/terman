@@ -6,8 +6,14 @@ use unic_langid::LanguageIdentifier;
 
 use super::MessageKey;
 
-const ZH_CN_MESSAGES: &[u8] = include_bytes!("../../i18n/zh-CN.ftl");
-const EN_US_MESSAGES: &[u8] = include_bytes!("../../i18n/en-US.ftl");
+const ZH_CN_MESSAGES: &[&[u8]] = &[
+    include_bytes!("../../i18n/zh-CN.ftl"),
+    include_bytes!("../../i18n/zh-CN.htop.ftl"),
+];
+const EN_US_MESSAGES: &[&[u8]] = &[
+    include_bytes!("../../i18n/en-US.ftl"),
+    include_bytes!("../../i18n/en-US.htop.ftl"),
+];
 
 thread_local! {
     static ZH_CN_BUNDLE: RefCell<Option<FluentBundle<FluentResource>>> = const { RefCell::new(None) };
@@ -104,14 +110,16 @@ fn message_language_from_tag(tag: &str) -> MessageLanguage {
 }
 
 fn build_bundle(language: MessageLanguage) -> Option<FluentBundle<FluentResource>> {
-    let messages = std::str::from_utf8(messages_for_language(language)).ok()?;
-    let resource = FluentResource::try_new(messages.to_owned()).ok()?;
     let mut bundle = FluentBundle::new(vec![language_identifier(language)]);
-    bundle.add_resource(resource).ok()?;
+    for messages in messages_for_language(language) {
+        let messages = std::str::from_utf8(messages).ok()?;
+        let resource = FluentResource::try_new(messages.to_owned()).ok()?;
+        bundle.add_resource(resource).ok()?;
+    }
     Some(bundle)
 }
 
-fn messages_for_language(language: MessageLanguage) -> &'static [u8] {
+fn messages_for_language(language: MessageLanguage) -> &'static [&'static [u8]] {
     match language {
         MessageLanguage::ZhCn => ZH_CN_MESSAGES,
         MessageLanguage::EnUs => EN_US_MESSAGES,

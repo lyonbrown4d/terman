@@ -11,7 +11,7 @@ pub(crate) fn draw(frame: &mut Frame<'_>) {
         .map(help_line)
         .collect::<Vec<_>>();
     let block = Block::default()
-        .title("Help")
+        .title(terman_common::builtin_htop_footer_help_hint())
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Cyan));
     frame.render_widget(Paragraph::new(lines).block(block).wrap(Wrap { trim: false }), frame.area());

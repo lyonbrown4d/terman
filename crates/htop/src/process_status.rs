@@ -22,14 +22,15 @@ pub(crate) fn status_summary_line(rows: &[ProcessRow]) -> Line<'static> {
         }
         counts
     });
-    Line::from(Span::raw(format!(
-        "States: running {}  sleeping {}  stopped {}  zombie {}  other {}",
-        counts.running,
-        counts.sleeping,
-        counts.stopped,
-        counts.zombie,
-        counts.other
-    )))
+    Line::from(Span::raw(
+        terman_common::builtin_htop_overview_states_hint(
+            counts.running,
+            counts.sleeping,
+            counts.stopped,
+            counts.zombie,
+            counts.other,
+        ),
+    ))
 }
 
 fn normalize_status(status: &str) -> &'static str {
