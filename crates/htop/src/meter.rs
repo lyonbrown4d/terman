@@ -17,6 +17,16 @@ pub(crate) fn meter_line(
     width: usize,
     suffix: String,
 ) -> Line<'static> {
+    Line::from(meter_spans(label, value, max, width, suffix))
+}
+
+pub(crate) fn meter_spans(
+    label: &str,
+    value: f64,
+    max: f64,
+    width: usize,
+    suffix: String,
+) -> Vec<Span<'static>> {
     let filled = meter_fill(value, max, width);
     let mut spans = Vec::with_capacity(7);
     spans.push(Span::styled(
@@ -29,7 +39,7 @@ pub(crate) fn meter_line(
         Style::default().fg(Color::DarkGray),
     ));
     spans.push(Span::styled(format!("] {suffix}"), Style::default().fg(Color::White)));
-    Line::from(spans)
+    spans
 }
 
 fn append_filled_segments(spans: &mut Vec<Span<'static>>, filled: usize, width: usize) {

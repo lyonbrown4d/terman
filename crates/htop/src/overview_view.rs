@@ -28,8 +28,10 @@ pub(crate) fn draw_overview(
     selected: usize,
     tagged_pids: &HashSet<String>,
 ) {
-    let core_rows = overview_layout::core_rows(area.height, snapshot.cpu_cores.len());
-    let process_rows = overview_layout::process_rows(area.height, snapshot.cpu_cores.len());
+    let content_width = area.width.saturating_sub(2);
+    let core_columns = overview_layout::core_columns(content_width, snapshot.cpu_cores.len());
+    let core_rows = overview_layout::core_rows(area.height, content_width, snapshot.cpu_cores.len());
+    let process_rows = overview_layout::process_rows(area.height, content_width, snapshot.cpu_cores.len());
     let process_start = overview_layout::visible_start(selected, process_rows, snapshot.processes.len());
     let mut lines = vec![
         meter_line("CPU", snapshot.cpu_usage as f64, 100.0, 24, format!(
@@ -58,12 +60,17 @@ pub(crate) fn draw_overview(
             snapshot.load_average.fifteen
         )),
     ];
-    lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
+    lines.extend(core_meter_lines(
+        snapshot.cpu_cores.as_slice(),
+        core_rows,
+        core_columns,
+        content_width,
+    ));
     lines.push(title_line("TOP PROCESSES"));
     lines.push(process_header_line(sort, command_mode));
     for (offset, row) in snapshot.processes.iter().skip(process_start).take(process_rows).enumerate() {
         let index = process_start + offset;
-        lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str()), command_mode));
+        lines.push(process_line(row, index == selected, snapshot.total_memory, content_width, tagged_pids.contains(row.pid.as_str()), command_mode));
     }
     render_block(frame, area, "Overview", lines);
 }

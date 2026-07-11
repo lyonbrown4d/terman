@@ -287,8 +287,8 @@ fn network_header_sort_at(column: u16) -> Option<SortMode> {
 }
 
 fn overview_header_row(context: &MouseContext<'_>) -> u16 {
-    overview_layout::process_start_row(terminal_area().height, context.cpu_core_count)
-        .saturating_sub(1)
+    let terminal = terminal_area();
+    overview_layout::process_start_row(terminal.height, terminal.width.saturating_sub(2), context.cpu_core_count).saturating_sub(1)
 }
 
 fn network_header_row(context: &MouseContext<'_>) -> u16 {

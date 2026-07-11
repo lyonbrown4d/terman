@@ -91,8 +91,13 @@ fn process_at(tab: Tab, row: u16, selected: usize, processes: &[ProcessRow], cor
 
 fn overview_process_at(row: u16, selected: usize, processes: &[ProcessRow], cores: usize) -> Option<usize> {
     let terminal = terminal_area();
-    let first_row = overview_layout::process_start_row(terminal.height, cores);
-    let visible = overview_layout::process_rows_for_terminal(terminal.height, cores);
+    let content_width = terminal.width.saturating_sub(2);
+    let first_row = overview_layout::process_start_row(terminal.height, content_width, cores);
+    let visible = overview_layout::process_rows_for_terminal(
+        terminal.height,
+        content_width,
+        cores,
+    );
     let start = overview_layout::visible_start(selected, visible, processes.len());
     row.checked_sub(first_row)
         .map(|offset| start + usize::from(offset))
