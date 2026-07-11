@@ -33,6 +33,30 @@ pub(crate) fn handle_client(
             write_response(stream, &TmuxIpcResponse::Accepted)
         }
         Ok(TmuxIpcRequest::CapturePane { window, pane }) => capture_pane(stream, bus, window, pane),
+        Ok(TmuxIpcRequest::GetBuffer) => write_response(
+            stream,
+            &TmuxIpcResponse::Buffer {
+                bytes: bus.buffer_snapshot(),
+            },
+        ),
+        Ok(TmuxIpcRequest::PasteBuffer) => {
+            let bytes = bus.buffer_snapshot();
+            if bytes.is_empty() {
+                write_response(stream, &TmuxIpcResponse::Accepted)
+            } else {
+                accept_control(stream, control_tx, TmuxControlEvent::Input(bytes))
+            }
+        }
+        Ok(TmuxIpcRequest::RefreshClient) => write_response(
+            stream,
+            &TmuxIpcResponse::Captured {
+                bytes: bus.replay_snapshot(),
+            },
+        ),
+        Ok(TmuxIpcRequest::SetBuffer { bytes }) => {
+            bus.set_buffer(bytes);
+            write_response(stream, &TmuxIpcResponse::Accepted)
+        }
         Ok(TmuxIpcRequest::DetachAll) => {
             bus.publish_detach();
             write_response(stream, &TmuxIpcResponse::Accepted)

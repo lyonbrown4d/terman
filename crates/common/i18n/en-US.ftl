@@ -191,7 +191,7 @@ builtin-tmux-cli-examples =
       - List sessions first: terman-tmux list-sessions
       - Name conflict: terman-tmux new -s demo
       - Reproduce conflict: terman-tmux new -s demo
-builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help
+builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer
 builtin-tmux-prefix-status = tmux prefix | %/" split | o next pane | z zoom pane | x kill pane | & kill window | d detach
 builtin-tmux-attach-window-list = windows: {$windows}
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
@@ -222,3 +222,5 @@ builtin-tmux-window-not-found = tmux window {$index} in session {$session} was n
 
 builtin-screen-copy-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
 builtin-screen-copy-selection-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel
+builtin-tmux-copy-status = tmux copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
+builtin-tmux-copy-selection-status = tmux copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel

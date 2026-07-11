@@ -15,7 +15,9 @@ use crate::{
         KILL_PANE_CONFIRM_STATUS, KILL_WINDOW_CONFIRM_STATUS, query_status_line,
         render_status_line,
     },
-    attach_window::{current_active_window, handle_window_command, kill_current_window, select_window},
+    attach_window::{
+        current_active_window, handle_window_command, kill_current_window, select_window,
+    },
     attach_window_list::render_window_list_status,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
@@ -25,6 +27,13 @@ use crate::{
 enum KillTarget {
     Pane,
     Window,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum AttachInputResult {
+    Continue,
+    Stop,
+    EnterCopyMode,
 }
 
 #[derive(Default)]
@@ -41,18 +50,18 @@ impl AttachInputMode {
         endpoint: &TmuxIpcEndpoint,
         client_id: &str,
         key: KeyEvent,
-    ) -> io::Result<bool> {
+    ) -> io::Result<AttachInputResult> {
         if !is_key_press(&key) {
-            return Ok(true);
+            return Ok(AttachInputResult::Continue);
         }
         if self.handle_rename(endpoint, &key)? {
-            return Ok(true);
+            return Ok(AttachInputResult::Continue);
         }
         if let Some(target) = self.kill_pending {
             if !handle_kill_confirmation(endpoint, &key, target)? {
                 self.kill_pending = None;
             }
-            return Ok(true);
+            return Ok(AttachInputResult::Continue);
         }
         if self.prefix_pending {
             return self.handle_prefix(endpoint, client_id, &key);
@@ -60,12 +69,12 @@ impl AttachInputMode {
         if is_tmux_prefix_key(&key) {
             self.prefix_pending = true;
             let _ = render_status_line(&terman_common::builtin_tmux_prefix_status_hint());
-            return Ok(true);
+            return Ok(AttachInputResult::Continue);
         }
         if let Some(bytes) = key_event_bytes(&key) {
             send_input(endpoint, bytes)?;
         }
-        Ok(true)
+        Ok(AttachInputResult::Continue)
     }
 
     fn handle_rename(&mut self, endpoint: &TmuxIpcEndpoint, key: &KeyEvent) -> io::Result<bool> {
@@ -84,7 +93,7 @@ impl AttachInputMode {
         endpoint: &TmuxIpcEndpoint,
         client_id: &str,
         key: &KeyEvent,
-    ) -> io::Result<bool> {
+    ) -> io::Result<AttachInputResult> {
         self.prefix_pending = false;
         if is_detach_key(key) {
             send_request(
@@ -93,15 +102,25 @@ impl AttachInputMode {
                     client_id: client_id.to_string(),
                 },
             )?;
-            return Ok(false);
+            return Ok(AttachInputResult::Stop);
         }
-        if let Some(command) = tmux_prefix_command(key) {
-            self.handle_prefix_command(endpoint, command)?;
-            return Ok(true);
+        match tmux_prefix_command(key) {
+            Some(TmuxPrefixCommand::CopyMode) => Ok(AttachInputResult::EnterCopyMode),
+            Some(TmuxPrefixCommand::PasteBuffer) => {
+                send_request(endpoint, TmuxIpcRequest::PasteBuffer)?;
+                let _ = render_current_status(endpoint);
+                Ok(AttachInputResult::Continue)
+            }
+            Some(command) => {
+                self.handle_prefix_command(endpoint, command)?;
+                Ok(AttachInputResult::Continue)
+            }
+            None => {
+                send_input(endpoint, tmux_prefix_bytes())?;
+                let _ = render_current_status(endpoint);
+                Ok(AttachInputResult::Continue)
+            }
         }
-        send_input(endpoint, tmux_prefix_bytes())?;
-        let _ = render_current_status(endpoint);
-        Ok(true)
     }
 
     fn handle_prefix_command(
@@ -145,6 +164,9 @@ impl AttachInputMode {
                 let _ = render_status_line(&terman_common::builtin_tmux_attach_help());
             }
             TmuxPrefixCommand::LastWindow => self.select_last_window(endpoint)?,
+            TmuxPrefixCommand::CopyMode | TmuxPrefixCommand::PasteBuffer => {
+                unreachable!("copy and paste are handled before command dispatch")
+            }
             command => {
                 self.track_last_window(endpoint, command)?;
                 handle_window_command(endpoint, command)?;

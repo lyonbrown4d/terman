@@ -80,6 +80,10 @@ pub(crate) enum TmuxIpcRequest {
     DetachClient { client_id: String },
     DetachAll,
     CapturePane { window: Option<u32>, pane: Option<u32> },
+    GetBuffer,
+    PasteBuffer,
+    RefreshClient,
+    SetBuffer { bytes: Vec<u8> },
     ClearHistory { window: Option<u32>, pane: Option<u32> },
     DisplayMessage { message: String },
     Info,
@@ -107,6 +111,7 @@ pub(crate) enum TmuxIpcRequest {
 pub(crate) enum TmuxIpcResponse {
     Accepted,
     Attached { replay: Vec<u8> },
+    Buffer { bytes: Vec<u8> },
     Detached,
     Captured { bytes: Vec<u8> },
     Info {

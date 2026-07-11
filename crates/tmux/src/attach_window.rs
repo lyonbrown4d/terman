@@ -27,6 +27,8 @@ pub(crate) fn handle_window_command(
         | TmuxPrefixCommand::SplitVertical
         | TmuxPrefixCommand::NextPane
         | TmuxPrefixCommand::TogglePaneZoom
+        | TmuxPrefixCommand::CopyMode
+        | TmuxPrefixCommand::PasteBuffer
         | TmuxPrefixCommand::KillPane
         | TmuxPrefixCommand::Help => return Ok(()),
     };

@@ -30,6 +30,7 @@ pub(crate) struct TmuxSessionState {
     pub(crate) last_window: Option<u32>,
     pub(crate) cols: Option<u16>,
     pub(crate) rows: Option<u16>,
+    pub(crate) buffer: Vec<u8>,
 }
 
 impl TmuxSessionState {
@@ -42,6 +43,7 @@ impl TmuxSessionState {
             last_window: None,
             cols: None,
             rows: None,
+            buffer: Vec::new(),
         };
         state.set_window_count(windows.max(1));
         state

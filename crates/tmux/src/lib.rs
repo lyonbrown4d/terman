@@ -2,6 +2,8 @@ use std::{error::Error, io};
 
 mod args;
 mod attach;
+mod copy_mode;
+mod attach_copy;
 mod attach_input;
 mod attach_keys;
 mod attach_mouse;
@@ -35,6 +37,7 @@ mod service_handlers;
 mod send_keys;
 mod server;
 mod session_core;
+mod session_buffer;
 mod session_model;
 mod session_state;
 mod sessions;

@@ -184,3 +184,20 @@ pub fn builtin_tmux_pane_not_found_hint(session: &str, window: u32, pane: u32) -
 pub fn builtin_tmux_pane_size_required_hint() -> String {
     localized_message(MessageKey::BuiltinTmuxPaneSizeRequired, &[])
 }
+
+pub fn builtin_tmux_copy_status_hint(
+    line: usize,
+    total: usize,
+    selecting: bool,
+) -> String {
+    let line = line.to_string();
+    let total = total.to_string();
+    localized_message(
+        if selecting {
+            MessageKey::BuiltinTmuxCopySelectionStatus
+        } else {
+            MessageKey::BuiltinTmuxCopyStatus
+        },
+        &[("line", &line), ("total", &total)],
+    )
+}

@@ -11,7 +11,7 @@ use crate::session_state::{
 
 #[derive(Clone)]
 pub(crate) struct TmuxSessionBus {
-    inner: Arc<Mutex<TmuxSessionState>>,
+    pub(crate) inner: Arc<Mutex<TmuxSessionState>>,
 }
 
 pub(crate) struct TmuxSessionSubscription {

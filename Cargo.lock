@@ -1700,6 +1700,7 @@ dependencies = [
  "serde_json",
  "terman-common",
  "tokio",
+ "unicode-width",
  "vt100",
 ]
 
