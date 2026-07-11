@@ -33,6 +33,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut help_open = false;
     let mut signal_menu: Option<SignalMenuState> = None;
     let mut selected = 0usize;
+    let mut followed_pid: Option<String> = None;
     let mut detail_scroll = 0usize;
     let mut io_scroll = 0usize;
     let mut network_scroll = 0usize;
@@ -58,6 +59,16 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
         let active_search = search_input.as_deref().unwrap_or(&search);
         sort = normalize_sort_for_tab(tab, sort);
         let snapshot = metrics.snapshot(sort, sort_inverted, active_filter, tree);
+        let followed_index = followed_pid.as_deref().and_then(|pid| {
+            snapshot.processes.iter().position(|process| process.pid == pid)
+        });
+        if followed_pid.is_some() {
+            if let Some(index) = followed_index {
+                selected = index;
+            } else {
+                followed_pid = None;
+            }
+        }
         selected = clamp_selection(selected, snapshot.processes.len());
         io_scroll = io_scroll.min(snapshot.io.len().saturating_sub(1));
         network_scroll = network_scroll
@@ -103,6 +114,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     io_scroll,
                     network_scroll,
                     refresh_ms,
+                    followed_pid.as_deref(),
                     signal_menu.as_ref(),
                 );
                 if sort_menu_open {
@@ -127,6 +139,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut help_open,
             &mut signal_menu,
             &mut selected,
+            &mut followed_pid,
             &mut detail_scroll,
             &mut io_scroll,
             &mut network_scroll,

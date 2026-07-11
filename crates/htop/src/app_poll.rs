@@ -11,9 +11,9 @@ use crate::{
         handle_signal_input, handle_sort_menu_input, selected_process_pid,
     },
     app_input::{
-        adjust_refresh, delay_key, filter_key, help_key, interrupt_key, invert_sort_key, kill_key,
-        move_selection, navigation_key, next_tab, priority_delta, quit_key, search_key, sort_key,
-        tree_key,
+        adjust_refresh, delay_key, filter_key, follow_key, help_key, interrupt_key,
+        invert_sort_key, kill_key, move_selection, navigation_key, next_tab, priority_delta,
+        quit_key, search_key, sort_key, tree_key,
     },
     interrupt::InterruptFlag,
     metrics::Metrics,
@@ -38,6 +38,7 @@ pub(crate) fn poll_until_refresh(
     help_open: &mut bool,
     signal_menu: &mut Option<SignalMenuState>,
     selected: &mut usize,
+    followed_pid: &mut Option<String>,
     detail_scroll: &mut usize,
     io_scroll: &mut usize,
     network_scroll: &mut usize,
@@ -60,6 +61,7 @@ pub(crate) fn poll_until_refresh(
             return Ok(true);
         }
         if event::poll(Duration::from_millis(50))? {
+            let previous_selected = *selected;
             let redraw = match event::read()? {
                 Event::Key(key) if interrupt_key(&key) => return Ok(true),
                 Event::Key(key) if key.kind == KeyEventKind::Release => false,
@@ -147,6 +149,15 @@ pub(crate) fn poll_until_refresh(
                     true
                 }
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
+                Event::Key(key) if follow_key(key.code) => {
+                    let pid = selected_process_pid(processes, *selected);
+                    if followed_pid.as_deref() == pid.as_deref() {
+                        *followed_pid = None;
+                    } else {
+                        *followed_pid = pid;
+                    }
+                    true
+                }
                 Event::Key(key) if navigation_key(key.code) => {
                     let next = move_selection(*selected, processes.len(), key.code);
                     if next != *selected {
@@ -207,6 +218,9 @@ pub(crate) fn poll_until_refresh(
                 Event::Resize(_, _) => true,
                 _ => false,
             };
+            if *selected != previous_selected {
+                *followed_pid = None;
+            }
             if redraw {
                 return Ok(false);
             }

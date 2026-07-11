@@ -64,6 +64,10 @@ pub(crate) fn tree_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('t') | KeyCode::F(5))
 }
 
+pub(crate) fn follow_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('F'))
+}
+
 pub(crate) fn invert_sort_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('I'))
 }

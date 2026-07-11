@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu., F7/F8 adjust priority
+builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, F6/s sort menu, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority.
 builtin-htop-help-panel =
     terman htop
 
@@ -12,6 +12,7 @@ builtin-htop-help-panel =
     Tab or Left/Right: switch Overview, Processes, I/O, Network tabs.
     1-4: jump to a tab directly.
     Arrows, Home, End, PgUp, PgDn: move process selection.
+    F: follow the selected PID across sorting and refreshes.
     F3: search visible processes.
     F4 or /: filter processes by PID, name, or command line.
     F5 or t: toggle flat/tree process view.
@@ -30,6 +31,7 @@ builtin-htop-signal-menu-title = Send signal to PID {$pid}
 builtin-htop-signal-menu-help = Up/Down or wheel choose, Enter or click send, Esc/F9 cancel.
 builtin-htop-signal-unsupported = No process signals are supported on this platform.
 builtin-htop-signal-footer =  signal PID {$pid}:
+builtin-htop-follow-status = FOLLOW PID {$pid}
 builtin-screen-no-sessions = No built-in screen sessions found. Use `terman-screen -S <name>` to create a named session.
 builtin-screen-cli-about = Cross-platform screen terminal session tool with a built-in backend.
 builtin-screen-cli-examples =

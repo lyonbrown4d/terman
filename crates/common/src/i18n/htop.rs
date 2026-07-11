@@ -50,3 +50,7 @@ pub fn builtin_htop_signal_unsupported_hint() -> String {
 pub fn builtin_htop_signal_footer_hint(pid: &str) -> String {
     localized_message(MessageKey::BuiltinHtopSignalFooter, &[("pid", pid)])
 }
+
+pub fn builtin_htop_follow_status_hint(pid: &str) -> String {
+    localized_message(MessageKey::BuiltinHtopFollowStatus, &[("pid", pid)])
+}

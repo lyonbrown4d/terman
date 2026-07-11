@@ -62,13 +62,14 @@ pub(crate) fn draw(
     io_scroll: usize,
     network_scroll: usize,
     refresh_ms: u64,
+    followed_pid: Option<&str>,
     signal_state: Option<&SignalMenuState>,
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(5), Constraint::Min(0), Constraint::Length(1)])
         .split(frame.area());
-    draw_header(frame, chunks[0], snapshot, tab);
+    draw_header(frame, chunks[0], snapshot, tab, followed_pid);
     match tab {
         Tab::Overview => draw_overview(frame, chunks[1], snapshot, sort, selected),
         Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll),
@@ -91,7 +92,13 @@ pub(crate) fn draw(
     }
 }
 
-fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab) {
+fn draw_header(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    snapshot: &Snapshot,
+    tab: Tab,
+    followed_pid: Option<&str>,
+) {
     let cpu = snapshot.cpu_usage;
     let mem = format_bytes(snapshot.used_memory);
     let total = format_bytes(snapshot.total_memory);
@@ -102,12 +109,25 @@ fn draw_header(frame: &mut Frame<'_>, area: Rect, snapshot: &Snapshot, tab: Tab)
         meter_line("MEM", snapshot.used_memory as f64, snapshot.total_memory as f64, 16, format!("{mem}/{total}  Uptime:{}", format_duration(snapshot.uptime))),
         meter_line("SWP", snapshot.used_swap as f64, snapshot.total_swap as f64, 16, format!("{swap}/{swap_total}")),
         tab_line(tab),
-        Line::from(Span::styled(
-            terman_common::builtin_htop_help_hint(),
-            Style::default().fg(Color::DarkGray),
-        )),
+        status_line(followed_pid),
     ];
     frame.render_widget(Paragraph::new(lines), area);
+}
+
+fn status_line(followed_pid: Option<&str>) -> Line<'static> {
+    let mut spans = Vec::new();
+    if let Some(pid) = followed_pid {
+        spans.push(Span::styled(
+            format!(" {} | ", terman_common::builtin_htop_follow_status_hint(pid)),
+            Style::default().fg(Color::Black).bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ));
+    }
+    spans.push(Span::styled(
+        terman_common::builtin_htop_help_hint(),
+        Style::default().fg(Color::DarkGray),
+    ));
+    Line::from(spans)
 }
 
 fn tab_line(active: Tab) -> Line<'static> {
