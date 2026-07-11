@@ -118,7 +118,7 @@ pub enum MessageKey {
     BuiltinScreenControlSourcePathRequired,
     BuiltinScreenControlWritebufPathRequired,
     BuiltinScreenControlBufferEncodingRequired,
-    BuiltinScreenControlWritebufComplete,
+    BuiltinScreenControlWritebufComplete, BuiltinScreenControlReadbufComplete, BuiltinScreenControlRemovebufComplete, BuiltinScreenControlBufferIoError,
     BuiltinScreenWipeComplete,
 }
 
@@ -291,9 +291,7 @@ Self::BuiltinScreenMonitorStatus => "builtin-screen-monitor-status", Self::Built
             Self::BuiltinScreenControlBufferEncodingRequired => {
                 "builtin-screen-control-buffer-encoding-required"
             }
-            Self::BuiltinScreenControlWritebufComplete => {
-                "builtin-screen-control-writebuf-complete"
-            }
+            Self::BuiltinScreenControlWritebufComplete => "builtin-screen-control-writebuf-complete", Self::BuiltinScreenControlReadbufComplete => "builtin-screen-control-readbuf-complete", Self::BuiltinScreenControlRemovebufComplete => "builtin-screen-control-removebuf-complete", Self::BuiltinScreenControlBufferIoError => "builtin-screen-control-buffer-io-error",
             Self::BuiltinScreenWipeComplete => "builtin-screen-wipe-complete",
         }
     }

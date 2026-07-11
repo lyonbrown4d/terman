@@ -58,3 +58,24 @@ pub fn builtin_screen_control_writebuf_complete_hint(path: &str, bytes: usize) -
         &[("path", path), ("bytes", &bytes)],
     )
 }
+pub fn builtin_screen_control_readbuf_complete_hint(path: &str, bytes: usize) -> String {
+    let bytes = bytes.to_string();
+    localized_message(
+        MessageKey::BuiltinScreenControlReadbufComplete,
+        &[("path", path), ("bytes", &bytes)],
+    )
+}
+
+pub fn builtin_screen_control_removebuf_complete_hint(path: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinScreenControlRemovebufComplete,
+        &[("path", path)],
+    )
+}
+
+pub fn builtin_screen_control_buffer_io_error_hint(path: &str, reason: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinScreenControlBufferIoError,
+        &[("path", path), ("reason", reason)],
+    )
+}

@@ -257,3 +257,6 @@ builtin-htop-untag-all = 清除标记
 builtin-htop-tagged-count = 个已标记进程
 builtin-tmux-command-prompt = tmux 命令 | :{ $command }
 builtin-tmux-command-parse-error = tmux 命令包含未结束的引号或转义
+builtin-screen-control-readbuf-complete = 已从 screen 缓冲区 {$path} 读取 { $bytes } 字节
+builtin-screen-control-removebuf-complete = 已删除 screen 缓冲区文件 {$path}
+builtin-screen-control-buffer-io-error = Screen 缓冲区文件 {$path}：{$reason}

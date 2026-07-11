@@ -1,6 +1,7 @@
 use std::{io, sync::mpsc};
 
 use crate::{
+    builtin_buffer::{read_buffer_file, remove_buffer_file, write_buffer_file},
     session_core::{ScreenControlEvent, ScreenSessionBus},
     terminal_input::ScreenInputAction,
 };
@@ -32,6 +33,18 @@ pub(crate) fn handle_builtin_input_action(
         ScreenInputAction::OnlyRegion => Some(ScreenControlEvent::OnlyRegion),
         ScreenInputAction::Paste => {
             Some(ScreenControlEvent::Input(bus.paste_buffer_snapshot()))
+        }
+        ScreenInputAction::ReadBuffer => {
+            read_buffer_file(bus);
+            None
+        }
+        ScreenInputAction::WriteBuffer => {
+            write_buffer_file(bus);
+            None
+        }
+        ScreenInputAction::RemoveBuffer => {
+            remove_buffer_file(bus);
+            None
         }
         ScreenInputAction::Clear => {
             bus.publish_display_control(b"[2J[H");
@@ -74,14 +87,11 @@ pub(crate) fn handle_builtin_input_action(
         | ScreenInputAction::LastMessage
         | ScreenInputAction::License
         | ScreenInputAction::Number
-        | ScreenInputAction::ReadBuffer
-        | ScreenInputAction::RemoveBuffer
         | ScreenInputAction::Time
         | ScreenInputAction::Title
         | ScreenInputAction::Version
         | ScreenInputAction::WidthToggle
-        | ScreenInputAction::Windows
-        | ScreenInputAction::WriteBuffer => None,
+        | ScreenInputAction::Windows => None,
     };
 
     if let Some(event) = event {

@@ -4,6 +4,7 @@ use std::error::Error;
 mod builtin;
 mod builtin_control;
 mod builtin_input;
+mod builtin_buffer;
 mod builtin_output;
 mod builtin_mouse;
 mod builtin_runtime;

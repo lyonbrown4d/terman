@@ -257,3 +257,6 @@ builtin-htop-untag-all = Untag
 builtin-htop-tagged-count = tagged processes
 builtin-tmux-command-prompt = tmux command | :{ $command }
 builtin-tmux-command-parse-error = tmux command contains an unfinished quote or escape
+builtin-screen-control-readbuf-complete = Read { $bytes } bytes from screen buffer {$path}
+builtin-screen-control-removebuf-complete = Removed screen buffer file {$path}
+builtin-screen-control-buffer-io-error = Screen buffer file {$path}: {$reason}
