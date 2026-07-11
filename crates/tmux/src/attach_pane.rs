@@ -66,6 +66,20 @@ pub(crate) fn select_pane_direction(
     )
 }
 
+pub(crate) fn resize_current_pane(
+    endpoint: &TmuxIpcEndpoint,
+    direction: PaneDirection,
+) -> io::Result<()> {
+    send_request(
+        endpoint,
+        TmuxIpcRequest::ResizePaneDirection {
+            window: None,
+            pane: None,
+            direction,
+            adjustment: 1,
+        },
+    )
+}
 pub(crate) fn swap_current_pane(
     endpoint: &TmuxIpcEndpoint,
     forward: bool,

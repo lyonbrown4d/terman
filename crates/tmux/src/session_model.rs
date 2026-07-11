@@ -28,6 +28,7 @@ pub(crate) enum TmuxControlEvent {
         cols: Option<u16>,
         rows: Option<u16>,
     },
+    ResizePaneDirection { window: u32, pane: u32, direction: PaneDirection, adjustment: u16 },
     Terminate,
 }
 

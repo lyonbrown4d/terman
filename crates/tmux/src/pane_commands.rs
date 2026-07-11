@@ -10,6 +10,7 @@ use crate::{
         target_window_index_arg,
     },
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
+    pane_resize_args::{resize_pane_adjustment_arg, resize_pane_direction_arg},
     service::request_endpoint_response,
     sessions::{BuiltinTmuxSession, load_builtin_tmux_sessions},
     window_commands::kill_builtin_tmux_window_command,
@@ -99,9 +100,10 @@ pub(crate) fn display_builtin_tmux_panes(args: &[String]) -> Result<(), Box<dyn 
 pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Error>> {
     let (_, session) = target_session(args)?;
     let zoom = resize_pane_zoom_arg(args);
+    let direction = resize_pane_direction_arg(args);
     let cols = resize_pane_width_arg(args);
     let rows = resize_pane_height_arg(args);
-    if !zoom && cols.is_none() && rows.is_none() {
+    if !zoom && direction.is_none() && cols.is_none() && rows.is_none() {
         return Err(pane_size_required_error());
     }
     let info = query_pane_info(
@@ -116,6 +118,13 @@ pub(crate) fn resize_builtin_tmux_pane(args: &[String]) -> Result<(), Box<dyn Er
         TmuxIpcRequest::TogglePaneZoom {
             window: Some(info.window_index),
             pane: Some(pane),
+        }
+    } else if let Some(direction) = direction {
+        TmuxIpcRequest::ResizePaneDirection {
+            window: Some(info.window_index),
+            pane: Some(pane),
+            direction,
+            adjustment: resize_pane_adjustment_arg(args),
         }
     } else {
         TmuxIpcRequest::ResizePane {

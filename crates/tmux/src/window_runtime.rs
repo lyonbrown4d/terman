@@ -13,6 +13,7 @@ use crate::{
 
 #[path = "window_runtime_config.rs"]
 mod config;
+#[path = "window_runtime_resize.rs"] mod pane_resize;
 
 pub(crate) struct TmuxWindowRuntimeConfig {
     pub(crate) session_name: String,

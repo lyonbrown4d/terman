@@ -190,6 +190,29 @@ pub(crate) fn resize_pane(
     )
 }
 
+pub(crate) fn resize_pane_direction(
+    stream: &mut LocalSocketStream,
+    bus: &TmuxSessionBus,
+    control_tx: &mpsc::Sender<TmuxControlEvent>,
+    target: (Option<u32>, Option<u32>),
+    direction: crate::pane_layout::PaneDirection,
+    adjustment: u16,
+) -> io::Result<()> {
+    let (window, pane) = target;
+    let Some((status, pane)) = resolve_pane(stream, bus, window, pane)? else {
+        return Ok(());
+    };
+    accept_control(
+        stream,
+        control_tx,
+        TmuxControlEvent::ResizePaneDirection {
+            window: status.window_index,
+            pane,
+            direction,
+            adjustment: adjustment.max(1),
+        },
+    )
+}
 fn adjacent_pane(panes: &[u32], pane: u32, forward: bool) -> u32 {
     let position = panes.iter().position(|candidate| *candidate == pane).unwrap_or(0);
     let offset = if forward { 1 } else { panes.len().saturating_sub(1) };

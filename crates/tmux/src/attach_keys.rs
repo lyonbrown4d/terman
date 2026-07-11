@@ -33,6 +33,7 @@ pub(crate) enum TmuxPrefixCommand {
     SplitVertical,
     NextPane,
     SelectPane(PaneDirection),
+    ResizePane(PaneDirection),
     SwapPaneUp,
     SwapPaneDown,
     TogglePaneZoom,
@@ -45,11 +46,17 @@ pub(crate) enum TmuxPrefixCommand {
 }
 
 pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
-    if !is_key_press(key)
-        || key.modifiers.contains(KeyModifiers::CONTROL)
-        || key.modifiers.contains(KeyModifiers::ALT)
-    {
+    if !is_key_press(key) || key.modifiers.contains(KeyModifiers::ALT) {
         return None;
+    }
+    if key.modifiers.contains(KeyModifiers::CONTROL) {
+        return match key.code {
+            KeyCode::Left => Some(TmuxPrefixCommand::ResizePane(PaneDirection::Left)),
+            KeyCode::Right => Some(TmuxPrefixCommand::ResizePane(PaneDirection::Right)),
+            KeyCode::Up => Some(TmuxPrefixCommand::ResizePane(PaneDirection::Up)),
+            KeyCode::Down => Some(TmuxPrefixCommand::ResizePane(PaneDirection::Down)),
+            _ => None,
+        };
     }
     match key.code {
         KeyCode::Char('n') => Some(TmuxPrefixCommand::NextWindow),

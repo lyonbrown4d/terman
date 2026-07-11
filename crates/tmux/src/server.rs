@@ -144,6 +144,9 @@ fn run_control_loop(
                 TmuxControlEvent::ResizePane { window, pane, cols, rows } => {
                     if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.resize_pane(pane, cols, rows); }
                 }
+                TmuxControlEvent::ResizePaneDirection { window, pane, direction, adjustment } => {
+                    if let Some(runtime) = active_runtime(windows, window) { let _ = runtime.resize_pane_direction(pane, direction, adjustment); }
+                }
                 TmuxControlEvent::Terminate => {
                     if !terminate_requested {
                         terminate_requested = true;

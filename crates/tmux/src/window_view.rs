@@ -155,6 +155,19 @@ impl TmuxWindowView {
         true
     }
 
+    pub(crate) fn resize_pane_direction(
+        &mut self,
+        index: u32,
+        direction: PaneDirection,
+        adjustment: u16,
+    ) -> bool {
+        if !self.layout.resize_pane_direction(index, direction, adjustment, self.cols, self.rows) {
+            return false;
+        }
+        self.resize(self.cols, self.rows);
+        true
+    }
+
     pub(crate) fn pane_sizes(&self) -> Vec<PaneSize> {
         self.geometry()
             .panes

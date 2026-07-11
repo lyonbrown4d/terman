@@ -228,8 +228,8 @@ builtin-tmux-cli-examples =
       - List sessions first: terman-tmux list-sessions
       - Name conflict: terman-tmux new -s demo
       - Reproduce conflict: terman-tmux new -s demo
-builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B arrows select pane | Ctrl-B {/} swap pane up/down | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B $ rename session | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer | Ctrl-B : command prompt.
-builtin-tmux-prefix-status = tmux prefix | %/" split | o next pane | arrows select pane | z zoom pane | x kill pane | & kill window | , rename window | $ rename session | d detach
+builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B arrows select pane | Ctrl-B Ctrl-arrows resize pane | Ctrl-B {/} swap pane up/down | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B $ rename session | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer | Ctrl-B : command prompt.
+builtin-tmux-prefix-status = tmux prefix | %/" split | o next pane | arrows select pane | Ctrl-arrows resize pane | z zoom pane | x kill pane | & kill window | , rename window | $ rename session | d detach
 builtin-tmux-rename-session-prompt = rename session: {$input}
 builtin-tmux-rename-window-prompt = rename window: {$input}
 builtin-tmux-attach-window-list = windows: {$windows}
@@ -238,7 +238,7 @@ builtin-tmux-client-list-entry = {$session}: {$attached_clients} attached client
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}
 builtin-tmux-pane-list-entry = {$session}:{$window}.{$pane}: {$name} active={$active}
 builtin-tmux-pane-not-found = tmux pane {$window}.{$pane} in session {$session} was not found
-builtin-tmux-pane-size-required = specify pane size with resize-pane -x <cols> -y <rows>
+builtin-tmux-pane-size-required = specify pane size with resize-pane -x <cols> -y <rows> or move a boundary with -L/-R/-U/-D [adjustment]
 builtin-tmux-window-option-unsupported = tmux window option {$option} is not supported; supported option: synchronize-panes
 builtin-tmux-synchronize-panes-required = use set-window-option synchronize-panes [on|off|toggle]
 builtin-tmux-session-killed = killed tmux session {$name}

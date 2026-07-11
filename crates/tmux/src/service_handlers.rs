@@ -7,7 +7,7 @@ use interprocess::local_socket::prelude::*;
 
 use crate::{
     ipc::{TmuxIpcRequest, TmuxIpcResponse},
-    pane_service::{capture_pane, clear_history, kill_pane, resize_pane, select_pane,
+    pane_service::{capture_pane, clear_history, kill_pane, resize_pane, resize_pane_direction, select_pane,
         select_pane_direction, split_pane, swap_pane, toggle_pane_zoom, write_pane_info},
     service_codec::write_response,
     service_buffer::{delete_buffer, get_buffer, list_buffers, paste_buffer, set_buffer},
@@ -98,6 +98,7 @@ pub(crate) fn handle_client(
         Ok(TmuxIpcRequest::SetSynchronizePanes { window, enabled }) =>
             set_synchronize_panes(stream, bus, control_tx, window, enabled),
         Ok(TmuxIpcRequest::ResizePane { window, pane, cols, rows }) => resize_pane(stream, bus, control_tx, (window, pane), (cols, rows)),
+        Ok(TmuxIpcRequest::ResizePaneDirection { window, pane, direction, adjustment }) => resize_pane_direction(stream, bus, control_tx, (window, pane), direction, adjustment),
         Ok(TmuxIpcRequest::Resize { cols, rows }) => {
             accept_control(stream, control_tx, TmuxControlEvent::Resize { cols, rows })
         }
