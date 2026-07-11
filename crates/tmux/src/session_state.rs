@@ -13,6 +13,7 @@ pub(crate) struct TmuxWindowReplay {
     pub(crate) index: u32,
     pub(crate) name: String,
     pub(crate) replay: Vec<u8>,
+    pub(crate) capture: Vec<u8>,
 }
 
 pub(crate) struct TmuxSessionState {
@@ -57,13 +58,46 @@ impl TmuxSessionState {
             .expect("active window exists")
     }
 
+    pub(crate) fn window_capture(&self, index: u32) -> Option<&[u8]> {
+        self.windows
+            .iter()
+            .find(|window| window.index == index)
+            .map(|window| window.capture.as_slice())
+    }
+
+    pub(crate) fn clear_window_capture(&mut self, index: u32) -> bool {
+        let Some(window) = self.windows.iter_mut().find(|window| window.index == index) else {
+            return false;
+        };
+        window.capture.clear();
+        true
+    }
+
+    pub(crate) fn replace_window_output(
+        &mut self,
+        index: u32,
+        replay: Vec<u8>,
+        capture: Vec<u8>,
+    ) {
+        self.ensure_window(index, index.to_string());
+        if let Some(window) = self.windows.iter_mut().find(|window| window.index == index) {
+            window.replay = replay;
+            window.capture = capture;
+        }
+    }
+
     pub(crate) fn has_window(&self, index: u32) -> bool {
         self.windows.iter().any(|window| window.index == index)
     }
 
     pub(crate) fn ensure_window(&mut self, index: u32, name: String) {
         if !self.has_window(index) {
-            self.windows.push(TmuxWindowReplay { index, name, replay: Vec::new() });
+            self.windows.push(TmuxWindowReplay {
+                index,
+                name,
+                replay: Vec::new(),
+                capture: Vec::new(),
+            });
             self.windows.sort_by_key(|window| window.index);
         }
     }
@@ -72,10 +106,9 @@ impl TmuxSessionState {
         self.ensure_window(index, index.to_string());
         let replay = self.windows.iter_mut().find(|window| window.index == index).expect("window exists");
         replay.replay.extend_from_slice(bytes);
-        if replay.replay.len() > MAX_REPLAY_BYTES {
-            let overflow = replay.replay.len() - MAX_REPLAY_BYTES;
-            replay.replay.drain(..overflow);
-        }
+        replay.capture.extend_from_slice(bytes);
+        trim_replay(&mut replay.replay);
+        trim_replay(&mut replay.capture);
     }
 
     pub(crate) fn set_window_count(&mut self, windows: u32) {
@@ -93,6 +126,13 @@ impl TmuxSessionState {
         if !self.has_window(self.active_window) {
             self.active_window = self.windows.first().map(|window| window.index).unwrap_or(0);
         }
+    }
+}
+
+fn trim_replay(bytes: &mut Vec<u8>) {
+    if bytes.len() > MAX_REPLAY_BYTES {
+        let overflow = bytes.len() - MAX_REPLAY_BYTES;
+        bytes.drain(..overflow);
     }
 }
 

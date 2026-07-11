@@ -62,11 +62,7 @@ impl TmuxSessionBus {
     pub(crate) fn window_replay_snapshot(&self, index: Option<u32>) -> Option<Vec<u8>> {
         self.inner.lock().ok().and_then(|state| {
             let index = index.unwrap_or(state.active_window);
-            state
-                .windows
-                .iter()
-                .find(|window| window.index == index)
-                .map(|window| window.replay.clone())
+            state.window_capture(index).map(ToOwned::to_owned)
         })
     }
 
@@ -95,9 +91,7 @@ impl TmuxSessionBus {
     pub(crate) fn clear_window_replay(&self, index: Option<u32>) -> bool {
         let Ok(mut state) = self.inner.lock() else { return false; };
         let index = index.unwrap_or(state.active_window);
-        let Some(window) = state.windows.iter_mut().find(|window| window.index == index) else { return false; };
-        window.replay.clear();
-        true
+        state.clear_window_capture(index)
     }
 
     pub(crate) fn clear_replay(&self) {
@@ -118,6 +112,14 @@ impl TmuxSessionBus {
         state.append_window_output(index, bytes);
         if index == state.active_window {
             send_to_subscribers(&mut state, TmuxSessionEvent::Output(bytes.to_vec()));
+        }
+    }
+
+    pub(crate) fn publish_window_frame(&self, index: u32, frame: Vec<u8>, capture: Vec<u8>) {
+        let Ok(mut state) = self.inner.lock() else { return; };
+        state.replace_window_output(index, frame.clone(), capture);
+        if index == state.active_window {
+            send_to_subscribers(&mut state, TmuxSessionEvent::Output(frame));
         }
     }
 

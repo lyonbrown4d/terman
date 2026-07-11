@@ -1,6 +1,7 @@
 use std::{
     error::Error,
     io::{self, Read, Write},
+    sync::{Arc, Mutex},
     thread,
 };
 
@@ -9,6 +10,7 @@ use portable_pty::{Child, MasterPty, PtySize, native_pty_system};
 use crate::{
     pty::{TmuxPtyCommandSpec, build_tmux_pty_command},
     session_core::TmuxSessionBus,
+    terminal_frame::render_terminal,
 };
 
 pub(crate) struct TmuxWindowRuntimeConfig {
@@ -27,6 +29,8 @@ pub(crate) struct TmuxWindowRuntime {
     child: Box<dyn Child + Send + Sync>,
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
+    terminal: Arc<Mutex<vt100::Parser>>,
+    bus: TmuxSessionBus,
     output_thread: Option<thread::JoinHandle<()>>,
 }
 
@@ -34,9 +38,12 @@ impl TmuxWindowRuntime {
     pub(crate) fn spawn(config: TmuxWindowRuntimeConfig, bus: TmuxSessionBus) -> Result<Self, Box<dyn Error>> {
         let index = config.index;
         let name = config.name.clone();
+        let cols = config.cols.max(1);
+        let rows = config.rows.max(1);
+        let terminal = Arc::new(Mutex::new(vt100::Parser::new(rows, cols, 10_000)));
         let pair = native_pty_system().openpty(PtySize {
-            cols: config.cols,
-            rows: config.rows,
+            cols,
+            rows,
             pixel_width: 0,
             pixel_height: 0,
         })?;
@@ -51,8 +58,22 @@ impl TmuxWindowRuntime {
         let master = pair.master;
         let reader = master.try_clone_reader()?;
         let writer = master.take_writer()?;
-        let output_thread = Some(spawn_output_thread(index, reader, bus));
-        Ok(Self { index, name, child, master, writer, output_thread })
+        let output_thread = Some(spawn_output_thread(
+            index,
+            reader,
+            terminal.clone(),
+            bus.clone(),
+        ));
+        Ok(Self {
+            index,
+            name,
+            child,
+            master,
+            writer,
+            terminal,
+            bus,
+            output_thread,
+        })
     }
 
     pub(crate) fn index(&self) -> u32 {
@@ -69,7 +90,21 @@ impl TmuxWindowRuntime {
     }
 
     pub(crate) fn resize(&self, cols: u16, rows: u16) {
-        let _ = self.master.resize(PtySize { cols, rows, pixel_width: 0, pixel_height: 0 });
+        let cols = cols.max(1);
+        let rows = rows.max(1);
+        let _ = self.master.resize(PtySize {
+            cols,
+            rows,
+            pixel_width: 0,
+            pixel_height: 0,
+        });
+        let rendered = {
+            let Ok(mut terminal) = self.terminal.lock() else { return; };
+            terminal.screen_mut().set_size(rows, cols);
+            render_terminal(terminal.screen())
+        };
+        self.bus
+            .publish_window_frame(self.index, rendered.frame, rendered.capture);
     }
 
     pub(crate) fn try_exit_code(&mut self) -> io::Result<Option<i32>> {
@@ -87,13 +122,25 @@ impl TmuxWindowRuntime {
     }
 }
 
-fn spawn_output_thread(index: u32, mut reader: Box<dyn Read + Send>, bus: TmuxSessionBus) -> thread::JoinHandle<()> {
+fn spawn_output_thread(
+    index: u32,
+    mut reader: Box<dyn Read + Send>,
+    terminal: Arc<Mutex<vt100::Parser>>,
+    bus: TmuxSessionBus,
+) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut buf = [0u8; 8192];
         loop {
             match reader.read(&mut buf) {
                 Ok(0) => break,
-                Ok(n) => bus.publish_window_output(index, &buf[..n]),
+                Ok(n) => {
+                    let rendered = {
+                        let Ok(mut terminal) = terminal.lock() else { break; };
+                        terminal.process(&buf[..n]);
+                        render_terminal(terminal.screen())
+                    };
+                    bus.publish_window_frame(index, rendered.frame, rendered.capture);
+                }
                 Err(_) => break,
             }
         }
