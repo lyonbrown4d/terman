@@ -95,6 +95,10 @@ fn direct_sort_key(tab: Tab, code: KeyCode) -> Option<SortMode> {
     (matches!(tab, Tab::Overview | Tab::Processes) || sort == SortMode::Pid).then_some(sort)
 }
 
+pub(crate) fn command_display_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('c'))
+}
+
 pub(crate) fn tree_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('t') | KeyCode::F(5))
 }

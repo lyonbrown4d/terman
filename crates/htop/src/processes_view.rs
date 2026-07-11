@@ -10,6 +10,7 @@ use ratatui::{
 
 use crate::{
     body_layout,
+    command_display::ProcessCommandMode,
     model::{Snapshot, SortMode},
     process_detail::process_detail_lines,
     process_table::{process_header_line, process_line},
@@ -21,6 +22,7 @@ pub(crate) fn draw_processes(
     snapshot: &Snapshot,
     sort: SortMode,
     tree: bool,
+    command_mode: ProcessCommandMode,
     selected: usize,
     filter: &str,
     detail_scroll: usize,
@@ -31,7 +33,7 @@ pub(crate) fn draw_processes(
     let detail_scroll = detail_scroll.min(details.len().saturating_sub(detail_visible));
     let visible = body_layout::data_rows(area).saturating_sub(detail_visible + 1).max(1);
     let start = visible_start(selected, visible, snapshot.processes.len());
-    let mut lines = vec![process_header_line(sort)];
+    let mut lines = vec![process_header_line(sort, command_mode)];
     lines.push(plain_line(format!(
         "Sort: {}  View: {}  Sel: {}  Filter: {}",
         sort.label(),
@@ -40,7 +42,7 @@ pub(crate) fn draw_processes(
         filter_label(filter)
     )));
     for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
-        lines.push(process_line(row, start + offset == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str())));
+        lines.push(process_line(row, start + offset == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str()), command_mode));
     }
     lines.push(title_line("DETAILS"));
     lines.extend(details.into_iter().skip(detail_scroll).take(detail_visible));

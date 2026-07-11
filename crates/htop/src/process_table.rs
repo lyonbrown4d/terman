@@ -4,6 +4,7 @@ use ratatui::{
 };
 
 use crate::{
+    command_display::ProcessCommandMode,
     format::{format_bytes, format_duration},
     model::{ProcessRow, SortMode},
 };
@@ -42,7 +43,7 @@ pub(crate) fn sort_at_column(column: u16) -> Option<SortMode> {
     }
 }
 
-pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
+pub fn process_header_line(sort: SortMode, command_mode: ProcessCommandMode) -> Line<'static> {
     Line::from(vec![
         header_span(format!("{:<8}", "PID"), sort == SortMode::Pid),
         header_span(format!("{:<8}", "PPID"), sort == SortMode::ParentPid),
@@ -53,17 +54,24 @@ pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
         header_span(format!("{:>5} ", "MEM%"), sort == SortMode::Memory),
         header_span(format!("{:>8} ", "RES"), sort == SortMode::Memory),
         header_span(format!("{:>9} ", "TIME+"), sort == SortMode::Time),
-        header_span("COMMAND".to_string(), sort == SortMode::Name),
+        header_span(command_mode.header().to_string(), sort == SortMode::Name),
     ])
 }
 
-pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, table_width: u16, tagged: bool) -> Line<'static> {
+pub fn process_line(
+    row: &ProcessRow,
+    selected: bool,
+    total_memory: u64,
+    table_width: u16,
+    tagged: bool,
+    command_mode: ProcessCommandMode,
+) -> Line<'static> {
     let memory_percent = memory_percent(row.memory, total_memory);
     let state = status_char(row.status.as_str());
     let nice = row.nice.map(|value| value.to_string()).unwrap_or_else(|| "-".to_string());
     let ppid = row.parent_pid.as_deref().unwrap_or("-");
     let user = user_cell(row.user.as_str());
-    let command = command_cell(tree_name(row, command_text(row)).as_str(), table_width);
+    let command = command_cell(tree_name(row, command_text(row, command_mode)).as_str(), table_width);
     let text = process_text(row, ppid, user.as_str(), nice.as_str(), state.as_str(), memory_percent, command.as_str());
     if selected || tagged {
         return Line::from(Span::styled(text, row_style(tagged)));
@@ -125,8 +133,12 @@ fn memory_percent(memory: u64, total_memory: u64) -> f64 {
     if total_memory == 0 { 0.0 } else { memory as f64 * 100.0 / total_memory as f64 }
 }
 
-fn command_text(row: &ProcessRow) -> &str {
-    if row.command.is_empty() { row.name.as_str() } else { row.command.as_str() }
+fn command_text(row: &ProcessRow, command_mode: ProcessCommandMode) -> &str {
+    match command_mode {
+        ProcessCommandMode::Name => row.name.as_str(),
+        ProcessCommandMode::Full if !row.command.is_empty() => row.command.as_str(),
+        ProcessCommandMode::Full => row.name.as_str(),
+    }
 }
 
 fn tree_name(row: &ProcessRow, name: &str) -> String {

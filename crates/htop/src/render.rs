@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::{
+    command_display::ProcessCommandMode,
     signal_menu::{self, SignalMenuState},
     footer::footer_line,
     io_view::draw_io,
@@ -55,6 +56,7 @@ pub(crate) fn draw(
     sort: SortMode,
     sort_inverted: bool,
     tree: bool,
+    command_mode: ProcessCommandMode,
     user_filter: Option<&str>,
     selected: usize,
     filter: &str,
@@ -75,8 +77,8 @@ pub(crate) fn draw(
         .split(frame.area());
     draw_header(frame, chunks[0], snapshot, tab, followed_pid);
     match tab {
-        Tab::Overview => draw_overview(frame, chunks[1], snapshot, sort, selected, tagged_pids),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll, tagged_pids),
+        Tab::Overview => draw_overview(frame, chunks[1], snapshot, sort, command_mode, selected, tagged_pids),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, command_mode, selected, filter, detail_scroll, tagged_pids),
         Tab::Io => draw_io(frame, chunks[1], snapshot, sort, io_scroll, selected),
         Tab::Network => draw_network(frame, chunks[1], snapshot, sort, network_scroll, selected),
     }

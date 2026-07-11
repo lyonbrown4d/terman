@@ -12,11 +12,12 @@ use crate::{
         handle_signal_input, handle_sort_menu_input, selected_process_pid,
     },
     app_input::{
-        adjust_refresh, apply_direct_sort, delay_key, filter_key, follow_key, help_key, interrupt_key,
+        adjust_refresh, apply_direct_sort, command_display_key, delay_key, filter_key, follow_key, help_key, interrupt_key,
         invert_sort_key, kill_key, move_selection, navigation_key, next_tab, priority_delta,
         quit_key, search_key, sort_key, tree_branch_action, tree_key, tree_toggle_all_key,
         user_filter_key, TreeBranchAction,
     },
+    command_display::ProcessCommandMode,
     interrupt::InterruptFlag,
     metrics::Metrics,
     model::{IoRow, ProcessRow, SocketRow, SortMode},
@@ -42,6 +43,7 @@ pub(crate) fn poll_until_refresh(
     setup_menu: &mut SetupMenuState,
     user_filter: &mut UserFilterState,
     tree: &mut bool,
+    command_mode: &mut ProcessCommandMode,
     tree_state: &mut ProcessTreeState,
     help_open: &mut bool,
     signal_menu: &mut Option<SignalMenuState>,
@@ -271,6 +273,7 @@ pub(crate) fn poll_until_refresh(
                     *sort_inverted = !*sort_inverted;
                     true
                 }
+                Event::Key(key) if command_display_key(key.code) => { command_mode.toggle(); true }
                 Event::Key(key) if tree_key(key.code) => {
                     *tree = !*tree;
                     true

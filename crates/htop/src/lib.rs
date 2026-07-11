@@ -8,6 +8,7 @@ mod app_terminal;
 mod app_tree_input;
 mod body_layout;
 mod cli;
+mod command_display;
 mod core_meter;
 mod di;
 mod format;

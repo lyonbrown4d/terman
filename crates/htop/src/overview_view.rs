@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::{
+    command_display::ProcessCommandMode,
     core_meter::core_meter_lines,
     format::{format_bytes, format_duration},
     meter::meter_line,
@@ -23,6 +24,7 @@ pub(crate) fn draw_overview(
     area: Rect,
     snapshot: &Snapshot,
     sort: SortMode,
+    command_mode: ProcessCommandMode,
     selected: usize,
     tagged_pids: &HashSet<String>,
 ) {
@@ -58,10 +60,10 @@ pub(crate) fn draw_overview(
     ];
     lines.extend(core_meter_lines(snapshot.cpu_cores.as_slice(), core_rows));
     lines.push(title_line("TOP PROCESSES"));
-    lines.push(process_header_line(sort));
+    lines.push(process_header_line(sort, command_mode));
     for (offset, row) in snapshot.processes.iter().skip(process_start).take(process_rows).enumerate() {
         let index = process_start + offset;
-        lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str())));
+        lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str()), command_mode));
     }
     render_block(frame, area, "Overview", lines);
 }

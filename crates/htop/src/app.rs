@@ -7,6 +7,7 @@ use crate::{
     app_poll::poll_until_refresh,
     app_terminal::TerminalGuard,
     cli::HtopArgs,
+    command_display::ProcessCommandMode,
     help,
     interrupt::InterruptFlag,
     metrics::Metrics,
@@ -34,6 +35,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut sort_header_pressed = None;
     let mut user_filter = UserFilterState::default();
     let mut tree = false;
+    let mut command_mode = ProcessCommandMode::default();
     let mut tree_state = ProcessTreeState::default();
     let mut help_open = false;
     let mut setup_menu = SetupMenuState::default();
@@ -120,6 +122,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     sort,
                     sort_inverted,
                     tree,
+                    command_mode,
                     user_filter.selected(),
                     selected,
                     active_filter,
@@ -157,6 +160,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut setup_menu,
             &mut user_filter,
             &mut tree,
+            &mut command_mode,
             &mut tree_state,
             &mut help_open,
             &mut signal_menu,
