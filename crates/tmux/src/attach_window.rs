@@ -20,7 +20,8 @@ pub(crate) fn handle_window_command(
         TmuxPrefixCommand::KillWindow => return kill_current_window(endpoint),
         TmuxPrefixCommand::NextWindow => next_window_index(endpoint, true)?,
         TmuxPrefixCommand::PreviousWindow => next_window_index(endpoint, false)?,
-        TmuxPrefixCommand::RenameWindow
+        TmuxPrefixCommand::CommandPrompt
+        | TmuxPrefixCommand::RenameWindow
         | TmuxPrefixCommand::ListWindows
         | TmuxPrefixCommand::LastWindow
         | TmuxPrefixCommand::SplitHorizontal

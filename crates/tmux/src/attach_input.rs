@@ -3,6 +3,7 @@ use std::io;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
+    attach_command_prompt::{CommandPromptResult, CommandPromptState},
     attach_keys::{
         TmuxPrefixCommand, is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes,
         tmux_prefix_bytes, tmux_prefix_command,
@@ -39,6 +40,7 @@ pub(crate) enum AttachInputResult {
 
 #[derive(Default)]
 pub(crate) struct AttachInputMode {
+    command_prompt: CommandPromptState,
     prefix_pending: bool,
     kill_pending: Option<KillTarget>,
     rename_input: Option<String>,
@@ -54,6 +56,12 @@ impl AttachInputMode {
     ) -> io::Result<AttachInputResult> {
         if !is_key_press(&key) {
             return Ok(AttachInputResult::Continue);
+        }
+        if let Some(result) = self.command_prompt.handle_key(endpoint, client_id, &key)? {
+            return Ok(match result {
+                CommandPromptResult::Continue => AttachInputResult::Continue,
+                CommandPromptResult::Stop => AttachInputResult::Stop,
+            });
         }
         if self.handle_rename(endpoint, &key)? {
             return Ok(AttachInputResult::Continue);
@@ -130,6 +138,7 @@ impl AttachInputMode {
         command: TmuxPrefixCommand,
     ) -> io::Result<()> {
         match command {
+            TmuxPrefixCommand::CommandPrompt => self.command_prompt.begin()?,
             TmuxPrefixCommand::KillPane => {
                 self.kill_pending = Some(KillTarget::Pane);
                 let _ = render_status_line(KILL_PANE_CONFIRM_STATUS);
@@ -184,6 +193,13 @@ impl AttachInputMode {
         Ok(())
     }
 
+    pub(crate) fn status_override(&self) -> Option<String> {
+        self.command_prompt.status_override()
+    }
+
+    pub(crate) fn blocks_mouse(&self) -> bool {
+        self.command_prompt.is_active()
+    }
     fn select_last_window(&mut self, endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
         let Some(index) = self.last_window else {
             return render_current_status(endpoint);

@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use std::{
     error::Error,
     io::{self, BufRead, BufReader, Write},
@@ -23,7 +25,7 @@ use crate::{
     attach_mouse::{
         AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse,
     },
-    attach_status::{query_status_line, render_status_line},
+    attach_status::{query_status_line, render_status_line_with_override},
     copy_mode::{TmuxCopyMode, TmuxCopyResult},
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
@@ -68,8 +70,13 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
     let _raw_mode = RawModeGuard::enable()?;
     sync_terminal_size(endpoint)?;
     let copy_active = Arc::new(AtomicBool::new(false));
-    let _input_thread =
-        spawn_terminal_event_forwarder(endpoint.clone(), client_id, copy_active.clone());
+    let status_override = Arc::new(Mutex::new(None::<String>));
+    let _input_thread = spawn_terminal_event_forwarder(
+        endpoint.clone(),
+        client_id,
+        copy_active.clone(),
+        status_override.clone(),
+    );
     let mut reader = BufReader::new(stream);
     let mut status = query_status_line(endpoint).unwrap_or_else(|_| String::from("tmux"));
 
@@ -83,7 +90,7 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
                 if display_output {
                     write_output(&replay)?;
                     status = query_status_line(endpoint).unwrap_or(status);
-                    render_status_line(&status)?;
+                    render_status_line_with_override(&status, &status_override)?;
                 }
             }
             TmuxIpcResponse::Output { bytes } => {
@@ -93,13 +100,13 @@ fn stream_attached_session(endpoint: &TmuxIpcEndpoint) -> Result<(), Box<dyn Err
                     if refresh {
                         status = query_status_line(endpoint).unwrap_or(status);
                     }
-                    render_status_line(&status)?;
+                    render_status_line_with_override(&status, &status_override)?;
                 }
             }
             TmuxIpcResponse::Resize { .. } => {
                 if display_output {
                     status = query_status_line(endpoint).unwrap_or(status);
-                    render_status_line(&status)?;
+                    render_status_line_with_override(&status, &status_override)?;
                 }
             }
             TmuxIpcResponse::Detached | TmuxIpcResponse::Exit { .. } => return Ok(()),
@@ -172,9 +179,10 @@ fn spawn_terminal_event_forwarder(
     endpoint: TmuxIpcEndpoint,
     client_id: String,
     copy_active: Arc<AtomicBool>,
+    status_override: Arc<Mutex<Option<String>>>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        let _ = forward_terminal_events(endpoint, client_id, copy_active);
+        let _ = forward_terminal_events(endpoint, client_id, copy_active, status_override);
     })
 }
 
@@ -182,6 +190,7 @@ fn forward_terminal_events(
     endpoint: TmuxIpcEndpoint,
     client_id: String,
     copy_active: Arc<AtomicBool>,
+    status_override: Arc<Mutex<Option<String>>>,
 ) -> io::Result<()> {
     let mut input_mode = AttachInputMode::default();
     let mut mouse_state = AttachMouseState::default();
@@ -203,7 +212,11 @@ fn forward_terminal_events(
                     }
                     continue;
                 }
-                match input_mode.handle_key(&endpoint, &client_id, key)? {
+                let input_result = input_mode.handle_key(&endpoint, &client_id, key)?;
+                if let Ok(mut status) = status_override.lock() {
+                    *status = input_mode.status_override();
+                }
+                match input_result {
                     AttachInputResult::Continue => {}
                     AttachInputResult::Stop => return Ok(()),
                     AttachInputResult::EnterCopyMode => {
@@ -226,7 +239,7 @@ fn forward_terminal_events(
                     if mode.handle_mouse(mouse) {
                         mode.render()?;
                     }
-                } else {
+                } else if !input_mode.blocks_mouse() {
                     handle_attach_mouse(&endpoint, &mut mouse_state, mouse)?;
                 }
             }

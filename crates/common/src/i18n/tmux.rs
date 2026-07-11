@@ -235,3 +235,10 @@ pub fn builtin_tmux_buffer_list_item_hint(
         &[("name", name), ("bytes", &bytes), ("preview", preview)],
     )
 }
+pub fn builtin_tmux_command_prompt_hint(command: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxCommandPrompt, &[("command", command)])
+}
+
+pub fn builtin_tmux_command_parse_error_hint() -> String {
+    localized_message(MessageKey::BuiltinTmuxCommandParseError, &[])
+}

@@ -213,7 +213,7 @@ builtin-tmux-cli-examples =
       - List sessions first: terman-tmux list-sessions
       - Name conflict: terman-tmux new -s demo
       - Reproduce conflict: terman-tmux new -s demo
-builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B {/} swap pane up/down | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer
+builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B {/} swap pane up/down | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer C-b : opens the command prompt.
 builtin-tmux-prefix-status = tmux prefix | %/" split | o next pane | z zoom pane | x kill pane | & kill window | d detach
 builtin-tmux-attach-window-list = windows: {$windows}
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
@@ -255,3 +255,5 @@ builtin-tmux-buffer-unavailable = tmux buffer state is unavailable.
 builtin-htop-tag = Tag
 builtin-htop-untag-all = Untag
 builtin-htop-tagged-count = tagged processes
+builtin-tmux-command-prompt = tmux command | :{ $command }
+builtin-tmux-command-parse-error = tmux command contains an unfinished quote or escape

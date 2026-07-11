@@ -36,6 +36,7 @@ pub(crate) enum TmuxPrefixCommand {
     CopyMode,
     PasteBuffer,
     KillPane,
+    CommandPrompt,
     Help,
     SelectWindow(u32),
 }
@@ -64,6 +65,7 @@ pub(crate) fn tmux_prefix_command(key: &KeyEvent) -> Option<TmuxPrefixCommand> {
         KeyCode::Char('z') => Some(TmuxPrefixCommand::TogglePaneZoom),
         KeyCode::Char('[') => Some(TmuxPrefixCommand::CopyMode),
         KeyCode::Char(']') => Some(TmuxPrefixCommand::PasteBuffer),
+        KeyCode::Char(':') => Some(TmuxPrefixCommand::CommandPrompt),
         KeyCode::Char('?') => Some(TmuxPrefixCommand::Help),
         KeyCode::Char(ch) if ch.is_ascii_digit() => {
             ch.to_digit(10).map(TmuxPrefixCommand::SelectWindow)

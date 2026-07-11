@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::sync::Mutex;
 
 use crossterm::{
     cursor::{MoveTo, RestorePosition, SavePosition},
@@ -48,4 +49,14 @@ pub(crate) fn render_status_line(status: &str) -> io::Result<()> {
         RestorePosition
     )?;
     stdout.flush()
+}
+pub(crate) fn render_status_line_with_override(
+    status: &str,
+    status_override: &Mutex<Option<String>>,
+) -> io::Result<()> {
+    let override_status = status_override
+        .lock()
+        .ok()
+        .and_then(|value| value.clone());
+    render_status_line(override_status.as_deref().unwrap_or(status))
 }

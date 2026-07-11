@@ -2,6 +2,8 @@ use std::{error::Error, io};
 
 mod args;
 mod attach;
+mod attach_command_exec;
+mod attach_command_prompt;
 mod copy_mode;
 mod attach_copy;
 mod attach_input;
