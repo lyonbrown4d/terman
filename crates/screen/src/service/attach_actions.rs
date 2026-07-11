@@ -19,6 +19,7 @@ use crate::{
 };
 
 pub(super) enum AttachActionResult {
+    CopyMode,
     Continue,
     Stop,
 }
@@ -29,6 +30,7 @@ pub(super) fn handle_attach_action(
     action: ScreenInputAction,
 ) -> io::Result<AttachActionResult> {
     match action {
+        ScreenInputAction::CopyMode => return Ok(AttachActionResult::CopyMode),
         ScreenInputAction::Bytes(bytes) => {
             send_control_request(endpoint, ScreenIpcRequest::Input { bytes })?;
         }

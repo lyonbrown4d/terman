@@ -1682,6 +1682,7 @@ dependencies = [
  "sysinfo",
  "terman-common",
  "tokio",
+ "unicode-width",
  "vt100",
 ]
 

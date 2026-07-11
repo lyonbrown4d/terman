@@ -119,10 +119,13 @@ pub(super) fn handle_client(
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
         Ok(ScreenIpcRequest::Redisplay) => {
-            let bytes = bus.hardcopy_snapshot(false);
-            bus.publish_transient_output(&bytes);
+            if bus.publish_region_redraw().is_none() {
+                let bytes = bus.hardcopy_snapshot(false);
+                bus.publish_transient_output(&bytes);
+            }
             write_response(stream, &ScreenIpcResponse::Accepted)
-        }        Ok(ScreenIpcRequest::Reset) => {
+        }
+        Ok(ScreenIpcRequest::Reset) => {
             bus.publish_display_control(b"\x1bc");
             write_response(stream, &ScreenIpcResponse::Accepted)
         }

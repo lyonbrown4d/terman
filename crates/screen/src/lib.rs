@@ -1,3 +1,4 @@
+mod copy_mode;
 use std::error::Error;
 
 mod builtin;

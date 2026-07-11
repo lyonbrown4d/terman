@@ -129,3 +129,20 @@ pub fn builtin_screen_wipe_complete_hint(count: usize) -> String {
     let count = count.to_string();
     localized_message(MessageKey::BuiltinScreenWipeComplete, &[("count", &count)])
 }
+
+pub fn builtin_screen_copy_status_hint(
+    line: usize,
+    total: usize,
+    selecting: bool,
+) -> String {
+    let line = line.to_string();
+    let total = total.to_string();
+    crate::i18n::localized_message(
+        if selecting {
+            crate::i18n::MessageKey::BuiltinScreenCopySelectionStatus
+        } else {
+            crate::i18n::MessageKey::BuiltinScreenCopyStatus
+        },
+        &[("line", &line), ("total", &total)],
+    )
+}

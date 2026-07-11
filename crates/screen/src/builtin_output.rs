@@ -29,9 +29,14 @@ pub(crate) fn drain_window_output(
     bus: &ScreenSessionBus,
     rx: &mpsc::Receiver<ScreenWindowOutput>,
     active_window: usize,
+    display_output: bool,
 ) {
     while let Ok(output) = rx.try_recv() {
         bus.publish_window_output(output.index, &output.bytes);
+        if !display_output {
+            let _ = bus.publish_region_redraw_for_output(output.index);
+            continue;
+        }
         if let Some(frame) = bus.publish_region_redraw_for_output(output.index) {
             write_region_frame(&frame);
         } else if output.index == active_window {

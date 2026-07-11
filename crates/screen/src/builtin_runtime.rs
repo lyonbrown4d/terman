@@ -11,10 +11,11 @@ use crate::{
     builtin_mouse::{
         ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse,
     },
-    builtin_output::write_region_frame,
+    builtin_output::{publish_window_redraw, write_region_frame},
+    copy_mode::{ScreenCopyMode, ScreenCopyResult},
     ipc::ScreenIpcEndpoint,
     session_core::{ScreenControlEvent, ScreenSessionBus},
-    terminal_input::ScreenInputDecoder,
+    terminal_input::{ScreenInputAction, ScreenInputDecoder},
     window_runtime::{ScreenWindowRuntime, resize_windows},
 };
 
@@ -51,6 +52,7 @@ pub(crate) fn poll_terminal_event(
     session_bus: &ScreenSessionBus,
     control_tx: &mpsc::Sender<ScreenControlEvent>,
     input_decoder: &mut ScreenInputDecoder,
+    copy_mode: &mut Option<ScreenCopyMode>,
     windows: &mut [ScreenWindowRuntime],
     active_window: &mut usize,
     mouse_state: &mut ScreenMouseState,
@@ -60,21 +62,63 @@ pub(crate) fn poll_terminal_event(
     }
     match event::read()? {
         Event::Mouse(mouse) => {
-            handle_builtin_mouse(session_bus, windows, active_window, mouse_state, mouse)
+            if let Some(mode) = copy_mode.as_mut() {
+                if mode.handle_mouse(mouse) {
+                    mode.render()?;
+                }
+            } else {
+                handle_builtin_mouse(session_bus, windows, active_window, mouse_state, mouse);
+            }
         }
         Event::Key(key) => {
-            if let Some(action) = input_decoder.decode_key(key) {
-                handle_builtin_input_action(session_bus, control_tx, action)?;
+            if let Some(mode) = copy_mode.as_mut() {
+                match mode.handle_key(key) {
+                    ScreenCopyResult::Continue => mode.render()?,
+                    ScreenCopyResult::Cancel => {
+                        *copy_mode = None;
+                        restore_builtin_display(session_bus);
+                    }
+                    ScreenCopyResult::Copy(bytes) => {
+                        session_bus.set_paste_buffer(bytes);
+                        *copy_mode = None;
+                        restore_builtin_display(session_bus);
+                    }
+                }
+            } else if let Some(action) = input_decoder.decode_key(key) {
+                match action {
+                    ScreenInputAction::CopyMode => {
+                        let (cols, rows) = terman_common::current_terminal_size()?;
+                        let mode = ScreenCopyMode::from_replay(
+                            &session_bus.hardcopy_snapshot(true),
+                            cols,
+                            rows,
+                        );
+                        mode.render()?;
+                        *copy_mode = Some(mode);
+                    }
+                    action => handle_builtin_input_action(session_bus, control_tx, action)?,
+                }
             }
         }
         Event::Resize(cols, rows) => {
             resize_windows(windows, cols, rows);
             session_bus.publish_resize(cols, rows);
-            if let Some(frame) = session_bus.publish_region_redraw() {
+            if let Some(mode) = copy_mode.as_mut() {
+                mode.resize(cols, rows);
+                mode.render()?;
+            } else if let Some(frame) = session_bus.publish_region_redraw() {
                 write_region_frame(&frame);
             }
         }
         _ => {}
     }
     Ok(())
+}
+
+fn restore_builtin_display(session_bus: &ScreenSessionBus) {
+    if let Some(frame) = session_bus.publish_region_redraw() {
+        write_region_frame(&frame);
+    } else {
+        publish_window_redraw(session_bus, &session_bus.hardcopy_snapshot(false));
+    }
 }

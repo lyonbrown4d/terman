@@ -11,6 +11,7 @@ pub(crate) fn handle_builtin_input_action(
     action: ScreenInputAction,
 ) -> io::Result<()> {
     let event = match action {
+        ScreenInputAction::CopyMode => unreachable!("copy mode is handled by the runtime"),
         ScreenInputAction::Bytes(bytes) => Some(ScreenControlEvent::Input(bytes)),
         ScreenInputAction::NewWindow => Some(ScreenControlEvent::NewWindow { command: None }),
         ScreenInputAction::SelectWindow(index) => {

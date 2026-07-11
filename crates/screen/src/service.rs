@@ -1,3 +1,4 @@
+mod attach_copy;
 mod attach;
 mod attach_actions;
 mod attach_buffer;

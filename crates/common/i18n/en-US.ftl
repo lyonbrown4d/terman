@@ -115,7 +115,7 @@ builtin-screen-session-name-empty = Screen session name cannot be empty.
 builtin-screen-session-record-invalid = Built-in screen session record is invalid.
 builtin-screen-unexpected-response = Unexpected screen response: {$response}.
 builtin-screen-attach-unsupported = Built-in screen attach is not available yet. Cross-platform attach will be handled by the built-in session service.
-builtin-screen-attach-help = screen keys: Ctrl-A c/Ctrl-C new window | Ctrl-A d/Ctrl-D detach | Ctrl-A D detach all | Ctrl-A k/Ctrl-K kill current window | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A l redisplay | Ctrl-A m/Ctrl-M last message | Ctrl-A h hardcopy | Ctrl-A H log | Ctrl-A . dumptermcap | Ctrl-A ]/Ctrl-] paste buffer | Ctrl-A </>/= exchange buffer | Ctrl-A q xon | Ctrl-A s xoff | Ctrl-A i/Ctrl-I info | Ctrl-A n/Ctrl-N/Space next | Ctrl-A N number | Ctrl-A p/Ctrl-P/Backspace previous | Ctrl-A 0..9 select window | Ctrl-A * displays | Ctrl-A t/Ctrl-T time | Ctrl-A v version | Ctrl-A , license | Ctrl-A F fit | Ctrl-A W width | Ctrl-A w/Ctrl-W windows | Ctrl-A " windowlist | Ctrl-A \\ quit | Ctrl-A ? help | Ctrl-A A title | Ctrl-A Ctrl-A last window | Ctrl-A a send literal Ctrl-A | Mouse wheel next/previous | right-click windows | middle-click help
+builtin-screen-attach-help = screen keys: Ctrl-A c/Ctrl-C new window | Ctrl-A d/Ctrl-D detach | Ctrl-A D detach all | Ctrl-A k/Ctrl-K kill current window | Ctrl-A C clear | Ctrl-A Z reset | Ctrl-A r sync size | Ctrl-A l redisplay | Ctrl-A m/Ctrl-M last message | Ctrl-A h hardcopy | Ctrl-A H log | Ctrl-A . dumptermcap | Ctrl-A ]/Ctrl-] paste buffer | Ctrl-A </>/= exchange buffer | Ctrl-A q xon | Ctrl-A s xoff | Ctrl-A i/Ctrl-I info | Ctrl-A n/Ctrl-N/Space next | Ctrl-A N number | Ctrl-A p/Ctrl-P/Backspace previous | Ctrl-A 0..9 select window | Ctrl-A * displays | Ctrl-A t/Ctrl-T time | Ctrl-A v version | Ctrl-A , license | Ctrl-A F fit | Ctrl-A W width | Ctrl-A w/Ctrl-W windows | Ctrl-A " windowlist | Ctrl-A \\ quit | Ctrl-A ? help | Ctrl-A A title | Ctrl-A Ctrl-A last window | Ctrl-A a send literal Ctrl-A | Mouse wheel next/previous | right-click windows | middle-click help | Ctrl-A [/Esc copy mode
 builtin-screen-attach-hardcopy-path-unavailable = No available screen attach hardcopy path.
 builtin-screen-attach-title-prompt = Window title:
 builtin-screen-attach-target-required = Specify a screen session name when more than one built-in screen session may exist.
@@ -219,3 +219,6 @@ builtin-tmux-window-created = created a window in tmux session {$session}; {$win
 builtin-tmux-window-killed = killed one window in tmux session {$session}; {$windows} window(s) remain
 builtin-tmux-window-name-required = specify a new tmux window name
 builtin-tmux-window-not-found = tmux window {$index} in session {$session} was not found
+
+builtin-screen-copy-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter mark | Esc cancel
+builtin-screen-copy-selection-status = copy mode | line {$line}/{$total} | arrows/PgUp/PgDn move | Space/Enter copy | Esc cancel

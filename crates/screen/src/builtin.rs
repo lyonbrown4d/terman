@@ -1,3 +1,4 @@
+use crate::copy_mode::ScreenCopyMode;
 use std::{error::Error, io, sync::{Arc, Mutex, mpsc}};
 
 use crate::{
@@ -51,8 +52,14 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     let mut input_decoder = ScreenInputDecoder::new();
     let mut exit_code: Option<i32> = None;
 
+    let mut copy_mode: Option<ScreenCopyMode> = None;
     loop {
-        drain_window_output(&session_bus, &output_rx, active_window);
+        drain_window_output(
+            &session_bus,
+            &output_rx,
+            active_window,
+            copy_mode.is_none(),
+        );
         if let Some(code) = handle_window_exit(&session_bus, &mut windows, &mut active_window) {
             session_bus.publish_exit(code);
             exit_code = Some(code);
@@ -76,6 +83,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             &session_bus,
             &runtime_control_tx,
             &mut input_decoder,
+            &mut copy_mode,
             &mut windows,
             &mut active_window,
             &mut mouse_state,

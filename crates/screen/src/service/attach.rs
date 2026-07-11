@@ -16,10 +16,12 @@ use interprocess::local_socket::prelude::*;
 
 use super::{
     attach_actions::{AttachActionResult, handle_attach_action, sync_attach_terminal_size},
+    attach_copy::{finish_attach_copy_mode, start_attach_copy_mode},
     attach_mouse::{AttachMouseState, disable_mouse_capture, enable_mouse_capture, handle_attach_mouse},
     ipc_client::send_control_request,
 };
 use crate::{
+    copy_mode::{ScreenCopyMode, ScreenCopyResult},
     ipc::{ScreenIpcEndpoint, ScreenIpcRequest, ScreenIpcResponse},
     terminal_input::ScreenInputDecoder,
 };
@@ -50,23 +52,56 @@ pub(super) fn attach_interactive(
     sync_attach_terminal_size(&endpoint)?;
 
     let running = Arc::new(AtomicBool::new(true));
+    let copy_active = Arc::new(AtomicBool::new(false));
     let output_running = Arc::clone(&running);
+    let output_copy_active = Arc::clone(&copy_active);
     let output_thread = thread::spawn(move || {
-        let result = read_attach_stream(stream);
+        let result = read_attach_stream(stream, &output_copy_active);
         output_running.store(false, Ordering::Release);
         result
     });
 
     let mut input_decoder = ScreenInputDecoder::new();
     let mut mouse_state = AttachMouseState::default();
+    let mut copy_mode: Option<ScreenCopyMode> = None;
     while running.load(Ordering::Acquire) {
         match event::poll(Duration::from_millis(16)) {
             Ok(true) => match event::read() {
-                Ok(Event::Mouse(mouse)) => handle_attach_mouse(&endpoint, &mut mouse_state, mouse)?,
+                Ok(Event::Mouse(mouse)) => {
+                    if let Some(mode) = copy_mode.as_mut() {
+                        if mode.handle_mouse(mouse) {
+                            mode.render()?;
+                        }
+                    } else {
+                        handle_attach_mouse(&endpoint, &mut mouse_state, mouse)?;
+                    }
+                }
                 Ok(Event::Key(key)) => {
+                    if let Some(mode) = copy_mode.as_mut() {
+                        match mode.handle_key(key) {
+                            ScreenCopyResult::Continue => mode.render()?,
+                            ScreenCopyResult::Cancel => {
+                                copy_mode = None;
+                                copy_active.store(false, Ordering::Release);
+                                finish_attach_copy_mode(&endpoint, None)?;
+                            }
+                            ScreenCopyResult::Copy(bytes) => {
+                                copy_mode = None;
+                                copy_active.store(false, Ordering::Release);
+                                finish_attach_copy_mode(&endpoint, Some(bytes))?;
+                            }
+                        }
+                        continue;
+                    }
                     if let Some(action) = input_decoder.decode_key(key) {
                         match handle_attach_action(&endpoint, &client_id, action)? {
                             AttachActionResult::Continue => {}
+                            AttachActionResult::CopyMode => {
+                                let mode = start_attach_copy_mode(&endpoint)?;
+                                copy_active.store(true, Ordering::Release);
+                                mode.render()?;
+                                copy_mode = Some(mode);
+                            }
                             AttachActionResult::Stop => {
                                 running.store(false, Ordering::Release);
                                 return Ok(());
@@ -76,6 +111,10 @@ pub(super) fn attach_interactive(
                 }
                 Ok(Event::Resize(cols, rows)) => {
                     send_control_request(&endpoint, ScreenIpcRequest::Resize { cols, rows })?;
+                    if let Some(mode) = copy_mode.as_mut() {
+                        mode.resize(cols, rows);
+                        mode.render()?;
+                    }
                 }
                 Ok(_) => {}
                 Err(err) => return Err(err),
@@ -94,7 +133,10 @@ pub(super) fn attach_interactive(
     }
 }
 
-fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
+fn read_attach_stream(
+    stream: LocalSocketStream,
+    copy_active: &AtomicBool,
+) -> io::Result<()> {
     let mut reader = BufReader::new(stream);
     let mut stdout = io::stdout();
 
@@ -117,8 +159,10 @@ fn read_attach_stream(stream: LocalSocketStream) -> io::Result<()> {
             ScreenIpcResponse::Info { .. } => {}
             ScreenIpcResponse::PasteBuffer { .. } => {}
             ScreenIpcResponse::Output { bytes } => {
-                stdout.write_all(&bytes)?;
-                stdout.flush()?;
+                if !copy_active.load(Ordering::Acquire) {
+                    stdout.write_all(&bytes)?;
+                    stdout.flush()?;
+                }
             }
             ScreenIpcResponse::Resize { .. } => {}
             ScreenIpcResponse::Exit { .. } => return Ok(()),

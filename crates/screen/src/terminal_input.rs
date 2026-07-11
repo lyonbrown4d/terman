@@ -38,6 +38,12 @@ impl ScreenInputDecoder {
     }
 
     fn decode_prefixed_key(&mut self, key: KeyEvent) -> Option<ScreenInputAction> {
+    if (key.code == KeyCode::Char('[') || key.code == KeyCode::Esc)
+        && key.modifiers.is_empty()
+    {
+        return Some(ScreenInputAction::CopyMode);
+    }
+
         match key.code {
             KeyCode::Char('r') | KeyCode::Char('R') if key.modifiers.is_empty() => {
                 Some(ScreenInputAction::Resize)
