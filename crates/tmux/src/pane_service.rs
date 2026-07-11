@@ -239,7 +239,7 @@ fn resolve_pane(
     Ok(Some((status, pane)))
 }
 
-fn accept_control(
+pub(crate) fn accept_control(
     stream: &mut LocalSocketStream,
     control_tx: &mpsc::Sender<TmuxControlEvent>,
     event: TmuxControlEvent,
@@ -250,7 +250,7 @@ fn accept_control(
     write_response(stream, &TmuxIpcResponse::Accepted)
 }
 
-fn write_window_missing(stream: &mut LocalSocketStream, window: u32) -> io::Result<()> {
+pub(crate) fn write_window_missing(stream: &mut LocalSocketStream, window: u32) -> io::Result<()> {
     write_response(
         stream,
         &TmuxIpcResponse::Rejected {

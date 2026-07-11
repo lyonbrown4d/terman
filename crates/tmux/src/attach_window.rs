@@ -35,6 +35,7 @@ pub(crate) fn handle_window_command(
         | TmuxPrefixCommand::SwapPaneUp
         | TmuxPrefixCommand::SwapPaneDown
         | TmuxPrefixCommand::TogglePaneZoom
+        | TmuxPrefixCommand::NextLayout
         | TmuxPrefixCommand::ResizePane(_)
         | TmuxPrefixCommand::CopyMode
         | TmuxPrefixCommand::PasteBuffer

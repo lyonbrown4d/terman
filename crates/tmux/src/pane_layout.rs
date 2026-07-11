@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-#[path = "pane_layout_resize.rs"] mod resize;
+#[path = "pane_layout_resize.rs"] mod resize; #[path = "pane_layout_presets.rs"] mod presets; pub(crate) use presets::PaneLayoutPreset;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum SplitDirection {

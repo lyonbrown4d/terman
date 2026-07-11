@@ -12,7 +12,7 @@ use crate::{
     },
     attach_pane_chooser::PaneChooserState,
     attach_pane::{
-        resize_current_pane, select_last_pane, select_next_pane, select_pane_direction,
+        cycle_current_pane_layout, resize_current_pane, select_last_pane, select_next_pane, select_pane_direction,
         split_current_pane,
         swap_current_pane, toggle_current_pane_zoom,
     },
@@ -178,6 +178,10 @@ impl AttachInputMode {
             }
             TmuxPrefixCommand::TogglePaneZoom => {
                 toggle_current_pane_zoom(endpoint)?;
+                let _ = render_current_status(endpoint);
+            }
+            TmuxPrefixCommand::NextLayout => {
+                cycle_current_pane_layout(endpoint)?;
                 let _ = render_current_status(endpoint);
             }
             TmuxPrefixCommand::NextPane => {

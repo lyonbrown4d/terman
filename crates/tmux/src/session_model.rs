@@ -29,6 +29,7 @@ pub(crate) enum TmuxControlEvent {
         rows: Option<u16>,
     },
     ResizePaneDirection { window: u32, pane: u32, direction: PaneDirection, adjustment: u16 },
+    CyclePaneLayout { window: u32 },
     Terminate,
 }
 

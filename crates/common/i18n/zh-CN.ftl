@@ -243,7 +243,7 @@ builtin-tmux-cli-examples =
       - 先查看会话：terman-tmux list-sessions
       - 名称冲突：terman-tmux new -s demo
       - 再复现冲突：terman-tmux new -s demo
-builtin-tmux-attach-help = tmux 快捷键：Ctrl-B c 新建窗口 | Ctrl-B d 断开连接 | Ctrl-B %/" 拆分 pane | Ctrl-B o 切换 pane | Ctrl-B ; 上一个 pane | Ctrl-B q 选择 pane | Ctrl-B 方向键选择 pane | Ctrl-B Ctrl-方向键调整 pane | Ctrl-B {/} 向上/向下交换 pane | Ctrl-B z 缩放 pane | Ctrl-B x 结束 pane | Ctrl-B & 结束窗口 | Ctrl-B , 重命名窗口 | Ctrl-B $ 重命名会话 | Ctrl-B n/p 前后切换 | Ctrl-B l 上一个窗口 | Ctrl-B f 查找窗口 | Ctrl-B 0..9 选择窗口 | Ctrl-B ? 帮助 | 鼠标：状态栏点击/滚轮切换，右键显示窗口列表，中键显示帮助 | Ctrl-B [ 复制模式 | Ctrl-B ] 粘贴 buffer | Ctrl-B : 打开命令提示。
+builtin-tmux-attach-help = tmux 快捷键：Ctrl-B c 新建窗口 | Ctrl-B d 断开连接 | Ctrl-B %/" 拆分 pane | Ctrl-B o 切换 pane | Ctrl-B ; 上一个 pane | Ctrl-B q 选择 pane | Ctrl-B 方向键选择 pane | Ctrl-B Ctrl-方向键调整 pane | Ctrl-B {/} 向上/向下交换 pane | Ctrl-B z 缩放 pane | Ctrl-B Space 切换布局 | Ctrl-B x 结束 pane | Ctrl-B & 结束窗口 | Ctrl-B , 重命名窗口 | Ctrl-B $ 重命名会话 | Ctrl-B n/p 前后切换 | Ctrl-B l 上一个窗口 | Ctrl-B f 查找窗口 | Ctrl-B 0..9 选择窗口 | Ctrl-B ? 帮助 | 鼠标：状态栏点击/滚轮切换，右键显示窗口列表，中键显示帮助 | Ctrl-B [ 复制模式 | Ctrl-B ] 粘贴 buffer | Ctrl-B : 打开命令提示。
 builtin-tmux-prefix-status = tmux 前缀 | %/" 拆分 | o 切换 pane | ; 上一个 pane | q 选择 pane | 方向键选择 pane | Ctrl-方向键调整 pane | z 缩放 pane | x 结束 pane | & 结束窗口 | , 重命名窗口 | $ 重命名会话 | d 断开
 builtin-tmux-rename-session-prompt = 重命名会话：{$input}
 builtin-tmux-rename-window-prompt = 重命名窗口：{$input}

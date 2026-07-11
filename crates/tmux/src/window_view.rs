@@ -2,7 +2,7 @@
 mod navigation;
 
 use crate::{
-    pane_layout::{PaneDirection, PaneGeometry, PaneLayout, PaneRect, SplitDirection},
+    pane_layout::{PaneDirection, PaneGeometry, PaneLayout, PaneLayoutPreset, PaneRect, SplitDirection},
     terminal_frame::{PaneRender, RenderedTerminal, render_terminal},
 };
 
@@ -26,6 +26,7 @@ struct PaneTerminal {
 
 pub(crate) struct TmuxWindowView {
     layout: PaneLayout,
+    layout_preset: Option<PaneLayoutPreset>,
     panes: Vec<PaneTerminal>,
     active_pane: u32,
     next_pane: u32,
@@ -40,6 +41,7 @@ impl TmuxWindowView {
         let rows = rows.max(1);
         Self {
             layout: PaneLayout::new(0),
+            layout_preset: None,
             panes: vec![PaneTerminal {
                 index: 0,
                 parser: vt100::Parser::new(rows, cols, 10_000),
@@ -64,6 +66,7 @@ impl TmuxWindowView {
         if !self.layout.split(self.active_pane, index, direction) {
             return None;
         }
+        self.layout_preset = None;
         self.zoomed = false;
         self.next_pane = self.next_pane.saturating_add(1);
         self.panes.push(PaneTerminal {
@@ -86,6 +89,7 @@ impl TmuxWindowView {
         if self.panes.len() <= 1 || !self.layout.remove(index) {
             return false;
         }
+        self.layout_preset = None;
         self.panes.retain(|pane| pane.index != index);
         if self.active_pane == index {
             self.active_pane = self.layout.pane_indexes().into_iter().next().unwrap_or(0);
@@ -117,6 +121,7 @@ impl TmuxWindowView {
         if !self.layout.swap_panes(source, target) {
             return false;
         }
+        self.layout_preset = None;
         self.resize(self.cols, self.rows);
         true
     }
@@ -130,8 +135,25 @@ impl TmuxWindowView {
         true
     }
 
-    pub(crate) fn resize(&mut self, cols: u16, rows: u16) {
-        self.cols = cols.max(1);
+    pub(crate) fn cycle_layout(
+        &mut self,
+    ) -> Option<PaneLayoutPreset> {
+        let indexes = self.layout.pane_indexes();
+        if indexes.len() <= 1 {
+            return None;
+        }
+        let preset = self
+            .layout_preset
+            .map(PaneLayoutPreset::next)
+            .unwrap_or(PaneLayoutPreset::EvenHorizontal);
+        self.layout = PaneLayout::from_preset(&indexes, preset)?;
+        self.layout_preset = Some(preset);
+        self.zoomed = false;
+        self.resize(self.cols, self.rows);
+        Some(preset)
+    }
+
+    pub(crate) fn resize(&mut self, cols: u16, rows: u16) {        self.cols = cols.max(1);
         self.rows = rows.max(1);
         for size in self.pane_sizes() {
             if let Some(pane) = self.panes.iter_mut().find(|pane| pane.index == size.index) {
@@ -151,6 +173,7 @@ impl TmuxWindowView {
         if !self.layout.resize_pane(index, cols, rows, self.cols, self.rows) {
             return false;
         }
+        self.layout_preset = None;
         self.resize(self.cols, self.rows);
         true
     }
@@ -164,6 +187,7 @@ impl TmuxWindowView {
         if !self.layout.resize_pane_direction(index, direction, adjustment, self.cols, self.rows) {
             return false;
         }
+        self.layout_preset = None;
         self.resize(self.cols, self.rows);
         true
     }

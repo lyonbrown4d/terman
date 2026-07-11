@@ -21,6 +21,10 @@ pub(crate) fn split_current_pane(
     )
 }
 
+pub(crate) fn cycle_current_pane_layout(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
+    send_request(endpoint, TmuxIpcRequest::CyclePaneLayout { window: None })
+}
+
 pub(crate) fn toggle_current_pane_zoom(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
     send_request(
         endpoint,

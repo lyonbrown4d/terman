@@ -38,6 +38,7 @@ mod pane_resize_args;
 mod pane_select_command;
 mod pane_last;
 mod pane_layout;
+mod pane_layout_service;
 mod pane_layout_swap;
 mod pane_runtime;
 mod pane_service;
