@@ -4,6 +4,9 @@ mod config;
 mod events;
 mod logging;
 mod log_control;
+mod region_bus;
+mod region_layout;
+mod region_render;
 mod replay;
 mod registers; mod state;
 mod status;
@@ -211,6 +214,7 @@ impl ScreenSessionBus {
         self.publish(ScreenSessionEvent::Resize { cols, rows }, |state| {
             state.cols = Some(cols);
             state.rows = Some(rows);
+            state.resize_terminals(rows, cols);
             for window in &mut state.windows {
                 window.trim_to_cols(state.cols);
             }

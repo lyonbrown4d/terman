@@ -1,4 +1,4 @@
-use std::{io, time::Duration};
+use std::{io, sync::mpsc, time::Duration};
 
 use crossterm::{
     event::{self, Event},
@@ -7,11 +7,15 @@ use crossterm::{
 
 use crate::{
     ScreenArgs,
-    builtin_mouse::{ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse},
+    builtin_input::handle_builtin_input_action,
+    builtin_mouse::{
+        ScreenMouseState, disable_mouse_capture, enable_mouse_capture, handle_builtin_mouse,
+    },
+    builtin_output::write_region_frame,
     ipc::ScreenIpcEndpoint,
-    session_core::ScreenSessionBus,
-    terminal_input::key_to_bytes,
-    window_runtime::{ScreenWindowRuntime, resize_windows, write_active_window_input},
+    session_core::{ScreenControlEvent, ScreenSessionBus},
+    terminal_input::ScreenInputDecoder,
+    window_runtime::{ScreenWindowRuntime, resize_windows},
 };
 
 pub(crate) struct RawMode;
@@ -45,6 +49,8 @@ pub(crate) fn resolve_size(cols_override: Option<u16>, rows_override: Option<u16
 
 pub(crate) fn poll_terminal_event(
     session_bus: &ScreenSessionBus,
+    control_tx: &mpsc::Sender<ScreenControlEvent>,
+    input_decoder: &mut ScreenInputDecoder,
     windows: &mut [ScreenWindowRuntime],
     active_window: &mut usize,
     mouse_state: &mut ScreenMouseState,
@@ -53,15 +59,20 @@ pub(crate) fn poll_terminal_event(
         return Ok(());
     }
     match event::read()? {
-        Event::Mouse(mouse) => handle_builtin_mouse(session_bus, windows, active_window, mouse_state, mouse),
+        Event::Mouse(mouse) => {
+            handle_builtin_mouse(session_bus, windows, active_window, mouse_state, mouse)
+        }
         Event::Key(key) => {
-            if let Some(bytes) = key_to_bytes(key) {
-                write_active_window_input(windows, *active_window, &bytes);
+            if let Some(action) = input_decoder.decode_key(key) {
+                handle_builtin_input_action(session_bus, control_tx, action)?;
             }
         }
         Event::Resize(cols, rows) => {
             resize_windows(windows, cols, rows);
             session_bus.publish_resize(cols, rows);
+            if let Some(frame) = session_bus.publish_region_redraw() {
+                write_region_frame(&frame);
+            }
         }
         _ => {}
     }

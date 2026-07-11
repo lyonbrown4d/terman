@@ -2,6 +2,7 @@ use std::error::Error;
 
 mod builtin;
 mod builtin_control;
+mod builtin_input;
 mod builtin_output;
 mod builtin_mouse;
 mod builtin_runtime;
@@ -12,6 +13,7 @@ mod launcher;
 mod mouse_window_list;
 mod pty;
 mod pty_process;
+mod region_types;
 mod service;
 mod server;
 mod server_control;

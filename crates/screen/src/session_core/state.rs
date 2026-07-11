@@ -1,7 +1,16 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use super::{ScreenSessionStatus, ScreenWindowStatus, replay::DEFAULT_SCROLLBACK_LINES, window::ScreenWindowState};
-use crate::screen_exchange::default_screen_exchange_file;
+use super::{
+    ScreenSessionStatus, ScreenWindowStatus,
+    region_layout::ScreenRegionLayout,
+    region_render::render_regions,
+    replay::DEFAULT_SCROLLBACK_LINES,
+    window::ScreenWindowState,
+};
+use crate::{
+    region_types::{ScreenRegionAxis, ScreenRegionFocus},
+    screen_exchange::default_screen_exchange_file,
+};
 
 pub(crate) struct ScreenRemovedWindow {
     pub(crate) active_window: Option<usize>,
@@ -19,6 +28,7 @@ pub(super) struct ScreenSessionState {
     pub(super) windows: Vec<ScreenWindowState>,
     pub(super) active_window: usize,
     last_window: Option<usize>,
+    regions: ScreenRegionLayout,
     pub(super) paste_buffer: Vec<u8>,
     pub(super) last_message: Vec<u8>,
     pub(super) hardcopy_dir: Option<PathBuf>,
@@ -37,6 +47,7 @@ impl Default for ScreenSessionState {
             windows: vec![ScreenWindowState::new(0)],
             active_window: 0,
             last_window: None,
+            regions: ScreenRegionLayout::new(0),
             paste_buffer: Vec::new(),
             last_message: Vec::new(),
             hardcopy_dir: None,
@@ -67,22 +78,21 @@ impl ScreenSessionState {
     pub(super) fn add_window(&mut self, index: usize, title: Option<String>, scrollback_lines: usize) {
         let mut window = ScreenWindowState::new(index);
         window.set_scrollback_lines(scrollback_lines, self.cols);
+        if let (Some(rows), Some(cols)) = (self.rows, self.cols) {
+            window.resize_terminal(rows, cols);
+        }
         if let Some(title) = title {
             window.set_title(title);
         }
         self.windows.push(window);
-        if self.active_window != index && self.window(self.active_window).is_some() {
-            self.last_window = Some(self.active_window);
-        }
-        self.active_window = index;
+        self.activate_window(index);
+        self.regions.select_window(index);
     }
 
     pub(super) fn select_window(&mut self, index: usize) -> Option<Vec<u8>> {
         let replay = self.window(index)?.replay_snapshot();
-        if self.active_window != index && self.window(self.active_window).is_some() {
-            self.last_window = Some(self.active_window);
-        }
-        self.active_window = index;
+        self.activate_window(index);
+        self.regions.select_window(index);
         Some(replay)
     }
 
@@ -94,6 +104,7 @@ impl ScreenSessionState {
         }
         self.select_window(index)
     }
+
     pub(super) fn renumber_window(&mut self, source: usize, index: usize) -> Option<()> {
         let source_position = self.windows.iter().position(|window| window.index() == source)?;
         if source == index {
@@ -103,6 +114,7 @@ impl ScreenSessionState {
             target.set_index(source);
         }
         self.windows[source_position].set_index(index);
+        self.regions.swap_windows(source, index);
         if self.active_window == source {
             self.active_window = index;
         } else if self.active_window == index {
@@ -138,6 +150,7 @@ impl ScreenSessionState {
             let next_position = position.min(self.windows.len() - 1);
             self.active_window = self.windows[next_position].index();
         }
+        self.regions.replace_window(index, self.active_window);
         let replay = self
             .active_window()
             .map(ScreenWindowState::replay_snapshot)
@@ -148,6 +161,58 @@ impl ScreenSessionState {
             last_window: false,
             redraw: was_active,
         })
+    }
+
+    pub(super) fn split_region(&mut self, axis: ScreenRegionAxis) -> bool {
+        self.regions.split(axis)
+    }
+
+    pub(super) fn focus_region(&mut self, target: ScreenRegionFocus) -> Option<usize> {
+        let index = self.regions.focus(target)?;
+        self.activate_window(index);
+        Some(index)
+    }
+
+    pub(super) fn remove_region(&mut self) -> Option<usize> {
+        let index = self.regions.remove_focused()?;
+        self.activate_window(index);
+        Some(index)
+    }
+
+    pub(super) fn only_region(&mut self) -> Option<usize> {
+        let index = self.regions.keep_focused_only()?;
+        self.activate_window(index);
+        Some(index)
+    }
+
+    pub(super) fn has_multiple_regions(&self) -> bool {
+        self.regions.len() > 1
+    }
+
+    pub(super) fn region_contains_window(&self, index: usize) -> bool {
+        self.regions.contains_window(index)
+    }
+
+    pub(super) fn render_regions(&self) -> Vec<u8> {
+        render_regions(
+            &self.regions,
+            &self.windows,
+            self.rows.unwrap_or(24),
+            self.cols.unwrap_or(80),
+        )
+    }
+
+    pub(super) fn resize_terminals(&mut self, rows: u16, cols: u16) {
+        for window in &mut self.windows {
+            window.resize_terminal(rows, cols);
+        }
+    }
+
+    fn activate_window(&mut self, index: usize) {
+        if self.active_window != index && self.window(self.active_window).is_some() {
+            self.last_window = Some(self.active_window);
+        }
+        self.active_window = index;
     }
 
     fn window(&self, index: usize) -> Option<&ScreenWindowState> {

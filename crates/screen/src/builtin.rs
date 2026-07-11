@@ -8,6 +8,7 @@ use crate::{
     builtin_runtime::{RawMode, poll_terminal_event, resolve_size, screen_session_endpoint},
     service::ScreenSessionService,
     session_core::{ScreenControlEvent, ScreenSessionBus},
+    terminal_input::ScreenInputDecoder,
     sessions::register_builtin_screen_session,
     window_runtime::{ScreenWindowOutput, kill_windows, spawn_screen_window_runtime},
 };
@@ -22,6 +23,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
         register_builtin_screen_session(&args, &endpoint, session_name_state.clone())?;
     let session_bus = ScreenSessionBus::new();
     let (control_tx, control_rx) = mpsc::channel::<ScreenControlEvent>();
+    let runtime_control_tx = control_tx.clone();
     let _session_service = ScreenSessionService::start(
         session_name_state,
         endpoint,
@@ -30,6 +32,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     )?;
     let _raw = RawMode::enter()?;
     let size = resolve_size(args.cols, args.rows);
+    session_bus.publish_resize(size.0, size.1);
 
     let mut defaults = BuiltinControlDefaults::new(session_bus.status_snapshot().scrollback_lines);
     let (output_tx, output_rx) = mpsc::channel::<ScreenWindowOutput>();
@@ -45,6 +48,7 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
     )?];
     let mut active_window = 0;
     let mut mouse_state = ScreenMouseState::default();
+    let mut input_decoder = ScreenInputDecoder::new();
     let mut exit_code: Option<i32> = None;
 
     loop {
@@ -68,7 +72,14 @@ pub(crate) fn run_builtin_screen(args: ScreenArgs) -> Result<(), Box<dyn Error>>
             continue;
         }
 
-        if poll_terminal_event(&session_bus, &mut windows, &mut active_window, &mut mouse_state).is_err() {
+        if poll_terminal_event(
+            &session_bus,
+            &runtime_control_tx,
+            &mut input_decoder,
+            &mut windows,
+            &mut active_window,
+            &mut mouse_state,
+        ).is_err() {
             break;
         }
     }

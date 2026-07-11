@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::{
+    builtin_output::write_region_frame,
     ScreenArgs,
     builtin_output::{publish_error, publish_window_redraw},
     session_core::{ScreenControlEvent, ScreenSessionBus},
@@ -80,9 +81,36 @@ fn handle_control(
                 session_bus.renumber_window(source, index);
             }
         }
+        ScreenControlEvent::SplitRegion { axis } => {
+            if let Some((index, frame)) = session_bus.split_region(axis) {
+                *active_window = index;
+                write_region_frame(&frame);
+            }
+        }
+        ScreenControlEvent::FocusRegion { target } => {
+            if let Some((index, frame)) = session_bus.focus_region(target) {
+                *active_window = index;
+                write_region_frame(&frame);
+            }
+        }
+        ScreenControlEvent::RemoveRegion => {
+            if let Some((index, frame)) = session_bus.remove_region() {
+                *active_window = index;
+                write_region_frame(&frame);
+            }
+        }
+        ScreenControlEvent::OnlyRegion => {
+            if let Some((index, frame)) = session_bus.only_region() {
+                *active_window = index;
+                write_region_frame(&frame);
+            }
+        }
         ScreenControlEvent::Resize { cols, rows } => {
             resize_windows(windows, cols, rows);
             session_bus.publish_resize(cols, rows);
+            if let Some(frame) = session_bus.publish_region_redraw() {
+                write_region_frame(&frame);
+            }
         }
         ScreenControlEvent::Terminate => {
             kill_windows(windows);
@@ -133,6 +161,10 @@ fn switch_and_redraw(
     target: ScreenWindowSwitch,
 ) {
     if let Some(replay) = switch_screen_window(session_bus, windows, active_window, target) {
-        publish_window_redraw(session_bus, &replay);
+        if let Some(frame) = session_bus.publish_region_redraw() {
+            write_region_frame(&frame);
+        } else {
+            publish_window_redraw(session_bus, &replay);
+        }
     }
 }

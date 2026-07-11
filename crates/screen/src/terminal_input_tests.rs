@@ -250,3 +250,6 @@ fn sends_literal_prefix_with_ctrl_a_a() {
 
 #[path = "terminal_input_tests/attach_keys.rs"]
 mod attach_keys;
+
+#[path = "terminal_input_tests/regions.rs"]
+mod regions;

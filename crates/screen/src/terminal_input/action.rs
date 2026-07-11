@@ -1,3 +1,5 @@
+use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenInputAction {
     Bytes(Vec<u8>),
@@ -7,6 +9,7 @@ pub(crate) enum ScreenInputAction {
     DumpTermcap,
     Displays,
     Fit,
+    FocusRegion(ScreenRegionFocus),
     Help,
     Hardcopy,
     Info,
@@ -16,21 +19,24 @@ pub(crate) enum ScreenInputAction {
     LastWindow,
     LogToggle,
     NewWindow,
+    NextWindow,
     Number,
+    OnlyRegion,
     Paste,
     PreviousWindow,
     Quit,
     ReadBuffer,
-    RemoveBuffer,
-    Resize,
     Redisplay,
+    RemoveBuffer,
+    RemoveRegion,
     Reset,
+    Resize,
     SelectWindow(usize),
+    SplitRegion(ScreenRegionAxis),
     Time,
     Title,
     Version,
     WidthToggle,
     Windows,
     WriteBuffer,
-    NextWindow,
 }

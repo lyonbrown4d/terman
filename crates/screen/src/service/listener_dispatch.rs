@@ -184,6 +184,22 @@ pub(super) fn handle_client(
             send_control_event(control_tx, ScreenControlEvent::KillWindow)?;
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::SplitRegion { axis }) => {
+            send_control_event(control_tx, ScreenControlEvent::SplitRegion { axis })?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::FocusRegion { target }) => {
+            send_control_event(control_tx, ScreenControlEvent::FocusRegion { target })?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::RemoveRegion) => {
+            send_control_event(control_tx, ScreenControlEvent::RemoveRegion)?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
+        Ok(ScreenIpcRequest::OnlyRegion) => {
+            send_control_event(control_tx, ScreenControlEvent::OnlyRegion)?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Ping) => write_response(stream, &ScreenIpcResponse::Accepted),
         Ok(ScreenIpcRequest::Quit) => {
             send_control_event(control_tx, ScreenControlEvent::Terminate)?;

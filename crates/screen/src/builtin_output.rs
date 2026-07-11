@@ -10,15 +10,18 @@ use crate::{
 };
 
 pub(crate) fn publish_window_redraw(bus: &ScreenSessionBus, replay: &[u8]) {
-    bus.publish_transient_output(b"\x1bc");
+    bus.publish_transient_output(b"c");
     if !replay.is_empty() {
         bus.publish_transient_output(replay);
     }
+    let mut bytes = b"c".to_vec();
+    bytes.extend_from_slice(replay);
+    write_region_frame(&bytes);
+}
+
+pub(crate) fn write_region_frame(frame: &[u8]) {
     let mut stdout = io::stdout();
-    let _ = stdout.write_all(b"\x1bc");
-    if !replay.is_empty() {
-        let _ = stdout.write_all(replay);
-    }
+    let _ = stdout.write_all(frame);
     let _ = stdout.flush();
 }
 
@@ -27,12 +30,12 @@ pub(crate) fn drain_window_output(
     rx: &mpsc::Receiver<ScreenWindowOutput>,
     active_window: usize,
 ) {
-    let mut stdout = io::stdout();
     while let Ok(output) = rx.try_recv() {
         bus.publish_window_output(output.index, &output.bytes);
-        if output.index == active_window {
-            let _ = stdout.write_all(&output.bytes);
-            let _ = stdout.flush();
+        if let Some(frame) = bus.publish_region_redraw_for_output(output.index) {
+            write_region_frame(&frame);
+        } else if output.index == active_window {
+            write_region_frame(&output.bytes);
         }
     }
 }
@@ -51,12 +54,18 @@ pub(crate) fn handle_window_exit(
         *active_window = index;
     }
     if removal.redraw {
-        publish_window_redraw(bus, &removal.replay);
+        if let Some(frame) = bus.publish_region_redraw() {
+            write_region_frame(&frame);
+        } else {
+            publish_window_redraw(bus, &removal.replay);
+        }
     }
     None
 }
 
 pub(crate) fn publish_error(bus: &ScreenSessionBus, err: Box<dyn Error>) {
-    let message = format!("\r\nscreen window failed: {err}\r\n");
+    let message = format!("
+screen window failed: {err}
+");
     bus.publish_transient_output(message.as_bytes());
 }

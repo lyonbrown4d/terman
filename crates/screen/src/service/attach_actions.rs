@@ -72,6 +72,18 @@ pub(super) fn handle_attach_action(
         ScreenInputAction::PreviousWindow => {
             send_control_request(endpoint, ScreenIpcRequest::PreviousWindow)?;
         }
+        ScreenInputAction::SplitRegion(axis) => {
+            send_control_request(endpoint, ScreenIpcRequest::SplitRegion { axis })?;
+        }
+        ScreenInputAction::FocusRegion(target) => {
+            send_control_request(endpoint, ScreenIpcRequest::FocusRegion { target })?;
+        }
+        ScreenInputAction::RemoveRegion => {
+            send_control_request(endpoint, ScreenIpcRequest::RemoveRegion)?;
+        }
+        ScreenInputAction::OnlyRegion => {
+            send_control_request(endpoint, ScreenIpcRequest::OnlyRegion)?;
+        }
         ScreenInputAction::Quit => {
             send_control_request(endpoint, ScreenIpcRequest::Quit)?;
             return Ok(AttachActionResult::Stop);

@@ -1682,6 +1682,7 @@ dependencies = [
  "sysinfo",
  "terman-common",
  "tokio",
+ "vt100",
 ]
 
 [[package]]

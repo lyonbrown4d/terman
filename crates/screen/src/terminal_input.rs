@@ -1,7 +1,10 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 pub(crate) use crate::terminal_key::key_to_bytes;
-use crate::terminal_key::SCREEN_CONTROL_PREFIX;
+use crate::{
+    region_types::{ScreenRegionAxis, ScreenRegionFocus},
+    terminal_key::SCREEN_CONTROL_PREFIX,
+};
 
 mod action;
 pub(crate) use self::action::ScreenInputAction;
@@ -95,6 +98,23 @@ impl ScreenInputDecoder {
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>
             {
                 Some(ScreenInputAction::PreviousWindow)
+            }
+            KeyCode::Char('S') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::SplitRegion(ScreenRegionAxis::Horizontal))
+            }
+            KeyCode::Char('|')
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(ScreenInputAction::SplitRegion(ScreenRegionAxis::Vertical))
+            }
+            KeyCode::Tab if key.modifiers.is_empty() => {
+                Some(ScreenInputAction::FocusRegion(ScreenRegionFocus::Next))
+            }
+            KeyCode::Char('X') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::RemoveRegion)
+            }
+            KeyCode::Char('Q') if key.modifiers == KeyModifiers::SHIFT => {
+                Some(ScreenInputAction::OnlyRegion)
             }
             KeyCode::Char('q') | KeyCode::Char('Q')
                 if key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL) =>

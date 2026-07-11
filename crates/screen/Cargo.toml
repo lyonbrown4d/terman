@@ -17,3 +17,4 @@ serde_json = { workspace = true }
 sysinfo = { workspace = true }
 terman-common = { workspace = true }
 tokio = { workspace = true }
+vt100 = { workspace = true }

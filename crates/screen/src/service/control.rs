@@ -112,7 +112,7 @@ fn execute_control_command(
         "number" => request_number_command(args, inline_payload, extra_args),
         "scrollback" => request_scrollback_command(args, inline_payload, extra_args),
         "defscrollback" => request_defscrollback_command(args, inline_payload, extra_args),
-        "next" | "prev" | "previous" | "other" => {
+        "next" | "prev" | "previous" | "other" | "split" | "focus" | "remove" | "only" => {
             request_window_navigation_command(args, &command, request_session_response)
         },
         "sessionname" => request_sessionname_command(args, inline_payload, extra_args),

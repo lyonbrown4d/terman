@@ -2,11 +2,15 @@ use std::io;
 
 use super::{logging::ScreenOutputLog, replay::ScreenReplayBuffer, ScreenWindowStatus};
 
+const DEFAULT_TERMINAL_ROWS: u16 = 24;
+const DEFAULT_TERMINAL_COLS: u16 = 80;
+
 pub(super) struct ScreenWindowState {
     index: usize,
     title: Option<String>,
     replay: ScreenReplayBuffer,
     output_log: ScreenOutputLog,
+    terminal: vt100::Parser,
 }
 
 impl ScreenWindowState {
@@ -16,6 +20,11 @@ impl ScreenWindowState {
             title: None,
             replay: ScreenReplayBuffer::default(),
             output_log: ScreenOutputLog::new(index),
+            terminal: vt100::Parser::new(
+                DEFAULT_TERMINAL_ROWS,
+                DEFAULT_TERMINAL_COLS,
+                0,
+            ),
         }
     }
 
@@ -34,6 +43,16 @@ impl ScreenWindowState {
 
     pub(super) fn set_title(&mut self, title: String) {
         self.title = Some(title);
+    }
+
+    pub(super) fn terminal_screen(&self) -> &vt100::Screen {
+        self.terminal.screen()
+    }
+
+    pub(super) fn resize_terminal(&mut self, rows: u16, cols: u16) {
+        self.terminal
+            .screen_mut()
+            .set_size(rows.max(1), cols.max(1));
     }
 
     pub(super) fn replay_snapshot(&self) -> Vec<u8> {
@@ -98,6 +117,7 @@ impl ScreenWindowState {
     }
 
     pub(super) fn append_replay(&mut self, bytes: &[u8], cols: Option<u16>) {
+        self.terminal.process(bytes);
         self.replay.append(bytes, cols);
     }
 

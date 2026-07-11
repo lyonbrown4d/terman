@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenSessionEvent {
     Output(Vec<u8>),
@@ -22,6 +24,10 @@ pub(crate) enum ScreenControlEvent {
     PreviousWindow,
     LastWindow,
     KillWindow,
+    SplitRegion { axis: ScreenRegionAxis },
+    FocusRegion { target: ScreenRegionFocus },
+    RemoveRegion,
+    OnlyRegion,
     Resize { cols: u16, rows: u16 },
     Terminate,
 }
