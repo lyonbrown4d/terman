@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{model::ProcessRow, render::Tab};
+use crate::{model::{ProcessRow, SortMode}, render::Tab};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum TreeBranchAction {
@@ -23,6 +23,7 @@ pub(crate) fn find_next(selected: usize, processes: &[ProcessRow], term: &str) -
 
 fn process_matches_search(row: &ProcessRow, term: &str) -> bool {
     row.pid.contains(term)
+        || row.user.to_lowercase().contains(term)
         || row.name.to_lowercase().contains(term)
         || row.command.to_lowercase().contains(term)
 }
@@ -63,6 +64,31 @@ pub(crate) fn filter_key(code: KeyCode) -> bool {
 
 pub(crate) fn sort_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::Char('s') | KeyCode::F(6))
+}
+
+pub(crate) fn apply_direct_sort(
+    tab: Tab,
+    code: KeyCode,
+    sort: &mut SortMode,
+    inverted: &mut bool,
+) -> bool {
+    let Some(mode) = direct_sort_key(tab, code) else {
+        return false;
+    };
+    *sort = mode;
+    *inverted = false;
+    true
+}
+
+fn direct_sort_key(tab: Tab, code: KeyCode) -> Option<SortMode> {
+    let sort = match code {
+        KeyCode::Char('P') => SortMode::Cpu,
+        KeyCode::Char('M') => SortMode::Memory,
+        KeyCode::Char('T') => SortMode::Time,
+        KeyCode::Char('N') => SortMode::Pid,
+        _ => return None,
+    };
+    (matches!(tab, Tab::Overview | Tab::Processes) || sort == SortMode::Pid).then_some(sort)
 }
 
 pub(crate) fn tree_key(code: KeyCode) -> bool {

@@ -11,7 +11,7 @@ use crate::{
         handle_signal_input, handle_sort_menu_input, selected_process_pid,
     },
     app_input::{
-        adjust_refresh, delay_key, filter_key, follow_key, help_key, interrupt_key,
+        adjust_refresh, apply_direct_sort, delay_key, filter_key, follow_key, help_key, interrupt_key,
         invert_sort_key, kill_key, move_selection, navigation_key, next_tab, priority_delta,
         quit_key, search_key, sort_key, tree_branch_action, tree_key, tree_toggle_all_key,
         TreeBranchAction,
@@ -244,6 +244,7 @@ pub(crate) fn poll_until_refresh(
                     *filter_input = Some(filter.clone());
                     true
                 }
+                Event::Key(key) if apply_direct_sort(*tab, key.code, sort, sort_inverted) => true,
                 Event::Key(key) if sort_key(key.code) => {
                     *sort_cursor = *sort;
                     *sort_menu_open = true;

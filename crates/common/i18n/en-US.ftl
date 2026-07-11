@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
+builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
 builtin-htop-help-panel =
     terman htop
 
@@ -14,11 +14,12 @@ builtin-htop-help-panel =
     Arrows, Home, End, PgUp, PgDn: move process selection.
     Space: tag or untag a process. U: clear all process tags.
     F: follow the selected PID across sorting and refreshes.
-    F3: search visible processes.
-    F4 or /: filter processes by PID, name, or command line.
+    F3: search visible process PID, user, name, or command.
+    F4 or /: filter processes by PID, user, name, or command line.
     F5 or t: toggle flat/tree process view.
     +/-/*: in tree view, + expands, - collapses, and * toggles all branches.
     F6 or s: open the sort menu.
+    P/M/T/N: sort by CPU, memory, cumulative time, or PID.
     F7/F8: decrease/increase nice for the selected process.
     I: invert the current sort order.
     F9: choose and send a supported signal to the selected process.
