@@ -8,20 +8,32 @@ use ratatui::{
 use sysinfo::{SUPPORTED_SIGNALS, Signal};
 
 pub(crate) struct SignalMenuState {
-    pid: String,
+    pids: Vec<String>,
+    label: String,
     cursor: usize,
 }
 
 impl SignalMenuState {
-    pub(crate) fn new(pid: String) -> Self {
+    pub(crate) fn new(mut pids: Vec<String>) -> Self {
+        pids.sort_unstable();
+        pids.dedup();
+        let label = match pids.as_slice() {
+            [pid] => pid.clone(),
+            _ => terman_common::builtin_htop_tagged_count_hint(pids.len()),
+        };
         Self {
-            pid,
-            cursor: default_cursor(),
+            pids,
+            label,
+            cursor: 0,
         }
     }
 
     pub(crate) fn pid(&self) -> &str {
-        self.pid.as_str()
+        &self.label
+    }
+
+    pub(crate) fn pids(&self) -> &[String] {
+        &self.pids
     }
 
     pub(crate) fn cursor(&self) -> usize {

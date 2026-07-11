@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ratatui::{
     Frame,
     layout::Rect,
@@ -22,6 +24,7 @@ pub(crate) fn draw_overview(
     snapshot: &Snapshot,
     sort: SortMode,
     selected: usize,
+    tagged_pids: &HashSet<String>,
 ) {
     let core_rows = overview_layout::core_rows(area.height, snapshot.cpu_cores.len());
     let process_rows = overview_layout::process_rows(area.height, snapshot.cpu_cores.len());
@@ -58,7 +61,7 @@ pub(crate) fn draw_overview(
     lines.push(process_header_line(sort));
     for (offset, row) in snapshot.processes.iter().skip(process_start).take(process_rows).enumerate() {
         let index = process_start + offset;
-        lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2)));
+        lines.push(process_line(row, index == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str())));
     }
     render_block(frame, area, "Overview", lines);
 }

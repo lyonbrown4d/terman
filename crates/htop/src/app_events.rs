@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crossterm::event::KeyCode;
 
 use crate::{
@@ -138,6 +140,56 @@ fn send_selected_signal(
         return;
     };
     if let Some(signal) = state.selected_signal() {
-        let _ = metrics.signal_process(state.pid(), signal);
+        for pid in state.pids() {
+            let _ = metrics.signal_process(pid, signal);
+        }
+    }
+}
+pub(crate) fn action_process_pids(
+    tagged_pids: &HashSet<String>,
+    processes: &[ProcessRow],
+    selected: usize,
+) -> Vec<String> {
+    if tagged_pids.is_empty() {
+        return selected_process_pid(processes, selected)
+            .into_iter()
+            .collect();
+    }
+    let mut pids = tagged_pids.iter().cloned().collect::<Vec<_>>();
+    pids.sort_unstable();
+    pids
+}
+
+pub(crate) fn signal_menu_for_processes(
+    tagged_pids: &HashSet<String>,
+    processes: &[ProcessRow],
+    selected: usize,
+) -> Option<SignalMenuState> {
+    let pids = action_process_pids(tagged_pids, processes, selected);
+    (!pids.is_empty()).then(|| SignalMenuState::new(pids))
+}
+
+pub(crate) fn adjust_process_priorities(
+    metrics: &mut Metrics,
+    tagged_pids: &HashSet<String>,
+    processes: &[ProcessRow],
+    selected: usize,
+    delta: i32,
+) {
+    for pid in action_process_pids(tagged_pids, processes, selected) {
+        let _ = metrics.adjust_process_priority(&pid, delta);
+    }
+}
+
+pub(crate) fn toggle_process_tag(
+    tagged_pids: &mut HashSet<String>,
+    processes: &[ProcessRow],
+    selected: usize,
+) {
+    let Some(pid) = selected_process_pid(processes, selected) else {
+        return;
+    };
+    if !tagged_pids.remove(&pid) {
+        tagged_pids.insert(pid);
     }
 }

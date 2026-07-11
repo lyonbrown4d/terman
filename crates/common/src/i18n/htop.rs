@@ -65,3 +65,17 @@ pub fn builtin_htop_signal_footer_hint(pid: &str) -> String {
 pub fn builtin_htop_follow_status_hint(pid: &str) -> String {
     localized_message(MessageKey::BuiltinHtopFollowStatus, &[("pid", pid)])
 }
+pub fn builtin_htop_tag() -> String {
+    localized_message(MessageKey::BuiltinHtopTag, &[])
+}
+
+pub fn builtin_htop_untag_all() -> String {
+    localized_message(MessageKey::BuiltinHtopUntagAll, &[])
+}
+
+pub fn builtin_htop_tagged_count_hint(count: usize) -> String {
+    format!(
+        "{count} {}",
+        localized_message(MessageKey::BuiltinHtopTaggedCount, &[])
+    )
+}

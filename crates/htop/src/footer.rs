@@ -17,6 +17,8 @@ pub(crate) enum FooterAction {
     Sort,
     PriorityHigher,
     PriorityLower,
+    Tag,
+    UntagAll,
     Kill,
     ConfirmKill,
     CancelKill,
@@ -43,6 +45,8 @@ pub(crate) fn footer_line(
         key_span("F6"), value_span(sort_label(sort, sort_inverted)),
         key_span("F7"), value_span(" Nice- ".to_string()),
         key_span("F8"), value_span(" Nice+ ".to_string()),
+        key_span("Spc"), value_span(format!(" {} ", terman_common::builtin_htop_tag())),
+        key_span("U"), value_span(format!(" {} ", terman_common::builtin_htop_untag_all())),
         key_span("F9"), value_span(" Kill ".to_string()),
     ];
     if tree {
@@ -83,6 +87,8 @@ pub(crate) fn footer_action_at(
         (FooterAction::Sort, button_width("F6", sort_label(sort, sort_inverted))),
         (FooterAction::PriorityHigher, button_width("F7", " Nice- ".to_string())),
         (FooterAction::PriorityLower, button_width("F8", " Nice+ ".to_string())),
+        (FooterAction::Tag, button_width("Spc", format!(" {} ", terman_common::builtin_htop_tag()))),
+        (FooterAction::UntagAll, button_width("U", format!(" {} ", terman_common::builtin_htop_untag_all()))),
         (FooterAction::Kill, button_width("F9", " Kill ".to_string())),
     ];
     if tree {

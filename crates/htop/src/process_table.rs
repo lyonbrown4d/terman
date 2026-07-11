@@ -53,15 +53,15 @@ pub(crate) fn process_header_line(sort: SortMode) -> Line<'static> {
     ])
 }
 
-pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, table_width: u16) -> Line<'static> {
+pub(crate) fn process_line(row: &ProcessRow, selected: bool, total_memory: u64, table_width: u16, tagged: bool) -> Line<'static> {
     let memory_percent = memory_percent(row.memory, total_memory);
     let state = status_char(row.status.as_str());
     let nice = row.nice.map(|value| value.to_string()).unwrap_or_else(|| "-".to_string());
     let ppid = row.parent_pid.as_deref().unwrap_or("-");
     let command = command_cell(tree_name(row, command_text(row)).as_str(), table_width);
     let text = process_text(row, ppid, nice.as_str(), state.as_str(), memory_percent, command.as_str());
-    if selected {
-        return Line::from(Span::styled(text, selected_style()));
+    if selected || tagged {
+        return Line::from(Span::styled(text, row_style(tagged)));
     }
     Line::from(vec![
         Span::styled(format!("{:<8}", row.pid), Style::default().fg(Color::Gray)),
@@ -153,8 +153,9 @@ fn usage_style(value: f64, max: f64) -> Style {
     }
 }
 
-fn selected_style() -> Style {
-    Style::default().fg(Color::Black).bg(Color::Green)
+fn row_style(tagged: bool) -> Style {
+    let background = if tagged { Color::Yellow } else { Color::Green };
+    Style::default().fg(Color::Black).bg(background)
 }
 
 #[cfg(test)]

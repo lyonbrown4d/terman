@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ratatui::{
     Frame,
     layout::Rect,
@@ -22,6 +24,7 @@ pub(crate) fn draw_processes(
     selected: usize,
     filter: &str,
     detail_scroll: usize,
+    tagged_pids: &HashSet<String>,
 ) {
     let details = process_detail_lines(snapshot.processes.get(selected));
     let detail_visible = detail_rows(area, details.len());
@@ -37,7 +40,7 @@ pub(crate) fn draw_processes(
         filter_label(filter)
     )));
     for (offset, row) in snapshot.processes.iter().skip(start).take(visible).enumerate() {
-        lines.push(process_line(row, start + offset == selected, snapshot.total_memory, area.width.saturating_sub(2)));
+        lines.push(process_line(row, start + offset == selected, snapshot.total_memory, area.width.saturating_sub(2), tagged_pids.contains(row.pid.as_str())));
     }
     lines.push(title_line("DETAILS"));
     lines.extend(details.into_iter().skip(detail_scroll).take(detail_visible));

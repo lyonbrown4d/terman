@@ -1,4 +1,4 @@
-use std::{
+use std::{collections::HashSet, 
     io,
     time::{Duration, Instant},
 };
@@ -53,6 +53,7 @@ pub(crate) fn poll_until_refresh(
     filter_input: &mut Option<String>,
     search: &mut String,
     search_input: &mut Option<String>,
+    tagged_pids: &mut HashSet<String>,
 ) -> io::Result<bool> {
     if interrupt.interrupted() {
         return Ok(true);
@@ -99,19 +100,22 @@ pub(crate) fn poll_until_refresh(
                         mouse::MouseAction::Quit => return Ok(true),
                         mouse::MouseAction::Search => *search_input = Some(search.clone()),
                         mouse::MouseAction::Filter => *filter_input = Some(filter.clone()),
+                        mouse::MouseAction::Tag => {
+                            crate::app_events::toggle_process_tag(tagged_pids, processes, *selected);
+                        }
+                        mouse::MouseAction::UntagAll => tagged_pids.clear(),
                         mouse::MouseAction::Kill => {
-                            *signal_menu = selected_process_pid(processes, *selected)
-                                .map(SignalMenuState::new);
+                            *signal_menu = crate::app_events::signal_menu_for_processes(tagged_pids, processes, *selected);
                         }
                         mouse::MouseAction::ConfirmKill => {
                             confirm_mouse_signal(metrics, signal_menu);
                         }
                         mouse::MouseAction::CancelKill => *signal_menu = None,
                         mouse::MouseAction::PriorityHigher => {
-                            adjust_selected_priority(metrics, processes, *selected, -1);
+                            crate::app_events::adjust_process_priorities(metrics, tagged_pids, processes, *selected, -1);
                         }
                         mouse::MouseAction::PriorityLower => {
-                            adjust_selected_priority(metrics, processes, *selected, 1);
+                            crate::app_events::adjust_process_priorities(metrics, tagged_pids, processes, *selected, 1);
                         }
                         mouse::MouseAction::DelayFaster => {
                             adjust_refresh(refresh_ms, KeyCode::Char('+'));
@@ -169,6 +173,19 @@ pub(crate) fn poll_until_refresh(
                     true
                 }
                 Event::Key(key) if quit_key(key.code) => return Ok(true),
+                Event::Key(key)
+                    if crate::app_input::tag_key(key.code)
+                        && matches!(*tab, Tab::Overview | Tab::Processes) =>
+                {
+                    crate::app_events::toggle_process_tag(
+                        tagged_pids, processes, *selected,
+                    );
+                    true
+                }
+                Event::Key(key) if crate::app_input::untag_all_key(key.code) => {
+                    tagged_pids.clear();
+                    true
+                }
                 Event::Key(key) if follow_key(key.code) => {
                     let pid = selected_process_pid(processes, *selected);
                     if followed_pid.as_deref() == pid.as_deref() {
@@ -208,17 +225,11 @@ pub(crate) fn poll_until_refresh(
                     true
                 }
                 Event::Key(key) if kill_key(key.code) => {
-                    *signal_menu = selected_process_pid(processes, *selected)
-                        .map(SignalMenuState::new);
+                    *signal_menu = crate::app_events::signal_menu_for_processes(tagged_pids, processes, *selected);
                     true
                 }
                 Event::Key(key) if priority_delta(key.code).is_some() => {
-                    adjust_selected_priority(
-                        metrics,
-                        processes,
-                        *selected,
-                        priority_delta(key.code).unwrap_or_default(),
-                    );
+                    crate::app_events::adjust_process_priorities(metrics, tagged_pids, processes, *selected, priority_delta(key.code).unwrap_or_default(),);
                     true
                 }
                 Event::Key(key) if help_key(key.code) => {
@@ -282,15 +293,5 @@ fn apply_tree_branch(
     match action {
         TreeBranchAction::Expand => tree_state.expand(row.pid.as_str()),
         TreeBranchAction::Collapse => tree_state.collapse(row.pid.as_str()),
-    }
-}
-fn adjust_selected_priority(
-    metrics: &mut Metrics,
-    processes: &[ProcessRow],
-    selected: usize,
-    delta: i32,
-) {
-    if let Some(pid) = selected_process_pid(processes, selected) {
-        let _ = metrics.adjust_process_priority(&pid, delta);
     }
 }

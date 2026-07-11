@@ -26,6 +26,12 @@ impl Metrics {
         self.networks.refresh(true);
     }
 
+    pub(crate) fn process_exists(&self, pid: &str) -> bool {
+        self.system
+            .processes()
+            .keys()
+            .any(|candidate| candidate.to_string() == pid)
+    }
     pub(crate) fn signal_process(&mut self, pid: &str, signal: Signal) -> bool {
         self.system
             .processes()

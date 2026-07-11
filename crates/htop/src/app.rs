@@ -1,4 +1,4 @@
-use std::{error::Error, io};
+use std::{collections::HashSet, error::Error, io};
 
 use ratatui::{Terminal, backend::CrosstermBackend};
 
@@ -36,6 +36,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut signal_menu: Option<SignalMenuState> = None;
     let mut selected = 0usize;
     let mut followed_pid: Option<String> = None;
+    let mut tagged_pids: HashSet<String> = HashSet::new();
     let mut detail_scroll = 0usize;
     let mut io_scroll = 0usize;
     let mut network_scroll = 0usize;
@@ -100,7 +101,8 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             if help_open {
                 help::draw(frame);
             } else {
-                render::draw(
+                tagged_pids.retain(|pid| metrics.process_exists(pid));
+        render::draw(
                     frame,
                     &snapshot,
                     tab,
@@ -118,6 +120,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
                     refresh_ms,
                     followed_pid.as_deref(),
                     signal_menu.as_ref(),
+                    &tagged_pids,
                 );
                 if sort_menu_open {
                     sort_menu::draw(frame, sort_cursor);
@@ -154,6 +157,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut filter_input,
             &mut search,
             &mut search_input,
+            &mut tagged_pids,
         )? {
             return Ok(());
         }

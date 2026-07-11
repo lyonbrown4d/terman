@@ -150,3 +150,10 @@ pub(crate) fn next_tab(tab: Tab, key: &KeyEvent) -> Tab {
         _ => tab,
     }
 }
+pub(crate) fn tag_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char(' '))
+}
+
+pub(crate) fn untag_all_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('U'))
+}

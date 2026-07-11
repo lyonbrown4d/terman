@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority.
+builtin-htop-help = F1 help, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
 builtin-htop-help-panel =
     terman htop
 
@@ -12,6 +12,7 @@ builtin-htop-help-panel =
     Tab or Left/Right: switch Overview, Processes, I/O, Network tabs.
     1-4: jump to a tab directly.
     Arrows, Home, End, PgUp, PgDn: move process selection.
+    Space: tag or untag a process. U: clear all process tags.
     F: follow the selected PID across sorting and refreshes.
     F3: search visible processes.
     F4 or /: filter processes by PID, name, or command line.
@@ -251,3 +252,6 @@ builtin-tmux-buffer-data-required = set-buffer requires buffer data.
 builtin-tmux-buffer-list-item = {$name}: {$bytes} bytes: "{$preview}"
 builtin-tmux-buffer-not-found = tmux buffer "{$name}" was not found.
 builtin-tmux-buffer-unavailable = tmux buffer state is unavailable.
+builtin-htop-tag = Tag
+builtin-htop-untag-all = Untag
+builtin-htop-tagged-count = tagged processes

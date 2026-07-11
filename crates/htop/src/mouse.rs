@@ -18,10 +18,12 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MouseAction {
-    Ignored,
     Handled,
+    Ignored,
     Search,
     Filter,
+    Tag,
+    UntagAll,
     Kill,
     ConfirmKill,
     CancelKill,
@@ -34,7 +36,6 @@ pub(crate) enum MouseAction {
     TreeToggleAll,
     Quit,
 }
-
 pub(crate) fn handle_mouse(event: MouseEvent, mut context: MouseContext<'_>) -> MouseAction {
     if *context.help_open {
         if matches!(
@@ -218,6 +219,8 @@ fn handle_footer(column: u16, row: u16, context: &mut MouseContext<'_>) -> Mouse
             *context.sort_cursor = *context.sort;
             *context.sort_menu_open = true;
         }
+        Some(FooterAction::Tag) => return MouseAction::Tag,
+        Some(FooterAction::UntagAll) => return MouseAction::UntagAll,
         Some(FooterAction::Kill) => return MouseAction::Kill,
         Some(FooterAction::ConfirmKill) => return MouseAction::ConfirmKill,
         Some(FooterAction::CancelKill) => return MouseAction::CancelKill,

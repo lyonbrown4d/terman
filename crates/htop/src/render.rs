@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
@@ -64,6 +66,7 @@ pub(crate) fn draw(
     refresh_ms: u64,
     followed_pid: Option<&str>,
     signal_state: Option<&SignalMenuState>,
+    tagged_pids: &HashSet<String>,
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -71,8 +74,8 @@ pub(crate) fn draw(
         .split(frame.area());
     draw_header(frame, chunks[0], snapshot, tab, followed_pid);
     match tab {
-        Tab::Overview => draw_overview(frame, chunks[1], snapshot, sort, selected),
-        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll),
+        Tab::Overview => draw_overview(frame, chunks[1], snapshot, sort, selected, tagged_pids),
+        Tab::Processes => draw_processes(frame, chunks[1], snapshot, sort, tree, selected, filter, detail_scroll, tagged_pids),
         Tab::Io => draw_io(frame, chunks[1], snapshot, sort, io_scroll, selected),
         Tab::Network => draw_network(frame, chunks[1], snapshot, sort, network_scroll, selected),
     }
