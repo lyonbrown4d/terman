@@ -4,12 +4,14 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     attach_command_prompt::{CommandPromptResult, CommandPromptState},
+    attach_kill::{KillTarget, handle_kill_confirmation},
     attach_keys::{
         TmuxPrefixCommand, is_detach_key, is_key_press, is_tmux_prefix_key, key_event_bytes,
         tmux_prefix_bytes, tmux_prefix_command,
     },
+    attach_pane_chooser::PaneChooserState,
     attach_pane::{
-        kill_current_pane, resize_current_pane, select_last_pane, select_next_pane, select_pane_direction,
+        resize_current_pane, select_last_pane, select_next_pane, select_pane_direction,
         split_current_pane,
         swap_current_pane, toggle_current_pane_zoom,
     },
@@ -20,18 +22,12 @@ use crate::{
         render_status_line,
     },
     attach_window::{
-        current_active_window, handle_window_command, kill_current_window, select_window,
+        current_active_window, handle_window_command, select_window,
     },
     attach_window_list::render_window_list_status,
     ipc::{TmuxIpcEndpoint, TmuxIpcRequest, TmuxIpcResponse},
     service::request_endpoint_response,
 };
-
-#[derive(Clone, Copy)]
-enum KillTarget {
-    Pane,
-    Window,
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum AttachInputResult {
@@ -43,6 +39,7 @@ pub(crate) enum AttachInputResult {
 #[derive(Default)]
 pub(crate) struct AttachInputMode {
     command_prompt: CommandPromptState,
+    pane_chooser: PaneChooserState,
     prefix_pending: bool,
     resize_repeat: PaneResizeRepeat,
     kill_pending: Option<KillTarget>,
@@ -58,6 +55,9 @@ impl AttachInputMode {
         key: KeyEvent,
     ) -> io::Result<AttachInputResult> {
         if !is_key_press(&key) {
+            return Ok(AttachInputResult::Continue);
+        }
+        if self.pane_chooser.handle_key(endpoint, &key)? {
             return Ok(AttachInputResult::Continue);
         }
         if let Some(result) = self.command_prompt.handle_key(endpoint, client_id, &key)? {
@@ -146,6 +146,7 @@ impl AttachInputMode {
     ) -> io::Result<()> {
         match command {
             TmuxPrefixCommand::CommandPrompt => self.command_prompt.begin()?,
+            TmuxPrefixCommand::DisplayPanes => self.pane_chooser.open(endpoint)?,
             TmuxPrefixCommand::KillPane => {
                 self.kill_pending = Some(KillTarget::Pane);
                 let _ = render_status_line(KILL_PANE_CONFIRM_STATUS);
@@ -219,11 +220,15 @@ impl AttachInputMode {
     }
 
     pub(crate) fn status_override(&self) -> Option<String> {
-        self.command_prompt.status_override()
+        self.command_prompt
+            .status_override()
+            .or_else(|| self.pane_chooser.status_override())
     }
 
     pub(crate) fn blocks_mouse(&self) -> bool {
-        self.command_prompt.is_active() || self.rename_input.is_some()
+        self.command_prompt.is_active()
+            || self.pane_chooser.is_active()
+            || self.rename_input.is_some()
     }
     fn select_last_window(&mut self, endpoint: &TmuxIpcEndpoint) -> io::Result<()> {
         let Some(index) = self.last_window else {
@@ -255,28 +260,6 @@ fn active_changing_command(command: TmuxPrefixCommand) -> bool {
             | TmuxPrefixCommand::PreviousWindow
             | TmuxPrefixCommand::SelectWindow(_)
     )
-}
-
-fn handle_kill_confirmation(
-    endpoint: &TmuxIpcEndpoint,
-    key: &KeyEvent,
-    target: KillTarget,
-) -> io::Result<bool> {
-    match key.code {
-        KeyCode::Char('y') | KeyCode::Char('Y') => {
-            match target {
-                KillTarget::Pane => kill_current_pane(endpoint)?,
-                KillTarget::Window => kill_current_window(endpoint)?,
-            }
-            let _ = render_current_status(endpoint);
-            Ok(false)
-        }
-        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-            let _ = render_current_status(endpoint);
-            Ok(false)
-        }
-        _ => Ok(true),
-    }
 }
 
 fn render_current_status(endpoint: &TmuxIpcEndpoint) -> io::Result<()> {

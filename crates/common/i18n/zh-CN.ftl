@@ -7,7 +7,6 @@ builtin-htop-tab-network = 网络
 builtin-htop-help = F1 帮助，F2 设置，Tab/左/右 切换标签，方向键选择，PgUp/PgDn 滚动，1-4 跳转标签，F3 查找，F4 或 / 过滤，u 按用户筛选，F5/t 树视图，+/- 展开/折叠分支，* 切换全部分支，F6/s 排序菜单，P/M/T/N 按 CPU/内存/时间/PID 排序，F 跟随选中 PID，I 反向排序，F9 选择信号，F10/q/Esc 退出，非树视图下 +/- 调整刷新间隔。鼠标：点击标签/页脚/Overview 或 Processes 进程行/表头，滚轮滚动列表、详情、I/O 或网络页，右键进程行打开信号菜单。F7/F8 调整优先级。 Space 标记，U 清除全部标记。
 builtin-htop-help-panel =
     terman htop
-
     F1 帮助：切换这个面板。
     Tab 或 左/右：切换概览、进程、I/O、网络标签。
     1-4：直接跳转到指定标签。
@@ -244,11 +243,12 @@ builtin-tmux-cli-examples =
       - 先查看会话：terman-tmux list-sessions
       - 名称冲突：terman-tmux new -s demo
       - 再复现冲突：terman-tmux new -s demo
-builtin-tmux-attach-help = tmux 快捷键：Ctrl-B c 新建窗口 | Ctrl-B d 断开连接 | Ctrl-B %/" 拆分 pane | Ctrl-B o 切换 pane | Ctrl-B 方向键选择 pane | Ctrl-B Ctrl-方向键调整 pane | Ctrl-B {/} 向上/向下交换 pane | Ctrl-B z 缩放 pane | Ctrl-B x 结束 pane | Ctrl-B & 结束窗口 | Ctrl-B , 重命名窗口 | Ctrl-B $ 重命名会话 | Ctrl-B n/p 前后切换 | Ctrl-B l 上一个窗口 | Ctrl-B 0..9 选择窗口 | Ctrl-B ? 帮助 | 鼠标：状态栏点击/滚轮切换，右键显示窗口列表，中键显示帮助 | Ctrl-B [ 复制模式 | Ctrl-B ] 粘贴 buffer | Ctrl-B : 打开命令提示。
-builtin-tmux-prefix-status = tmux 前缀 | %/" 拆分 | o 切换 pane | 方向键选择 pane | Ctrl-方向键调整 pane | z 缩放 pane | x 结束 pane | & 结束窗口 | , 重命名窗口 | $ 重命名会话 | d 断开
+builtin-tmux-attach-help = tmux 快捷键：Ctrl-B c 新建窗口 | Ctrl-B d 断开连接 | Ctrl-B %/" 拆分 pane | Ctrl-B o 切换 pane | Ctrl-B ; 上一个 pane | Ctrl-B q 选择 pane | Ctrl-B 方向键选择 pane | Ctrl-B Ctrl-方向键调整 pane | Ctrl-B {/} 向上/向下交换 pane | Ctrl-B z 缩放 pane | Ctrl-B x 结束 pane | Ctrl-B & 结束窗口 | Ctrl-B , 重命名窗口 | Ctrl-B $ 重命名会话 | Ctrl-B n/p 前后切换 | Ctrl-B l 上一个窗口 | Ctrl-B 0..9 选择窗口 | Ctrl-B ? 帮助 | 鼠标：状态栏点击/滚轮切换，右键显示窗口列表，中键显示帮助 | Ctrl-B [ 复制模式 | Ctrl-B ] 粘贴 buffer | Ctrl-B : 打开命令提示。
+builtin-tmux-prefix-status = tmux 前缀 | %/" 拆分 | o 切换 pane | ; 上一个 pane | q 选择 pane | 方向键选择 pane | Ctrl-方向键调整 pane | z 缩放 pane | x 结束 pane | & 结束窗口 | , 重命名窗口 | $ 重命名会话 | d 断开
 builtin-tmux-rename-session-prompt = 重命名会话：{$input}
 builtin-tmux-rename-window-prompt = 重命名窗口：{$input}
 builtin-tmux-attach-window-list = 窗口：{$windows}
+builtin-tmux-pane-chooser = pane：{$panes} | 按 0-9 选择，Esc/q 取消
 builtin-tmux-session-list-entry = {$name}：{$windows} 个窗口（已连接 {$attached_clients} 个客户端）
 builtin-tmux-client-list-entry = {$session}：已连接 {$attached_clients} 个客户端
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}

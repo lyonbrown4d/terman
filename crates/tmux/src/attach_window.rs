@@ -29,6 +29,7 @@ pub(crate) fn handle_window_command(
         | TmuxPrefixCommand::SplitVertical
         | TmuxPrefixCommand::NextPane
         | TmuxPrefixCommand::LastPane
+        | TmuxPrefixCommand::DisplayPanes
         | TmuxPrefixCommand::SelectPane(_)
         | TmuxPrefixCommand::SwapPaneUp
         | TmuxPrefixCommand::SwapPaneDown

@@ -7,7 +7,6 @@ builtin-htop-tab-network = Network
 builtin-htop-help = F1 help, F2 setup, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, u filter by user, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
 builtin-htop-help-panel =
     terman htop
-
     F1 Help: toggle this panel.
     Tab or Left/Right: switch Overview, Processes, I/O, Network tabs.
     1-4: jump to a tab directly.
@@ -244,11 +243,12 @@ builtin-tmux-cli-examples =
       - List sessions first: terman-tmux list-sessions
       - Name conflict: terman-tmux new -s demo
       - Reproduce conflict: terman-tmux new -s demo
-builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B arrows select pane | Ctrl-B Ctrl-arrows resize pane | Ctrl-B {/} swap pane up/down | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B $ rename session | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer | Ctrl-B : command prompt.
-builtin-tmux-prefix-status = tmux prefix | %/" split | o next pane | arrows select pane | Ctrl-arrows resize pane | z zoom pane | x kill pane | & kill window | , rename window | $ rename session | d detach
+builtin-tmux-attach-help = tmux keys: Ctrl-B c new window | Ctrl-B d detach | Ctrl-B %/" split pane | Ctrl-B o next pane | Ctrl-B ; last pane | Ctrl-B q choose pane | Ctrl-B arrows select pane | Ctrl-B Ctrl-arrows resize pane | Ctrl-B {/} swap pane up/down | Ctrl-B z zoom pane | Ctrl-B x kill pane | Ctrl-B & kill window | Ctrl-B , rename window | Ctrl-B $ rename session | Ctrl-B n/p next/previous | Ctrl-B l last window | Ctrl-B 0..9 select window | Ctrl-B ? help | Mouse: status click/wheel switch, right-click windows, middle-click help | Ctrl-B [ copy mode | Ctrl-B ] paste buffer | Ctrl-B : command prompt.
+builtin-tmux-prefix-status = tmux prefix | %/" split | o next pane | ; last pane | q choose pane | arrows select pane | Ctrl-arrows resize pane | z zoom pane | x kill pane | & kill window | , rename window | $ rename session | d detach
 builtin-tmux-rename-session-prompt = rename session: {$input}
 builtin-tmux-rename-window-prompt = rename window: {$input}
 builtin-tmux-attach-window-list = windows: {$windows}
+builtin-tmux-pane-chooser = panes: {$panes} | press 0-9, Esc/q cancel
 builtin-tmux-session-list-entry = {$name}: {$windows} windows (attached {$attached_clients})
 builtin-tmux-client-list-entry = {$session}: {$attached_clients} attached client(s)
 builtin-tmux-window-list-entry = {$session}:{$index}: {$name}

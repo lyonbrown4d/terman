@@ -172,6 +172,10 @@ pub fn builtin_tmux_command_unsupported_hint(command: &str) -> String {
 pub fn builtin_tmux_attach_window_list(windows: &str) -> String {
     localized_message(MessageKey::BuiltinTmuxAttachWindowList, &[("windows", windows)])
 }
+
+pub fn builtin_tmux_pane_chooser_hint(panes: &str) -> String {
+    localized_message(MessageKey::BuiltinTmuxPaneChooser, &[("panes", panes)])
+}
 pub fn builtin_tmux_pane_list_entry_hint(
     session: &str,
     window: u32,
