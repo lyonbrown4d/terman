@@ -35,6 +35,7 @@ pub(crate) enum ScreenIpcRequest {
     },
     DetachAll,
     Bell,
+    BlankRegion,
     Clear,
     SetWrap {
         enabled: Option<bool>,

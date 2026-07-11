@@ -37,6 +37,9 @@ pub(super) fn handle_attach_action(
 ) -> io::Result<AttachActionResult> {
     match action {
         ScreenInputAction::Blank => return Ok(AttachActionResult::Blank),
+        ScreenInputAction::BlankRegion => {
+            send_control_request(endpoint, ScreenIpcRequest::BlankRegion)?;
+        }
         ScreenInputAction::CopyMode => return Ok(AttachActionResult::CopyMode),
         ScreenInputAction::CommandPrompt => return Ok(AttachActionResult::CommandPrompt),
         ScreenInputAction::Bytes(bytes) => {

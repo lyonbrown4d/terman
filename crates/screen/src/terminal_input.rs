@@ -190,6 +190,8 @@ impl ScreenInputDecoder {
             }            KeyCode::Char(c) if key.modifiers.is_empty() && c.is_ascii_digit() => {
                 Some(ScreenInputAction::SelectWindow(c.to_digit(10).unwrap_or(0) as usize))
             }
+            KeyCode::Char('-') if key.modifiers.is_empty() =>
+                Some(ScreenInputAction::BlankRegion),
             KeyCode::Char('*') if key.modifiers.is_empty() => Some(ScreenInputAction::Displays),
             KeyCode::Char('?') if key.modifiers.is_empty() => Some(ScreenInputAction::Help),
             KeyCode::Char('.') if key.modifiers.is_empty() => Some(ScreenInputAction::DumpTermcap),

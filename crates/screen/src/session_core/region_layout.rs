@@ -1,4 +1,4 @@
-use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
+use crate::region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus};
 
 #[derive(Clone)]
 enum RegionNode {
@@ -55,12 +55,12 @@ impl ScreenRegionLayout {
     }
 
     pub(super) fn split(&mut self, axis: ScreenRegionAxis) -> bool {
-        let Some(window_index) = window_for(&self.root, self.focused) else {
+        if window_for(&self.root, self.focused).is_none() {
             return false;
-        };
+        }
         let new_id = self.next_id;
         self.next_id = self.next_id.saturating_add(1);
-        split_leaf(&mut self.root, self.focused, new_id, window_index, axis)
+        split_leaf(&mut self.root, self.focused, new_id, BLANK_SCREEN_WINDOW_INDEX, axis)
     }
 
     pub(super) fn focus(&mut self, target: ScreenRegionFocus) -> Option<usize> {

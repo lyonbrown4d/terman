@@ -74,6 +74,12 @@ fn handle_control(
 ) -> bool {
     match control {
         ScreenControlEvent::Input(bytes) => write_active_window_input(windows, *active_window, &bytes),
+        ScreenControlEvent::BlankRegion => {
+            if let Some((index, frame)) = session_bus.blank_region() {
+                *active_window = index;
+                if display_output { write_region_frame(&frame); }
+            }
+        }
         ScreenControlEvent::SetDefaultCwd { path } => defaults.cwd = Some(path),
         ScreenControlEvent::SetEnv { name, value } => { defaults.env.insert(name, Some(value)); }
         ScreenControlEvent::UnsetEnv { name } => { defaults.env.insert(name, None); }

@@ -113,6 +113,14 @@ fn handle_control(
         ScreenControlEvent::Input(bytes) => {
             write_active_window_input(windows, *active_window, &bytes)
         }
+        ScreenControlEvent::BlankRegion => sync_region_change(
+            args,
+            endpoint_name,
+            session_name_state,
+            bus,
+            active_window,
+            bus.blank_region(),
+        ),
         ScreenControlEvent::SetDefaultCwd { path } => defaults.cwd = Some(path),
         ScreenControlEvent::SetEnv { name, value } => {
             defaults.env.insert(name, Some(value));

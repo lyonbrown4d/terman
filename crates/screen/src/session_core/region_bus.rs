@@ -1,8 +1,17 @@
-use crate::region_types::{ScreenRegionAxis, ScreenRegionFocus};
+use crate::region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus};
 
 use super::ScreenSessionBus;
 
 impl ScreenSessionBus {
+    pub(crate) fn blank_region(&self) -> Option<(usize, Vec<u8>)> {
+        let frame = {
+            let mut state = self.inner.lock().ok()?;
+            state.blank_region();
+            state.render_regions()
+        };
+        self.publish_transient_output(&frame);
+        Some((BLANK_SCREEN_WINDOW_INDEX, frame))
+    }
     pub(crate) fn split_region(
         &self,
         axis: ScreenRegionAxis,
@@ -57,7 +66,7 @@ impl ScreenSessionBus {
     pub(crate) fn publish_region_redraw(&self) -> Option<Vec<u8>> {
         let frame = {
             let state = self.inner.lock().ok()?;
-            state.has_multiple_regions().then(|| state.render_regions())?
+            (state.has_multiple_regions() || state.active_window == BLANK_SCREEN_WINDOW_INDEX).then(|| state.render_regions())?
         };
         self.publish_transient_output(&frame);
         Some(frame)

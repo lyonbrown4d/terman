@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex, mpsc};
 
+use crate::region_types::BLANK_SCREEN_WINDOW_INDEX;
+
 mod config;
 mod events;
 mod logging;
@@ -67,10 +69,16 @@ impl ScreenSessionBus {
         let (tx, rx) = mpsc::channel();
         let mut active = false;
         let replay = if let Ok(mut state) = self.inner.lock() {
-            let replay = state
-                .active_window()
-                .map(ScreenWindowState::attach_replay)
-                .unwrap_or_default();
+            let replay = if state.has_multiple_regions()
+                || state.active_window == BLANK_SCREEN_WINDOW_INDEX
+            {
+                state.render_regions()
+            } else {
+                state
+                    .active_window()
+                    .map(ScreenWindowState::attach_replay)
+                    .unwrap_or_default()
+            };
             state.subscribers.push(ScreenSessionSubscriber {
                 client_id,
                 sender: tx,

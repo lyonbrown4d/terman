@@ -14,6 +14,7 @@ pub(crate) fn handle_builtin_input_action(
     let event = match action {
         ScreenInputAction::Blank | ScreenInputAction::CopyMode | ScreenInputAction::WindowList =>
             unreachable!("interactive mode is handled by the runtime"),
+        ScreenInputAction::BlankRegion => Some(ScreenControlEvent::BlankRegion),
         ScreenInputAction::Bytes(bytes) => Some(ScreenControlEvent::Input(bytes)),
         ScreenInputAction::NewWindow => Some(ScreenControlEvent::NewWindow { command: None }),
         ScreenInputAction::SelectWindow(index) => {

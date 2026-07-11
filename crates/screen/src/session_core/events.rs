@@ -13,6 +13,7 @@ pub(crate) enum ScreenSessionEvent {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScreenControlEvent {
     Input(Vec<u8>),
+    BlankRegion,
     NewWindow { command: Option<String> },
     SetDefaultCwd { path: PathBuf },
     SetEnv { name: String, value: String },

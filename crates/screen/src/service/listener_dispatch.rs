@@ -50,6 +50,10 @@ pub(super) fn handle_client(
             bus.publish_transient_output(b"\x07");
             write_response(stream, &ScreenIpcResponse::Accepted)
         }
+        Ok(ScreenIpcRequest::BlankRegion) => {
+            send_control_event(control_tx, ScreenControlEvent::BlankRegion)?;
+            write_response(stream, &ScreenIpcResponse::Accepted)
+        }
         Ok(ScreenIpcRequest::Clear) => {
             bus.publish_display_control(b"\x1b[2J\x1b[H");
             write_response(stream, &ScreenIpcResponse::Accepted)

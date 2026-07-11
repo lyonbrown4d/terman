@@ -8,7 +8,7 @@ use super::{
     window::ScreenWindowState,
 };
 use crate::{
-    region_types::{ScreenRegionAxis, ScreenRegionFocus},
+    region_types::{BLANK_SCREEN_WINDOW_INDEX, ScreenRegionAxis, ScreenRegionFocus},
     screen_exchange::default_screen_exchange_file,
 };
 
@@ -131,6 +131,7 @@ impl ScreenSessionState {
     pub(super) fn remove_window(&mut self, index: usize) -> Option<ScreenRemovedWindow> {
         let position = self.windows.iter().position(|window| window.index() == index)?;
         let was_active = self.active_window == index;
+        let was_visible = self.regions.contains_window(index);
         if self.last_window == Some(index) {
             self.last_window = None;
         }
@@ -145,7 +146,7 @@ impl ScreenSessionState {
             });
         }
 
-        let active_missing = self.window(self.active_window).is_none();
+        let active_missing = self.active_window != BLANK_SCREEN_WINDOW_INDEX && self.window(self.active_window).is_none();
         if was_active || active_missing {
             let next_position = position.min(self.windows.len() - 1);
             self.active_window = self.windows[next_position].index();
@@ -162,8 +163,13 @@ impl ScreenSessionState {
             active_window: Some(self.active_window),
             replay,
             last_window: false,
-            redraw: was_active,
+            redraw: was_active || was_visible,
         })
+    }
+
+    pub(super) fn blank_region(&mut self) {
+        self.regions.select_window(BLANK_SCREEN_WINDOW_INDEX);
+        self.activate_window(BLANK_SCREEN_WINDOW_INDEX);
     }
 
     pub(super) fn split_region(&mut self, axis: ScreenRegionAxis) -> bool {

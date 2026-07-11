@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use crate::region_types::BLANK_SCREEN_WINDOW_INDEX;
+
 use vt100::{Cell, Color};
 
 use super::{
@@ -63,10 +65,15 @@ fn render_border(output: &mut Vec<u8>, view: &ScreenRegionView) {
         return;
     }
     let color = if view.focused { 36 } else { 90 };
+    let window_label = if view.window_index == BLANK_SCREEN_WINDOW_INDEX {
+        "-".to_string()
+    } else {
+        view.window_index.to_string()
+    };
     let label = format!(
         " {}{} ",
         if view.focused { "*" } else { "" },
-        view.window_index
+        window_label
     );
     move_to(output, rect.y, rect.x);
     let _ = write!(output, "[1;{color}m+");
@@ -158,11 +165,12 @@ fn restore_cursor(
         output.extend_from_slice(b"[?25h");
         return;
     };
+    let rect = content_rect(view.rect, bordered);
     let Some(window) = windows.iter().find(|window| window.index() == view.window_index) else {
-        output.extend_from_slice(b"[?25h");
+        move_to(output, rect.y, rect.x);
+        output.extend_from_slice(b"\x1b[?25h");
         return;
     };
-    let rect = content_rect(view.rect, bordered);
     if rect.width == 0 || rect.height == 0 {
         output.extend_from_slice(b"[?25h");
         return;

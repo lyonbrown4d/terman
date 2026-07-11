@@ -182,8 +182,7 @@ pub(crate) fn switch_screen_window(
     }
     let active_position = windows
         .iter()
-        .position(|window| window.index() == *active_window)
-        .unwrap_or(0);
+        .position(|window| window.index() == *active_window);
     let target_position = match target {
         ScreenWindowSwitch::Last => {
             let replay = bus.select_last_window()?;
@@ -195,10 +194,12 @@ pub(crate) fn switch_screen_window(
             return None;
         }
         ScreenWindowSwitch::Select(index) => windows.iter().position(|window| window.index() == index)?,
-        ScreenWindowSwitch::Next => (active_position + 1) % windows.len(),
-        ScreenWindowSwitch::Previous => {
-            if active_position == 0 { windows.len() - 1 } else { active_position - 1 }
-        }
+        ScreenWindowSwitch::Next => active_position
+            .map_or(0, |position| (position + 1) % windows.len()),
+        ScreenWindowSwitch::Previous => active_position.map_or_else(
+            || windows.len() - 1,
+            |position| if position == 0 { windows.len() - 1 } else { position - 1 },
+        ),
     };
     let index = windows[target_position].index();
     *active_window = index;
