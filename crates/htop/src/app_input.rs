@@ -54,6 +54,10 @@ pub(crate) fn help_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::F(1) | KeyCode::Char('h'))
 }
 
+pub(crate) fn environment_key(code: KeyCode) -> bool {
+    matches!(code, KeyCode::Char('e'))
+}
+
 pub(crate) fn search_key(code: KeyCode) -> bool {
     matches!(code, KeyCode::F(3))
 }

@@ -16,3 +16,6 @@ builtin-htop-detail-read = Read
 builtin-htop-detail-write = Write
 builtin-htop-detail-command = Command
 builtin-htop-detail-io = {$rate}/s  total {$total}
+builtin-htop-environment-title = Environment of PID {$pid}
+builtin-htop-environment-help = arrows/PgUp/PgDn or wheel scroll | e/q/Esc/F10 close
+builtin-htop-environment-empty = No environment variables are available.

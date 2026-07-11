@@ -35,6 +35,23 @@ impl Metrics {
             .keys()
             .any(|candidate| candidate.to_string() == pid)
     }
+
+    pub(crate) fn process_environment(
+        &self,
+        pid: &str,
+    ) -> Option<Vec<String>> {
+        self.system
+            .processes()
+            .iter()
+            .find(|(candidate, _)| candidate.to_string() == pid)
+            .map(|(_, process)| {
+                process
+                    .environ()
+                    .iter()
+                    .map(|value| value.to_string_lossy().into_owned())
+                    .collect()
+            })
+    }
     pub(crate) fn signal_process(&mut self, pid: &str, signal: Signal) -> bool {
         self.system
             .processes()

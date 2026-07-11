@@ -11,6 +11,7 @@ use crate::{
     help,
     interrupt::InterruptFlag,
     metrics::Metrics,
+    environment_view::EnvironmentViewState,
     model::SortMode,
     process_tree::ProcessTreeState,
     render::{self, Tab},
@@ -38,6 +39,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
     let mut command_mode = ProcessCommandMode::default();
     let mut tree_state = ProcessTreeState::default();
     let mut help_open = false;
+    let mut environment_view = EnvironmentViewState::default();
     let mut setup_menu = SetupMenuState::default();
     let mut signal_menu: Option<SignalMenuState> = None;
     let mut selected = 0usize;
@@ -111,7 +113,9 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             visibility_anchor = Some(next_visibility_anchor);
         }
         terminal.draw(|frame| {
-            if help_open {
+            if environment_view.is_open() {
+                environment_view.draw(frame);
+            } else if help_open {
                 help::draw(frame);
             } else {
                 tagged_pids.retain(|pid| metrics.process_exists(pid));
@@ -164,6 +168,7 @@ pub async fn run(args: HtopArgs) -> Result<(), Box<dyn Error>> {
             &mut tree_state,
             &mut help_open,
             &mut signal_menu,
+            &mut environment_view,
             &mut selected,
             &mut followed_pid,
             &mut detail_scroll,

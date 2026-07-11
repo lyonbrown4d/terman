@@ -8,16 +8,18 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crate::{
     app_tree_input::{apply_tree_branch, process_tree_active},
     app_events::{
-        confirm_mouse_signal, handle_filter_input, handle_help_input, handle_search_input,
+        handle_filter_input, handle_help_input, handle_search_input,
         handle_signal_input, handle_sort_menu_input, selected_process_pid,
     },
     app_input::{
-        adjust_refresh, apply_direct_sort, command_display_key, delay_key, filter_key, follow_key, help_key, interrupt_key,
+        adjust_refresh, apply_direct_sort, command_display_key, delay_key, environment_key, filter_key, follow_key, help_key, interrupt_key,
         invert_sort_key, kill_key, move_selection, navigation_key, next_tab, priority_delta,
         quit_key, search_key, sort_key, tree_branch_action, tree_key, tree_toggle_all_key,
         user_filter_key, TreeBranchAction,
     },
+    app_mouse_action::{MouseActionResult, apply_mouse_action},
     command_display::ProcessCommandMode,
+    environment_view::EnvironmentViewState,
     interrupt::InterruptFlag,
     metrics::Metrics,
     model::{IoRow, ProcessRow, SocketRow, SortMode},
@@ -47,6 +49,7 @@ pub(crate) fn poll_until_refresh(
     tree_state: &mut ProcessTreeState,
     help_open: &mut bool,
     signal_menu: &mut Option<SignalMenuState>,
+    environment_view: &mut EnvironmentViewState,
     selected: &mut usize,
     followed_pid: &mut Option<String>,
     detail_scroll: &mut usize,
@@ -77,6 +80,8 @@ pub(crate) fn poll_until_refresh(
             let redraw = match event::read()? {
                 Event::Key(key) if interrupt_key(&key) => return Ok(true),
                 Event::Key(key) if key.kind == KeyEventKind::Release => false,
+                Event::Key(key) if environment_view.handle_key(key.code) => true,
+                Event::Mouse(mouse) if environment_view.handle_mouse(mouse) => true,
                 Event::Key(key) if key.code == KeyCode::F(10) => return Ok(true),
                 Event::Key(key) if user_filter.handle_key(key.code) => true,
                 Event::Mouse(mouse_event) if setup_menu.handle_mouse(mouse_event, refresh_ms, tree, sort_inverted) => true,
@@ -109,53 +114,24 @@ pub(crate) fn poll_until_refresh(
                             refresh_ms: *refresh_ms,
                         },
                     );
-                    match action {
-                        mouse::MouseAction::Quit => return Ok(true),
-                        mouse::MouseAction::Search => *search_input = Some(search.clone()),
-                        mouse::MouseAction::Filter => *filter_input = Some(filter.clone()),
-                        mouse::MouseAction::Tag => {
-                            crate::app_events::toggle_process_tag(tagged_pids, processes, *selected);
-                        }
-                        mouse::MouseAction::UntagAll => tagged_pids.clear(),
-                        mouse::MouseAction::Kill => {
-                            *signal_menu = crate::app_events::signal_menu_for_processes(tagged_pids, processes, *selected);
-                        }
-                        mouse::MouseAction::ConfirmKill => {
-                            confirm_mouse_signal(metrics, signal_menu);
-                        }
-                        mouse::MouseAction::CancelKill => *signal_menu = None,
-                        mouse::MouseAction::PriorityHigher => {
-                            crate::app_events::adjust_process_priorities(metrics, tagged_pids, processes, *selected, -1);
-                        }
-                        mouse::MouseAction::PriorityLower => {
-                            crate::app_events::adjust_process_priorities(metrics, tagged_pids, processes, *selected, 1);
-                        }
-                        mouse::MouseAction::DelayFaster => {
-                            adjust_refresh(refresh_ms, KeyCode::Char('+'));
-                        }
-                        mouse::MouseAction::DelaySlower => {
-                            adjust_refresh(refresh_ms, KeyCode::Char('-'));
-                        }
-                        mouse::MouseAction::TreeExpand => {
-                            apply_tree_branch(
-                                tree_state,
-                                processes,
-                                *selected,
-                                TreeBranchAction::Expand,
-                            );
-                        }
-                        mouse::MouseAction::TreeCollapse => {
-                            apply_tree_branch(
-                                tree_state,
-                                processes,
-                                *selected,
-                                TreeBranchAction::Collapse,
-                            );
-                        }
-                        mouse::MouseAction::TreeToggleAll => tree_state.toggle_all(),
-                        _ => {}
+                    match apply_mouse_action(
+                        action,
+                        metrics,
+                        signal_menu,
+                        tagged_pids,
+                        processes,
+                        *selected,
+                        refresh_ms,
+                        tree_state,
+                        search,
+                        search_input,
+                        filter,
+                        filter_input,
+                    ) {
+                        MouseActionResult::Quit => return Ok(true),
+                        MouseActionResult::Redraw => true,
+                        MouseActionResult::Ignored => false,
                     }
-                    action != mouse::MouseAction::Ignored
                 }
                 Event::Key(key) if handle_signal_input(key.code, metrics, signal_menu) => true,
                 Event::Key(key) if handle_help_input(key.code, help_open) => true,
@@ -198,6 +174,20 @@ pub(crate) fn poll_until_refresh(
                 }
                 Event::Key(key) if crate::app_input::untag_all_key(key.code) => {
                     tagged_pids.clear();
+                    true
+                }
+                Event::Key(key)
+                    if environment_key(key.code)
+                        && matches!(*tab, Tab::Overview | Tab::Processes) =>
+                {
+                    if let Some(pid) =
+                        selected_process_pid(processes, *selected)
+                    {
+                        let entries = metrics
+                            .process_environment(&pid)
+                            .unwrap_or_default();
+                        environment_view.open(pid, entries);
+                    }
                     true
                 }
                 Event::Key(key) if follow_key(key.code) => {

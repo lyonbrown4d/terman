@@ -126,3 +126,17 @@ pub fn builtin_htop_detail_io_hint(rate: &str, total: &str) -> String {
         &[("rate", rate), ("total", total)],
     )
 }
+pub fn builtin_htop_environment_title_hint(pid: &str) -> String {
+    localized_message(
+        MessageKey::BuiltinHtopEnvironmentTitle,
+        &[("pid", pid)],
+    )
+}
+
+pub fn builtin_htop_environment_help_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopEnvironmentHelp, &[])
+}
+
+pub fn builtin_htop_environment_empty_hint() -> String {
+    localized_message(MessageKey::BuiltinHtopEnvironmentEmpty, &[])
+}

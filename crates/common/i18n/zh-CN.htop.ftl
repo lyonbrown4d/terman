@@ -16,3 +16,6 @@ builtin-htop-detail-read = 读取
 builtin-htop-detail-write = 写入
 builtin-htop-detail-command = 命令
 builtin-htop-detail-io = {$rate}/秒  总计 {$total}
+builtin-htop-environment-title = PID {$pid} 的环境变量
+builtin-htop-environment-help = 方向键/PgUp/PgDn 或滚轮滚动 | e/q/Esc/F10 关闭
+builtin-htop-environment-empty = 没有可用的环境变量。

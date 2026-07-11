@@ -4,7 +4,7 @@ builtin-htop-tab-overview = Overview
 builtin-htop-tab-processes = Processes
 builtin-htop-tab-io = I/O
 builtin-htop-tab-network = Network
-builtin-htop-help = F1 help, F2 setup, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, u filter by user, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
+builtin-htop-help = F1 help, F2 setup, Tab/Left/Right switch tabs, arrows select, PgUp/PgDn scroll, 1-4 jump tabs, F3 search, F4 or / filter, u filter by user, F5/t tree, +/- expand/collapse branch, * toggle all branches, F6/s sort menu, P/M/T/N sort CPU/memory/time/PID, F follow selected PID, e view selected environment, I invert sort order, F9 choose signal, F10/q/Esc quit, +/- adjust refresh outside tree view. Mouse: click tabs/footer/Overview or Processes rows/table headers, wheel lists/details/I/O/Network, right-click process signal menu. F7/F8 adjust priority. Space tags, U clears tags.
 builtin-htop-help-panel =
     terman htop
     F1 Help: toggle this panel.
@@ -12,7 +12,7 @@ builtin-htop-help-panel =
     1-4: jump to a tab directly.
     Arrows, Home, End, PgUp, PgDn: move process selection.
     Space: tag or untag a process. U: clear all process tags.
-    F: follow the selected PID across sorting and refreshes.
+    F: follow the selected PID across sorting and refreshes. e: view its environment.
     F3: search visible process PID, user, name, or command.
     F4 or /: filter processes by PID, user, name, or command line.
     u: select an exact process owner; choose All users to clear.
