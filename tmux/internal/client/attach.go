@@ -25,15 +25,33 @@ type attachState struct {
 	displayInput string
 }
 
+type attachDependencies struct {
+	openStream func(context.Context, store.Record) (*Stream, error)
+	screen     func() (tcell.Screen, error)
+}
+
 func Attach(parent context.Context, record store.Record) error {
+	return attachWith(parent, record, attachDependencies{
+		openStream: OpenStream,
+		screen: func() (tcell.Screen, error) {
+			return tcell.NewScreen()
+		},
+	})
+}
+
+func attachWith(
+	parent context.Context,
+	record store.Record,
+	dependencies attachDependencies,
+) error {
 	ctx, cancel := signal.NotifyContext(parent, os.Interrupt)
 	defer cancel()
-	stream, err := OpenStream(ctx, record)
+	stream, err := dependencies.openStream(ctx, record)
 	if err != nil {
 		return err
 	}
 	defer stream.Close()
-	screen, err := tcell.NewScreen()
+	screen, err := dependencies.screen()
 	if err != nil {
 		return fmt.Errorf("create terminal screen: %w", err)
 	}
@@ -203,7 +221,7 @@ func (s *attachState) handleKey(key *tcell.EventKey) (bool, error) {
 }
 
 func isCtrl(key *tcell.EventKey, char rune) bool {
-	return key.Key() == tcell.Key(char-'a'+1) ||
+	return key.Key() == tcell.KeyCtrlA+tcell.Key(char-'a') ||
 		(key.Key() == tcell.KeyRune &&
 			key.Modifiers()&tcell.ModCtrl != 0 &&
 			strings.EqualFold(key.Str(), string(char)))

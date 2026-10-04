@@ -119,12 +119,12 @@ func waitForExit(t *testing.T, screen *testScreen, result <-chan error) {
 		t.Fatalf("interactive session did not exit\n%s", stacks.String())
 	}
 	select {
-	case <-screen.mouseDisabled:
+	case <-screen.MouseDisabled():
 	case <-time.After(2 * time.Second):
 		t.Fatal("screen.DisableMouse was not called")
 	}
 	select {
-	case <-screen.fini:
+	case <-screen.Finalized():
 	case <-time.After(2 * time.Second):
 		t.Fatal("screen.Fini was not called")
 	}

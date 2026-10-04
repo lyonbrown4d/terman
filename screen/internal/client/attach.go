@@ -25,8 +25,26 @@ type attachState struct {
 	notice  string
 }
 
+type attachDependencies struct {
+	dial   func(context.Context, string) (net.Conn, error)
+	screen func() (tcell.Screen, error)
+}
+
 func Attach(ctx context.Context, endpoint, mode string, detachExisting bool) error {
-	conn, err := transport.Dial(ctx, endpoint)
+	return attachWith(ctx, endpoint, mode, detachExisting, attachDependencies{
+		dial: transport.Dial, screen: func() (tcell.Screen, error) {
+			return tcell.NewScreen()
+		},
+	})
+}
+
+func attachWith(
+	ctx context.Context,
+	endpoint, mode string,
+	detachExisting bool,
+	dependencies attachDependencies,
+) error {
+	conn, err := dependencies.dial(ctx, endpoint)
 	if err != nil {
 		return err
 	}
@@ -38,14 +56,17 @@ func Attach(ctx context.Context, endpoint, mode string, detachExisting bool) err
 	}); err != nil {
 		return err
 	}
-	screen, err := tcell.NewScreen()
+	screen, err := dependencies.screen()
 	if err != nil {
 		return err
 	}
 	if err := screen.Init(); err != nil {
 		return err
 	}
-	defer screen.Fini()
+	defer func() {
+		screen.DisableMouse()
+		screen.Fini()
+	}()
 	screen.EnableMouse()
 
 	state := &attachState{screen: screen, encoder: encoder}

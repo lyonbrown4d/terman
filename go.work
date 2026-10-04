@@ -4,5 +4,6 @@ use (
 	./common
 	./htop
 	./screen
+	./testkit
 	./tmux
 )
