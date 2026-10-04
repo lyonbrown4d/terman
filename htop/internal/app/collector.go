@@ -29,8 +29,22 @@ type collector struct {
 	network map[string]netSample
 }
 
+// Collector supplies process and system snapshots to a Runner.
+type Collector interface {
+	Collect(context.Context) Snapshot
+}
+
+// NewCollector creates the default gopsutil-backed collector.
+func NewCollector() Collector {
+	return newCollector()
+}
+
 func newCollector() *collector {
 	return &collector{procs: make(map[int32]procSample), network: make(map[string]netSample)}
+}
+
+func (c *collector) Collect(ctx context.Context) Snapshot {
+	return c.collect(ctx)
 }
 
 func (c *collector) collect(ctx context.Context) Snapshot {

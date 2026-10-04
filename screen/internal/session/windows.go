@@ -19,16 +19,30 @@ func (o *Owner) newWindow(command string) error {
 		args = append(common.ShellCommandArgs(shell, o.config.LoginShell), command)
 		title = command
 	}
-	window, err := ptywin.New(o.ctx, o.nextID, title, shell, args,
-		ptywin.Environment(o.term, o.env), o.cwd, o.cols, o.rows-1, o.output)
+	window, err := ptywin.New(
+		o.ctx,
+		o.nextID,
+		title,
+		shell,
+		args,
+		ptywin.Environment(o.term, o.env),
+		o.cwd,
+		o.cols,
+		o.rows-1,
+		o.output,
+	)
 	if err != nil {
 		return err
 	}
+	window.SetScrollbackSize(o.scrollback)
 	o.last = o.active
 	o.windows = append(o.windows, window)
 	o.active = len(o.windows) - 1
+	if o.deflog {
+		o.logs[window.ID] = logConfig{enabled: true}
+	}
 	if len(o.regions) == 0 {
-		o.regions = []region{{windowID: window.ID}}
+		o.regions = []region{{windowID: window.ID, weight: 100}}
 	} else {
 		o.regions[o.focused].windowID = window.ID
 	}
@@ -42,6 +56,7 @@ func (o *Owner) closeWindow(index int) {
 	}
 	id := o.windows[index].ID
 	o.windows[index].Close()
+	delete(o.logs, id)
 	o.windows = append(o.windows[:index], o.windows[index+1:]...)
 	if len(o.windows) == 0 {
 		o.cancel()
@@ -63,7 +78,7 @@ func (o *Owner) selectWindow(selector string) error {
 	}
 	if selector == "-" {
 		o.last, o.active = o.active, o.last
-	} else if value, err := atoi(selector); err == nil {
+	} else if value, err := strconvAtoi(selector); err == nil {
 		if value < 0 || value >= len(o.windows) {
 			return fmt.Errorf("window %s not found", selector)
 		}
@@ -86,7 +101,7 @@ func (o *Owner) selectWindow(selector string) error {
 	return nil
 }
 
-func atoi(value string) (int, error) {
+func strconvAtoi(value string) (int, error) {
 	result := 0
 	if value == "" {
 		return 0, fmt.Errorf("empty")
@@ -113,6 +128,9 @@ func (o *Owner) navigate(delta int) {
 func (o *Owner) split(vertical bool) {
 	o.vertical = vertical
 	current := o.regions[o.focused]
+	weight := max(current.weight/2, 1)
+	o.regions[o.focused].weight = weight
+	current.weight = weight
 	o.regions = append(o.regions, region{})
 	copy(o.regions[o.focused+2:], o.regions[o.focused+1:])
 	o.regions[o.focused+1] = current
@@ -139,14 +157,18 @@ func (o *Owner) removeRegion() {
 	if len(o.regions) <= 1 {
 		return
 	}
+	removed := o.regions[o.focused].weight
 	o.regions = append(o.regions[:o.focused], o.regions[o.focused+1:]...)
 	o.focused = min(o.focused, len(o.regions)-1)
+	o.regions[o.focused].weight += removed
 	o.resizeWindows()
 	o.broadcast()
 }
 
 func (o *Owner) onlyRegion() {
-	o.regions = []region{o.regions[o.focused]}
+	current := o.regions[o.focused]
+	current.weight = 100
+	o.regions = []region{current}
 	o.focused = 0
 	o.resizeWindows()
 	o.broadcast()
@@ -184,9 +206,14 @@ func (o *Owner) frame() *proto.Frame {
 	frame.Regions = layout(o.regions, o.focused, o.cols, o.rows, o.vertical)
 	for index := range frame.Regions {
 		windowIndex := o.windowByID(int64(frame.Regions[index].Window))
-		if windowIndex >= 0 {
-			frame.Regions[index].Window = windowIndex
-			frame.Regions[index].Lines = o.windows[windowIndex].Lines()
+		if windowIndex < 0 {
+			continue
+		}
+		frame.Regions[index].Window = windowIndex
+		frame.Regions[index].Lines = o.windows[windowIndex].Lines()
+		frame.Regions[index].Cells = o.windows[windowIndex].Cells()
+		if frame.Regions[index].Focused {
+			frame.Regions[index].History = o.windows[windowIndex].HistoryLines()
 		}
 	}
 	return frame
@@ -230,4 +257,32 @@ func (o *Owner) removeClient(id string) {
 		delete(o.clients, id)
 		close(queue)
 	}
+}
+
+func (o *Owner) targetWindow(selector string) int {
+	if selector == "" {
+		return o.active
+	}
+	index, err := strconvAtoi(selector)
+	if err == nil && index >= 0 && index < len(o.windows) {
+		return index
+	}
+	for index, window := range o.windows {
+		if window.Title == selector {
+			return index
+		}
+	}
+	return -1
+}
+
+func (o *Owner) windowsText() string {
+	lines := make([]string, 0, len(o.windows))
+	for index, window := range o.windows {
+		marker := "-"
+		if index == o.active {
+			marker = "*"
+		}
+		lines = append(lines, fmt.Sprintf("%d%s %s", index, marker, window.Title))
+	}
+	return strings.Join(lines, "\n")
 }

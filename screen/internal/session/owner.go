@@ -3,16 +3,11 @@ package session
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/lyonbrown4d/terman/screen/internal/proto"
 	"github.com/lyonbrown4d/terman/screen/internal/ptywin"
 )
-
-type Config struct {
-	Name, Endpoint, Command, Cwd string
-	Cols, Rows                   int
-	LoginShell                   bool
-}
 
 type requestEvent struct {
 	request proto.Request
@@ -32,36 +27,62 @@ type attachResult struct {
 
 type removeEvent struct{ id string }
 
+type logConfig struct {
+	enabled bool
+	last    time.Time
+}
+
 type Owner struct {
-	config      Config
-	ctx         context.Context
-	cancel      context.CancelFunc
-	events      chan any
-	output      chan ptywin.Event
-	done        chan struct{}
-	windows     []*ptywin.Window
-	regions     []region
-	clients     map[string]chan proto.Response
-	focused     int
-	active      int
-	last        int
-	cols, rows  int
-	vertical    bool
-	nextID      int64
-	term        string
-	cwd         string
-	env         map[string]string
-	lastMessage string
+	config     Config
+	ctx        context.Context
+	cancel     context.CancelFunc
+	events     chan any
+	output     chan ptywin.Event
+	done       chan struct{}
+	windows    []*ptywin.Window
+	regions    []region
+	clients    map[string]chan proto.Response
+	registers  map[string][]byte
+	logs       map[int64]logConfig
+	focused    int
+	active     int
+	last       int
+	cols, rows int
+	vertical   bool
+	nextID     int64
+	term       string
+	cwd        string
+	env        map[string]string
+
+	pasteBuffer    []byte
+	bufferFile     string
+	hardcopyDir    string
+	hardcopyAppend bool
+	scrollback     int
+	logfile        string
+	deflog         bool
+	logTimestamp   bool
+	logAfter       time.Duration
+	logStamp       string
+	lastMessage    string
+	started        time.Time
 }
 
 func New(parent context.Context, config Config) (*Owner, error) {
+	config = normalizeConfig(config)
 	ctx, cancel := context.WithCancel(parent)
 	owner := &Owner{
 		config: config, ctx: ctx, cancel: cancel,
 		events: make(chan any, 64), output: make(chan ptywin.Event, 64),
 		done: make(chan struct{}), clients: map[string]chan proto.Response{},
-		cols: max(config.Cols, 20), rows: max(config.Rows, 5),
-		term: "xterm-256color", cwd: config.Cwd, env: map[string]string{},
+		registers: map[string][]byte{}, logs: map[int64]logConfig{},
+		cols: config.Cols, rows: config.Rows,
+		term: config.Term, cwd: config.Cwd, env: map[string]string{},
+		hardcopyDir: config.HardcopyDir, hardcopyAppend: config.HardcopyAppend,
+		scrollback: config.Scrollback, logfile: config.Logfile,
+		deflog: config.Deflog, logTimestamp: config.LogTimestamp,
+		logAfter: config.LogAfter, logStamp: config.LogStamp,
+		started: time.Now(),
 	}
 	if err := owner.newWindow(config.Command); err != nil {
 		cancel()
@@ -175,6 +196,7 @@ func (o *Owner) handleOutput(event ptywin.Event) {
 		o.closeWindow(index)
 		return
 	}
+	o.writeLog(index, event.Data)
 	o.windows[index].Apply(event.Data)
 	o.broadcast()
 }

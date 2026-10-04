@@ -19,71 +19,77 @@ import (
 	"github.com/lyonbrown4d/terman/screen/internal/transport"
 )
 
-func Run(ctx context.Context, argv []string) error {
-	args, err := Parse(argv)
-	if err != nil {
-		return err
-	}
-	if args.Help {
-		fmt.Print(helpText())
-		return nil
-	}
-	if args.Version {
-		fmt.Println("terman-screen " + session.Version)
-		return nil
-	}
-	if args.Server {
+func execute(ctx context.Context, args Args, config PersistentConfig) error {
+	switch {
+	case args.Server:
 		if args.Session == "" || args.Endpoint == "" {
 			return fmt.Errorf("internal server requires session and endpoint")
 		}
-		return session.Serve(ctx, session.DefaultConfig(
-			args.Session, args.Endpoint, args.Command, args.Cols, args.Rows, args.LoginShell))
-	}
-	if args.Wipe {
-		count, wipeErr := wipe(ctx)
-		if wipeErr == nil {
-			fmt.Println(common.LocalizedMessage("builtin-screen-wipe-complete",
-				map[string]string{"count": strconv.Itoa(count)}))
+		serverConfig := session.DefaultConfig(
+			args.Session,
+			args.Endpoint,
+			args.Command,
+			config.Terminal.Cols,
+			config.Terminal.Rows,
+			config.sessionSettings(),
+		)
+		return session.Serve(ctx, serverConfig)
+	case args.Wipe:
+		count, err := wipe(ctx)
+		if err == nil {
+			fmt.Println(common.LocalizedMessage(
+				"builtin-screen-wipe-complete",
+				map[string]string{"count": strconv.Itoa(count)},
+			))
 		}
-		return wipeErr
-	}
-	if args.List {
+		return err
+	case args.List:
 		return list(ctx, args.JSON)
-	}
-	if args.Execute != "" {
-		record, findErr := findLive(ctx, args.Session)
-		if findErr != nil {
-			return findErr
-		}
-		response, requestErr := client.Request(ctx, record.Endpoint, proto.Request{
-			Type: "command", Command: args.Execute, Args: args.ExecuteArgs, Target: args.Window,
-		})
-		if response.Message != "" {
-			fmt.Println(response.Message)
-		}
-		return requestErr
-	}
-	if args.Resume || args.Multi {
-		record, findErr := findLive(ctx, args.AttachName)
-		if findErr != nil {
-			return findErr
-		}
-		mode := "resume"
-		if args.Multi {
-			mode = "multi"
-		}
-		return client.Attach(ctx, record.Endpoint, mode, args.DetachExisting)
-	}
-	if args.ResumeCreate {
-		record, findErr := findLive(ctx, args.AttachName)
-		if findErr == nil {
+	case args.Execute != "":
+		return executeControl(ctx, args)
+	case args.Resume || args.Multi:
+		return attachExisting(ctx, args)
+	case args.ResumeCreate:
+		record, err := findLive(ctx, args.AttachName)
+		if err == nil {
 			return client.Attach(ctx, record.Endpoint, "resume", args.DetachExisting)
 		}
-		if !errors.Is(findErr, fs.ErrNotExist) {
-			return findErr
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
 		}
 		args.Session = args.AttachName
 	}
+	return createSession(ctx, args, config)
+}
+
+func executeControl(ctx context.Context, args Args) error {
+	record, err := findLive(ctx, args.Session)
+	if err != nil {
+		return err
+	}
+	response, err := client.Request(ctx, record.Endpoint, proto.Request{
+		Type: "command", Command: args.Execute,
+		Args: args.ExecuteArgs, Target: args.Window,
+	})
+	if response.Message != "" {
+		fmt.Println(response.Message)
+	}
+	return err
+}
+
+func attachExisting(ctx context.Context, args Args) error {
+	record, err := findLive(ctx, args.AttachName)
+	if err != nil {
+		return err
+	}
+	mode := "resume"
+	if args.Multi {
+		mode = "multi"
+	}
+	return client.Attach(ctx, record.Endpoint, mode, args.DetachExisting)
+}
+
+func createSession(ctx context.Context, args Args, config PersistentConfig) error {
 	if args.Session == "" {
 		args.Session = fmt.Sprintf("screen-%d", os.Getpid())
 	}
@@ -97,7 +103,7 @@ func Run(ctx context.Context, argv []string) error {
 	if record, findErr := findLive(ctx, args.Session); findErr == nil {
 		return fmt.Errorf("session %q already exists at %s", args.Session, record.Endpoint)
 	}
-	if err := spawn(args, endpoint); err != nil {
+	if err := spawn(args, endpoint, config); err != nil {
 		return err
 	}
 	if err := waitReady(ctx, endpoint); err != nil {
@@ -109,20 +115,29 @@ func Run(ctx context.Context, argv []string) error {
 	return client.Attach(ctx, endpoint, "resume", false)
 }
 
-func spawn(args Args, endpoint string) error {
+func spawn(args Args, endpoint string, config PersistentConfig) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return err
 	}
 	serverArgs := []string{
 		"--__screen-server", "--__endpoint-name", endpoint,
-		"-S", args.Session, "--cols", strconv.Itoa(args.Cols), "--rows", strconv.Itoa(args.Rows),
+		"-S", args.Session,
+		"--cols", strconv.Itoa(config.Terminal.Cols),
+		"--rows", strconv.Itoa(config.Terminal.Rows),
+		"--term", config.Terminal.Name,
+		"--scrollback", strconv.Itoa(config.Terminal.Scrollback),
+		"--login-shell=" + strconv.FormatBool(config.Defaults.LoginShell),
+		"--hardcopydir", config.Defaults.HardcopyDir,
+		"--hardcopy-append=" + strconv.FormatBool(config.Defaults.HardcopyAppend),
+		"--logfile", config.Logging.File,
+		"--deflog=" + strconv.FormatBool(config.Logging.Enabled),
+		"--logtstamp=" + strconv.FormatBool(config.Logging.Timestamp),
+		"--logtstamp-after", config.Logging.TimestampAfter.String(),
+		"--logtstamp-format", config.Logging.TimestampFormat,
 	}
 	if args.Command != "" {
 		serverArgs = append(serverArgs, "--command", args.Command)
-	}
-	if args.LoginShell {
-		serverArgs = append(serverArgs, "--login-shell")
 	}
 	return platform.StartDetached(executable, serverArgs)
 }
@@ -196,8 +211,13 @@ func list(ctx context.Context, asJSON bool) error {
 	}
 	fmt.Println(common.LocalizedMessage("builtin-screen-session-list-header", nil))
 	for _, record := range live {
-		fmt.Printf("  %s pid=%d cwd=%s command=%s\n",
-			record.Name, record.PID, record.Cwd, record.Command)
+		fmt.Printf(
+			"  %s pid=%d cwd=%s command=%s\n",
+			record.Name,
+			record.PID,
+			record.Cwd,
+			record.Command,
+		)
 	}
 	return nil
 }
@@ -207,19 +227,12 @@ func validateName(name string) error {
 		return fmt.Errorf("invalid session name")
 	}
 	for _, char := range name {
-		if !(char == '-' || char == '_' || char == '.' ||
+		valid := char == '-' || char == '_' || char == '.' ||
 			char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' ||
-			char >= '0' && char <= '9') {
+			char >= '0' && char <= '9'
+		if !valid {
 			return fmt.Errorf("invalid session name %q", name)
 		}
 	}
 	return nil
-}
-
-func helpText() string {
-	return "terman-screen: native cross-platform terminal sessions\n\n" +
-		"Usage: terman-screen [-S name] [-d|-r|-R|-x] [command]\n" +
-		"       terman-screen --list [--json] | --wipe\n" +
-		"       terman-screen -S name [-p window] -X command [args...]\n\n" +
-		common.LocalizedMessage("builtin-screen-cli-about", nil) + "\n"
 }

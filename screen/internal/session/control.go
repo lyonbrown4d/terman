@@ -2,36 +2,29 @@ package session
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/lyonbrown4d/terman/common"
 	"github.com/lyonbrown4d/terman/screen/internal/proto"
-	"github.com/lyonbrown4d/terman/screen/internal/store"
 )
 
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 func (o *Owner) control(request proto.Request) proto.Response {
 	switch request.Type {
 	case "ping":
-		return proto.Response{Type: "accepted", Message: "pong"}
+		return accepted("pong")
 	case "input":
-		window := o.targetWindow(request.Target)
-		if window < 0 {
-			return rejected(fmt.Errorf("window not found"))
-		}
-		if err := o.windows[window].Write(request.Data); err != nil {
+		if err := o.writeWindow(request.Target, request.Data); err != nil {
 			return rejected(err)
 		}
-		return proto.Response{Type: "accepted"}
+		return accepted("")
 	case "resize":
 		o.cols, o.rows = max(request.Cols, 20), max(request.Rows, 5)
 		o.resizeWindows()
 		o.broadcast()
-		return proto.Response{Type: "accepted"}
+		return accepted("")
 	case "detach":
 		o.detachClient(request.ClientID)
 		return proto.Response{Type: "detached"}
@@ -68,63 +61,28 @@ func (o *Owner) command(request proto.Request) proto.Response {
 		o.closeWindow(o.targetWindow(request.Target))
 	case "quit":
 		return proto.Response{Type: "accepted", Exit: true}
-	case "title":
-		if len(args) == 0 {
-			return rejected(fmt.Errorf("title requires text"))
-		}
-		index := o.targetWindow(request.Target)
-		if index < 0 {
-			return rejected(fmt.Errorf("window not found"))
-		}
-		o.windows[index].Title = strings.Join(args, " ")
-		o.broadcast()
+	case "title", "aka":
+		return o.setTitle(request)
 	case "sessionname":
-		if len(args) == 0 {
-			return accepted(o.config.Name)
-		}
-		if err := validateName(args[0]); err != nil {
-			return rejected(err)
-		}
-		old := o.config.Name
-		o.config.Name = args[0]
-		if err := store.Rename(old, o.record()); err != nil {
-			o.config.Name = old
-			return rejected(err)
-		}
-		o.broadcast()
-	case "info":
+		return o.renameSession(args)
+	case "info", "dinfo":
 		return accepted(o.info())
 	case "version":
-		return accepted(common.LocalizedMessage("builtin-screen-control-version", map[string]string{"version": Version}))
+		return accepted(common.LocalizedMessage(
+			"builtin-screen-control-version",
+			map[string]string{"version": Version},
+		))
+	case "help", "commands":
+		return accepted(common.LocalizedMessage("builtin-screen-control-help", nil))
 	case "stuff":
 		if len(args) == 0 {
 			return rejected(fmt.Errorf("stuff requires text"))
 		}
-		index := o.targetWindow(request.Target)
-		if index < 0 {
-			return rejected(fmt.Errorf("window not found"))
-		}
-		if err := o.windows[index].Write([]byte(strings.Join(args, " "))); err != nil {
+		if err := o.writeWindow(request.Target, []byte(strings.Join(args, " "))); err != nil {
 			return rejected(err)
 		}
-	case "width":
-		if len(args) == 0 {
-			return accepted(strconv.Itoa(o.cols))
-		}
-		cols, err := strconv.Atoi(args[0])
-		if err != nil {
-			return rejected(err)
-		}
-		rows := o.rows
-		if len(args) > 1 {
-			rows, err = strconv.Atoi(args[1])
-			if err != nil {
-				return rejected(err)
-			}
-		}
-		o.cols, o.rows = max(cols, 20), max(rows, 5)
-		o.resizeWindows()
-		o.broadcast()
+	case "width", "height":
+		return o.setDimensions(command, args)
 	case "split":
 		o.split(len(args) > 0 && (args[0] == "-v" || args[0] == "vertical"))
 	case "focus":
@@ -138,64 +96,71 @@ func (o *Owner) command(request proto.Request) proto.Response {
 	case "only":
 		o.onlyRegion()
 	case "resize":
+		if err := o.resizeRegion(args); err != nil {
+			return rejected(err)
+		}
+	case "fit", "redisplay":
 		o.resizeWindows()
 		o.broadcast()
+	case "scrollback", "defscrollback":
+		return o.setScrollback(args)
+	case "copy":
+		o.storeRegister(".", request.Data)
+	case "register", "readreg", "readbuf", "writebuf", "removebuf", "paste",
+		"bufferfile", "pastefile":
+		return o.bufferCommand(command, args, request.Target)
+	case "hardcopy", "hardcopydir", "hardcopy_append":
+		return o.captureCommand(command, args, request.Target)
+	case "log", "logfile", "logtstamp", "deflog":
+		return o.logCommand(command, args, request.Target)
+	case "number":
+		return accepted(strconv.Itoa(o.active))
+	case "lastmsg":
+		return accepted(o.lastMessage)
 	default:
 		return rejected(fmt.Errorf("%s", common.LocalizedMessage(
-			"builtin-screen-control-command-unsupported", map[string]string{"command": command})))
+			"builtin-screen-control-command-unsupported",
+			map[string]string{"command": command},
+		)))
 	}
-	return proto.Response{Type: "accepted"}
+	return accepted("")
 }
 
-func (o *Owner) targetWindow(selector string) int {
-	if selector == "" {
-		return o.active
+func (o *Owner) setDimensions(command string, args []string) proto.Response {
+	if len(args) == 0 {
+		value := o.cols
+		if command == "height" {
+			value = o.rows
+		}
+		return accepted(strconv.Itoa(value))
 	}
-	index, err := strconv.Atoi(selector)
-	if err == nil && index >= 0 && index < len(o.windows) {
-		return index
+	value, err := strconv.Atoi(args[0])
+	if err != nil {
+		return rejected(fmt.Errorf("invalid %s: %w", command, err))
 	}
-	for index, window := range o.windows {
-		if window.Title == selector {
-			return index
+	if command == "height" {
+		o.rows = max(value, 5)
+	} else {
+		o.cols = max(value, 20)
+		if len(args) > 1 {
+			rows, parseErr := strconv.Atoi(args[1])
+			if parseErr != nil {
+				return rejected(fmt.Errorf("invalid height: %w", parseErr))
+			}
+			o.rows = max(rows, 5)
 		}
 	}
-	return -1
+	o.resizeWindows()
+	o.broadcast()
+	return accepted("")
 }
 
-func (o *Owner) windowsText() string {
-	var lines []string
-	for index, window := range o.windows {
-		marker := "-"
-		if index == o.active {
-			marker = "*"
-		}
-		lines = append(lines, fmt.Sprintf("%d%s %s", index, marker, window.Title))
+func (o *Owner) writeWindow(target string, data []byte) error {
+	index := o.targetWindow(target)
+	if index < 0 {
+		return fmt.Errorf("window not found")
 	}
-	return strings.Join(lines, "\n")
-}
-
-func (o *Owner) info() string {
-	var bytes int64
-	for _, window := range o.windows {
-		bytes += window.Bytes
-	}
-	return common.LocalizedMessage("builtin-screen-control-info", map[string]string{
-		"session_name": o.config.Name, "replay_bytes": strconv.FormatInt(bytes, 10),
-		"attach_clients": strconv.Itoa(len(o.clients)), "cols": strconv.Itoa(o.cols),
-		"rows": strconv.Itoa(o.rows), "scrollback_lines": "1000",
-	})
-}
-
-func (o *Owner) record() store.Record {
-	command := o.config.Command
-	if command == "" {
-		command = common.DefaultShell()
-	}
-	return store.Record{
-		Name: o.config.Name, PID: os.Getpid(), Endpoint: o.config.Endpoint,
-		Cwd: o.cwd, Command: command, Started: time.Now(),
-	}
+	return o.windows[index].Write(data)
 }
 
 func accepted(message string) proto.Response {
@@ -211,18 +176,4 @@ func first(values []string) string {
 		return ""
 	}
 	return values[0]
-}
-
-func validateName(name string) error {
-	if name == "" || len(name) > 64 {
-		return fmt.Errorf("invalid session name")
-	}
-	for _, char := range name {
-		if !(char == '-' || char == '_' || char == '.' ||
-			char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' ||
-			char >= '0' && char <= '9') {
-			return fmt.Errorf("invalid session name %q", name)
-		}
-	}
-	return nil
 }

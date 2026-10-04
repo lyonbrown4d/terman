@@ -10,6 +10,7 @@ type keyAction struct {
 	data    []byte
 	command string
 	args    []string
+	local   string
 	detach  bool
 }
 
@@ -37,6 +38,8 @@ func prefixAction(event *tcell.EventKey) keyAction {
 		return keyAction{command: "next"}
 	case tcell.KeyCtrlP:
 		return keyAction{command: "prev"}
+	case tcell.KeyEsc:
+		return keyAction{local: "copy"}
 	}
 	char := eventRune(event)
 	switch char {
@@ -62,6 +65,20 @@ func prefixAction(event *tcell.EventKey) keyAction {
 		return keyAction{command: "remove"}
 	case 'Q':
 		return keyAction{command: "only"}
+	case '?':
+		return keyAction{local: "help"}
+	case 'A':
+		return keyAction{local: "title"}
+	case ':':
+		return keyAction{local: "command"}
+	case '[':
+		return keyAction{local: "copy"}
+	case ']':
+		return keyAction{command: "paste"}
+	case 'h':
+		return keyAction{command: "hardcopy"}
+	case 'H':
+		return keyAction{command: "log"}
 	}
 	if char >= '0' && char <= '9' {
 		return keyAction{command: "select", args: []string{string(char)}}

@@ -38,6 +38,17 @@ type Window struct {
 	Bytes  int64
 }
 
+type Cell struct {
+	X              int
+	Text           string
+	Width          int
+	Foreground     string
+	Background     string
+	UnderlineColor string
+	Attributes     uint8
+	Underline      uint8
+}
+
 type Region struct {
 	Index   int
 	X       int
@@ -47,4 +58,6 @@ type Region struct {
 	Focused bool
 	Window  int
 	Lines   []string
+	Cells   [][]Cell
+	History []string
 }

@@ -3,12 +3,16 @@
 package app
 
 import (
+	"fmt"
 	"os"
 
 	"golang.org/x/sys/windows"
 )
 
-func signalProcess(pid int32, force bool) error {
+func signalProcess(pid int32, signal ProcessSignal) error {
+	if signal != SignalTerm && signal != SignalKill {
+		return fmt.Errorf("signal %s is unsupported on Windows", signal)
+	}
 	process, err := os.FindProcess(int(pid))
 	if err != nil {
 		return err
@@ -17,7 +21,11 @@ func signalProcess(pid int32, force bool) error {
 }
 
 func setProcessPriority(pid int32, nice int32) error {
-	handle, err := windows.OpenProcess(windows.PROCESS_SET_INFORMATION|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	handle, err := windows.OpenProcess(
+		windows.PROCESS_SET_INFORMATION|windows.PROCESS_QUERY_LIMITED_INFORMATION,
+		false,
+		uint32(pid),
+	)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -28,13 +29,9 @@ func Save(record Record) error {
 	}
 	data, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("encode session record: %w", err)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
+	return writeAtomic(path, data)
 }
 
 func Delete(name string) error {
@@ -50,10 +47,66 @@ func Delete(name string) error {
 }
 
 func Rename(oldName string, record Record) error {
-	if err := Save(record); err != nil {
+	oldPath, err := paths.Record(oldName)
+	if err != nil {
 		return err
 	}
-	return Delete(oldName)
+	newPath, err := paths.Record(record.Name)
+	if err != nil {
+		return err
+	}
+	if oldPath == newPath {
+		return Save(record)
+	}
+	if _, err := os.Stat(newPath); err == nil {
+		return fmt.Errorf("session %q already exists", record.Name)
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	original, err := os.ReadFile(oldPath)
+	if err != nil {
+		return fmt.Errorf("read old session record: %w", err)
+	}
+	updated, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode renamed session record: %w", err)
+	}
+	if err := writeAtomic(oldPath, updated); err != nil {
+		return err
+	}
+	if err := os.Rename(oldPath, newPath); err != nil {
+		_ = writeAtomic(oldPath, original)
+		return fmt.Errorf("rename session record: %w", err)
+	}
+	return nil
+}
+
+func writeAtomic(path string, data []byte) error {
+	file, err := os.CreateTemp(filepath.Dir(path), ".record-*.tmp")
+	if err != nil {
+		return fmt.Errorf("create temporary record: %w", err)
+	}
+	temp := file.Name()
+	defer os.Remove(temp)
+	if err := file.Chmod(0o600); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if _, err := file.Write(data); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("write temporary record: %w", err)
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("sync temporary record: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(temp, path); err != nil {
+		return fmt.Errorf("install session record: %w", err)
+	}
+	return nil
 }
 
 func List() ([]Record, error) {

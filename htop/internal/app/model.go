@@ -89,6 +89,13 @@ type Process struct {
 	Nice       int32
 }
 
+type ProcessRow struct {
+	Process
+	Depth       int
+	HasChildren bool
+	Collapsed   bool
+}
+
 type ProcessIO struct {
 	PID        int32
 	Name       string
@@ -116,54 +123,132 @@ type Connection struct {
 }
 
 func processRows(snapshot Snapshot, key SortKey, reverse bool, filter string) []Process {
+	return filteredProcesses(snapshot.Processes, key, reverse, filter, "")
+}
+
+func filteredProcesses(processes []Process, key SortKey, reverse bool, filter, user string) []Process {
 	needle := strings.ToLower(strings.TrimSpace(filter))
-	rows := make([]Process, 0, len(snapshot.Processes))
-	for _, row := range snapshot.Processes {
+	rows := make([]Process, 0, len(processes))
+	for _, row := range processes {
+		if user != "" && row.User != user {
+			continue
+		}
 		haystack := strings.ToLower(fmt.Sprintf("%d %s %s %s", row.PID, row.User, row.Name, row.Command))
 		if needle == "" || strings.Contains(haystack, needle) {
 			rows = append(rows, row)
 		}
 	}
-	sort.SliceStable(rows, func(i, j int) bool {
-		a, b := rows[i], rows[j]
-		var less bool
-		switch key {
-		case SortMemory:
-			less = a.Memory > b.Memory
-		case SortIO:
-			less = a.ReadRate+a.WriteRate > b.ReadRate+b.WriteRate
-		case SortPID:
-			less = a.PID < b.PID
-		case SortName:
-			less = strings.ToLower(a.Name) < strings.ToLower(b.Name)
-		default:
-			less = a.CPU > b.CPU
-		}
-		if reverse {
-			return !less && !processEqual(a, b, key)
-		}
-		return less
-	})
+	sortProcesses(rows, key, reverse)
 	return rows
 }
 
-func processEqual(a, b Process, key SortKey) bool {
+func sortProcesses(rows []Process, key SortKey, reverse bool) {
+	sort.SliceStable(rows, func(i, j int) bool {
+		comparison := compareProcess(rows[i], rows[j], key)
+		if reverse {
+			return comparison > 0
+		}
+		return comparison < 0
+	})
+}
+
+func compareProcess(a, b Process, key SortKey) int {
 	switch key {
 	case SortMemory:
-		return a.Memory == b.Memory
+		return compareDescending(a.Memory, b.Memory)
 	case SortIO:
-		return a.ReadRate+a.WriteRate == b.ReadRate+b.WriteRate
+		return compareDescending(a.ReadRate+a.WriteRate, b.ReadRate+b.WriteRate)
 	case SortPID:
-		return a.PID == b.PID
+		return compareOrdered(a.PID, b.PID)
 	case SortName:
-		return strings.EqualFold(a.Name, b.Name)
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	default:
-		return a.CPU == b.CPU
+		if a.CPU > b.CPU {
+			return -1
+		}
+		if a.CPU < b.CPU {
+			return 1
+		}
+		return compareOrdered(a.PID, b.PID)
 	}
 }
 
+func compareDescending[T ~uint64](a, b T) int {
+	if a > b {
+		return -1
+	}
+	if a < b {
+		return 1
+	}
+	return 0
+}
+
+func compareOrdered[T ~int32](a, b T) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
+func treeProcessRows(processes []Process, collapsed map[int32]bool) []ProcessRow {
+	byPID := make(map[int32]Process, len(processes))
+	children := make(map[int32][]Process, len(processes))
+	roots := make([]Process, 0)
+	for _, process := range processes {
+		byPID[process.PID] = process
+	}
+	for _, process := range processes {
+		if _, ok := byPID[process.PPID]; ok && process.PPID != process.PID {
+			children[process.PPID] = append(children[process.PPID], process)
+			continue
+		}
+		roots = append(roots, process)
+	}
+	order := make(map[int32]int, len(processes))
+	for index, process := range processes {
+		order[process.PID] = index
+	}
+	sortByOrder := func(values []Process) {
+		sort.SliceStable(values, func(i, j int) bool { return order[values[i].PID] < order[values[j].PID] })
+	}
+	sortByOrder(roots)
+	for pid := range children {
+		sortByOrder(children[pid])
+	}
+	rows := make([]ProcessRow, 0, len(processes))
+	visited := make(map[int32]bool, len(processes))
+	var walk func(Process, int)
+	walk = func(process Process, depth int) {
+		if visited[process.PID] {
+			return
+		}
+		visited[process.PID] = true
+		childRows := children[process.PID]
+		isCollapsed := collapsed[process.PID] && len(childRows) != 0
+		rows = append(rows, ProcessRow{
+			Process: process, Depth: depth, HasChildren: len(childRows) != 0, Collapsed: isCollapsed,
+		})
+		if isCollapsed {
+			return
+		}
+		for _, child := range childRows {
+			walk(child, depth+1)
+		}
+	}
+	for _, root := range roots {
+		walk(root, 0)
+	}
+	for _, process := range processes {
+		walk(process, 0)
+	}
+	return rows
+}
+
 func ioRows(snapshot Snapshot, reverse bool) []ProcessIO {
-	rows := append([]ProcessIO(nil), snapshot.IO...)
+	rows := append([]ProcessIO{}, snapshot.IO...)
 	sort.SliceStable(rows, func(i, j int) bool {
 		a := rows[i].ReadRate + rows[i].WriteRate
 		b := rows[j].ReadRate + rows[j].WriteRate

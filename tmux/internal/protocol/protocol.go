@@ -2,7 +2,7 @@ package protocol
 
 import "time"
 
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 type Request struct {
 	ID         uint64      `json:"id,omitempty"`
@@ -21,6 +21,7 @@ type Request struct {
 	Direction  string      `json:"direction,omitempty"`
 	Delta      int         `json:"delta,omitempty"`
 	Enabled    *bool       `json:"enabled,omitempty"`
+	All        bool        `json:"all,omitempty"`
 	Mouse      *MouseEvent `json:"mouse,omitempty"`
 }
 
@@ -94,10 +95,26 @@ type Rect struct {
 	H int `json:"height"`
 }
 
+type CellStyle struct {
+	Foreground    uint32 `json:"foreground,omitempty"`
+	Background    uint32 `json:"background,omitempty"`
+	HasForeground bool   `json:"has_foreground,omitempty"`
+	HasBackground bool   `json:"has_background,omitempty"`
+	Bold          bool   `json:"bold,omitempty"`
+	Underline     bool   `json:"underline,omitempty"`
+	Reverse       bool   `json:"reverse,omitempty"`
+}
+
+type Cell struct {
+	Content string    `json:"content,omitempty"`
+	Width   int       `json:"width,omitempty"`
+	Style   CellStyle `json:"style,omitempty"`
+}
+
 type PaneFrame struct {
 	Index  int      `json:"pane_index"`
 	Rect   Rect     `json:"rect"`
-	Lines  []string `json:"lines"`
+	Cells  [][]Cell `json:"cells"`
 	Active bool     `json:"active"`
 	Dead   bool     `json:"dead"`
 }
@@ -109,14 +126,15 @@ type WindowHit struct {
 }
 
 type Frame struct {
-	Session     string      `json:"session"`
-	Window      int         `json:"window"`
-	ActivePane  int         `json:"active_pane"`
-	Panes       []PaneFrame `json:"panes"`
-	Status      string      `json:"status"`
-	WindowHits  []WindowHit `json:"window_hits"`
-	Message     string      `json:"message,omitempty"`
-	GeneratedAt time.Time   `json:"generated_at"`
+	Session      string      `json:"session"`
+	Window       int         `json:"window"`
+	ActivePane   int         `json:"active_pane"`
+	Panes        []PaneFrame `json:"panes"`
+	Status       string      `json:"status"`
+	WindowHits   []WindowHit `json:"window_hits"`
+	Message      string      `json:"message,omitempty"`
+	DisplayPanes bool        `json:"display_panes,omitempty"`
+	GeneratedAt  time.Time   `json:"generated_at"`
 }
 
 type MouseEvent struct {

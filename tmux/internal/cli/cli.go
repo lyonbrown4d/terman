@@ -2,15 +2,15 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
+
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/lyonbrown4d/terman/common"
 	"github.com/lyonbrown4d/terman/tmux/internal/client"
+	appconfig "github.com/lyonbrown4d/terman/tmux/internal/config"
 	"github.com/lyonbrown4d/terman/tmux/internal/ipc"
 	"github.com/lyonbrown4d/terman/tmux/internal/platform"
 	"github.com/lyonbrown4d/terman/tmux/internal/protocol"
@@ -19,13 +19,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var settings = appconfig.Default()
+
 func Execute(args []string) error {
 	root := &cobra.Command{
-		Use: "terman-tmux", Short: "native Windows/Linux terminal multiplexer",
-		SilenceUsage: true, SilenceErrors: true, DisableFlagParsing: true,
-		RunE: func(_ *cobra.Command, values []string) error { return dispatch(values) },
+		Use:                "terman-tmux",
+		Short:              "native Windows/Linux terminal multiplexer",
+		SilenceUsage:       true,
+		SilenceErrors:      true,
+		DisableFlagParsing: true,
+		RunE: func(_ *cobra.Command, values []string) error {
+			return dispatch(values)
+		},
 	}
-	root.SetArgs(args)
+	cfg, remaining, err := loadConfig(root, args)
+	if err != nil {
+		return err
+	}
+	settings = cfg
+	root.SetArgs(remaining)
 	return root.Execute()
 }
 
@@ -56,7 +68,9 @@ func dispatch(args []string) error {
 	case "display-message", "display":
 		return displayMessage(args)
 	case "capture-pane", "capturep":
-		return printData(args, protocol.Request{Op: "capture-pane", Window: windowArg(args), Pane: paneArg(args)})
+		return printData(args, protocol.Request{
+			Op: "capture-pane", Window: windowArg(args), Pane: paneArg(args),
+		})
 	case "send-keys", "send":
 		return sendKeys(args)
 	case "send-prefix":
@@ -78,42 +92,65 @@ func dispatch(args []string) error {
 	case "resize-pane", "resizep":
 		return resizePane(args)
 	case "select-layout":
-		return simple(args, protocol.Request{Op: "select-layout", Window: windowArg(args), Name: firstPositional(args, command)})
+		return simple(args, protocol.Request{
+			Op: "select-layout", Window: windowArg(args),
+			Name: firstPositional(args, command),
+		})
 	case "next-layout":
-		return simple(args, protocol.Request{Op: "select-layout", Window: windowArg(args), Name: "next"})
+		return simple(args, protocol.Request{
+			Op: "select-layout", Window: windowArg(args), Name: "next",
+		})
 	case "set-window-option", "setw", "set-option", "set":
 		return setOption(args)
 	case "refresh-client", "refresh":
 		return refresh(args)
 	case "select-window", "selectw":
-		return simple(args, protocol.Request{Op: "select-window", Window: windowArg(args)})
+		return simple(args, protocol.Request{
+			Op: "select-window", Window: windowArg(args),
+		})
 	case "next-window", "next":
-		return simple(args, protocol.Request{Op: "select-window-relative", Direction: "next"})
+		return simple(args, protocol.Request{
+			Op: "select-window-relative", Direction: "next",
+		})
 	case "previous-window", "previous", "prev":
-		return simple(args, protocol.Request{Op: "select-window-relative", Direction: "previous"})
+		return simple(args, protocol.Request{
+			Op: "select-window-relative", Direction: "previous",
+		})
 	case "last-window", "last":
 		return simple(args, protocol.Request{Op: "last-window"})
 	case "kill-window", "killw":
-		return simple(args, protocol.Request{Op: "kill-window", Window: windowArg(args)})
+		return simple(args, protocol.Request{
+			Op: "kill-window", Window: windowArg(args),
+		})
 	case "kill-pane", "killp":
-		return simple(args, protocol.Request{Op: "kill-pane", Window: windowArg(args), Pane: paneArg(args)})
+		return simple(args, protocol.Request{
+			Op: "kill-pane", Window: windowArg(args), Pane: paneArg(args),
+		})
 	case "rename-window", "renamew":
-		return simple(args, protocol.Request{Op: "rename-window", Window: windowArg(args), Name: firstPositional(args, command)})
+		return simple(args, protocol.Request{
+			Op: "rename-window", Window: windowArg(args),
+			Name: firstPositional(args, command),
+		})
 	case "clear-history":
-		return simple(args, protocol.Request{Op: "clear-history", Window: windowArg(args), Pane: paneArg(args)})
-	case "set-buffer", "setb", "show-buffer", "showb", "list-buffers", "lsb", "delete-buffer", "deleteb", "paste-buffer", "pasteb":
+		return simple(args, protocol.Request{
+			Op: "clear-history", Window: windowArg(args), Pane: paneArg(args),
+		})
+	case "set-buffer", "setb", "show-buffer", "showb",
+		"list-buffers", "lsb", "delete-buffer", "deleteb",
+		"paste-buffer", "pasteb":
 		return bufferCommand(command, args)
 	case "list-clients", "lsc":
 		return listClients(args)
 	case "detach-client", "detach":
-		return simple(args, protocol.Request{Op: "detach"})
+		return detachClient(args)
 	default:
 		return fmt.Errorf("unknown command %q", command)
 	}
 }
 
 func runServer(args []string) error {
-	name, endpoint := option(args, "--name", ""), option(args, "--endpoint", "")
+	name := option(args, "--name", "")
+	endpoint := option(args, "--endpoint", "")
 	if err := store.ValidateName(name); err != nil {
 		return err
 	}
@@ -122,11 +159,19 @@ func runServer(args []string) error {
 	}
 	cols, _ := strconv.Atoi(option(args, "--cols", "80"))
 	rows, _ := strconv.Atoi(option(args, "--rows", "24"))
-	created, _ := time.Parse(time.RFC3339Nano, option(args, "--created", ""))
-	return server.Run(context.Background(), server.Config{
-		Name: name, Endpoint: endpoint, Command: option(args, "--command", ""),
-		Cols: cols, Rows: rows, Created: created,
-	})
+	created, _ := time.Parse(
+		time.RFC3339Nano,
+		option(args, "--created", ""),
+	)
+	return server.Run(
+		context.Background(),
+		server.Launch{
+			Name: name, Endpoint: endpoint,
+			Command: option(args, "--command", ""),
+			Cols:    cols, Rows: rows, Created: created,
+		},
+		settings,
+	)
 }
 
 func runNew(args []string) error {
@@ -155,14 +200,25 @@ func runNew(args []string) error {
 	if err != nil {
 		return err
 	}
-	command := payloadAfter(args, []string{"new", "new-session"}, map[string]bool{"-s": true, "--session-name": true, "-n": true})
+	command := payloadAfter(
+		args,
+		[]string{"new", "new-session"},
+		map[string]bool{
+			"-s": true, "--session-name": true, "-n": true,
+		},
+	)
 	cols, rows := terminalSize()
 	executable, err := os.Executable()
 	if err != nil {
 		_ = store.Remove(name)
 		return fmt.Errorf("locate executable: %w", err)
 	}
-	serverArgs := []string{"__server", "--name", name, "--endpoint", endpoint, "--cols", strconv.Itoa(cols), "--rows", strconv.Itoa(rows), "--created", rec.CreatedAt.Format(time.RFC3339Nano)}
+	serverArgs := []string{
+		"__server", "--name", name, "--endpoint", endpoint,
+		"--cols", strconv.Itoa(cols), "--rows", strconv.Itoa(rows),
+		"--created", rec.CreatedAt.Format(time.RFC3339Nano),
+	}
+	serverArgs = append(serverArgs, configFlagArgs(settings)...)
 	if command != "" {
 		serverArgs = append(serverArgs, "--command", command)
 	}
@@ -173,7 +229,7 @@ func runNew(args []string) error {
 	}
 	rec.PID = pid
 	_ = store.Save(rec)
-	deadline := time.Now().Add(4 * time.Second)
+	deadline := time.Now().Add(settings.StartupTimeout)
 	for time.Now().Before(deadline) {
 		if ipc.Ping(endpoint) {
 			if has(args, "-d", "--detached") {
@@ -227,22 +283,5 @@ func printData(args []string, request protocol.Request) error {
 	if response.Data != "" && !strings.HasSuffix(response.Data, "\n") {
 		fmt.Println()
 	}
-	return nil
-}
-
-func terminalSize() (int, int) {
-	cols, rows, err := common.CurrentTerminalSize()
-	if err != nil || cols < 2 || rows < 2 {
-		return 80, 24
-	}
-	return int(cols), int(rows)
-}
-
-func printJSON(value any) error {
-	data, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(data))
 	return nil
 }

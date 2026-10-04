@@ -14,14 +14,15 @@ import (
 )
 
 type attachState struct {
-	stream      *Stream
-	screen      tcell.Screen
-	frame       *protocol.Frame
-	prefix      bool
-	nextID      uint64
-	copy        *copyMode
-	copyRequest uint64
-	mouseButton tcell.ButtonMask
+	stream       *Stream
+	screen       tcell.Screen
+	frame        *protocol.Frame
+	prefix       bool
+	nextID       uint64
+	copy         *copyMode
+	copyRequest  uint64
+	mouseButton  tcell.ButtonMask
+	displayInput string
 }
 
 func Attach(parent context.Context, record store.Record) error {
@@ -39,12 +40,22 @@ func Attach(parent context.Context, record store.Record) error {
 	if err := screen.Init(); err != nil {
 		return fmt.Errorf("initialize terminal screen: %w", err)
 	}
-	defer screen.Fini()
+	defer func() {
+		screen.DisableMouse()
+		screen.DisablePaste()
+		screen.Fini()
+	}()
 	screen.EnableMouse(tcell.MouseButtonEvents, tcell.MouseDragEvents)
 	screen.EnablePaste()
 	width, height := screen.Size()
-	state := &attachState{stream: stream, screen: screen, nextID: 1}
-	attach := protocol.Request{ID: state.id(), Op: "attach", ClientID: fmt.Sprintf("%d", os.Getpid()), Width: width, Height: height}
+	state := &attachState{
+		stream: stream, screen: screen, nextID: 1,
+	}
+	attach := protocol.Request{
+		ID: state.id(), Op: "attach",
+		ClientID: fmt.Sprintf("%d", os.Getpid()),
+		Width:    width, Height: height,
+	}
 	if err := stream.Encoder.Encode(attach); err != nil {
 		return fmt.Errorf("send attach request: %w", err)
 	}
@@ -74,18 +85,28 @@ func Attach(parent context.Context, record store.Record) error {
 			if detach {
 				return nil
 			}
-		case response := <-responses:
+		case response, ok := <-responses:
+			if !ok {
+				if ctx.Err() != nil {
+					return nil
+				}
+				return fmt.Errorf("attach stream closed")
+			}
 			if !response.OK {
 				state.message(response.Error)
 				continue
 			}
 			if response.Frame != nil {
 				state.frame = response.Frame
+				if !state.frame.DisplayPanes {
+					state.displayInput = ""
+				}
 				state.draw()
 			}
 			if state.copyRequest != 0 && response.ID == state.copyRequest {
 				state.copy = newCopyMode(response.Data)
 				state.copyRequest = 0
+				state.mouseButton = 0
 				state.draw()
 			}
 			if response.Event == "detached" {
@@ -95,7 +116,11 @@ func Attach(parent context.Context, record store.Record) error {
 	}
 }
 
-func pollEvents(ctx context.Context, screen tcell.Screen, output chan<- tcell.Event) {
+func pollEvents(
+	ctx context.Context,
+	screen tcell.Screen,
+	output chan<- tcell.Event,
+) {
 	for {
 		event := <-screen.EventQ()
 		select {
@@ -106,7 +131,12 @@ func pollEvents(ctx context.Context, screen tcell.Screen, output chan<- tcell.Ev
 	}
 }
 
-func readResponses(ctx context.Context, stream *Stream, output chan<- protocol.Response) {
+func readResponses(
+	ctx context.Context,
+	stream *Stream,
+	output chan<- protocol.Response,
+) {
+	defer close(output)
 	for {
 		var response protocol.Response
 		if stream.Decoder.Decode(&response) != nil {
@@ -138,12 +168,17 @@ func (s *attachState) handleEvent(event tcell.Event) (bool, error) {
 	case *tcell.EventResize:
 		width, height := value.Size()
 		s.screen.Sync()
-		return false, s.send(protocol.Request{Op: "resize-client", Width: width, Height: height})
+		return false, s.send(protocol.Request{
+			Op: "resize-client", Width: width, Height: height,
+		})
 	case *tcell.EventMouse:
 		return false, s.handleMouse(value)
 	case *tcell.EventKey:
 		if s.copy != nil {
 			return false, s.handleCopyKey(value)
+		}
+		if s.displayPanesActive() {
+			return false, s.handleDisplayKey(value)
 		}
 		return s.handleKey(value)
 	case *tcell.EventError:
@@ -162,12 +197,16 @@ func (s *attachState) handleKey(key *tcell.EventKey) (bool, error) {
 		s.message("prefix")
 		return false, nil
 	}
-	return false, s.send(protocol.Request{Op: "input", Data: string(keyBytes(key))})
+	return false, s.send(protocol.Request{
+		Op: "input", Data: string(keyBytes(key)),
+	})
 }
 
 func isCtrl(key *tcell.EventKey, char rune) bool {
 	return key.Key() == tcell.Key(char-'a'+1) ||
-		(key.Key() == tcell.KeyRune && key.Modifiers()&tcell.ModCtrl != 0 && strings.EqualFold(key.Str(), string(char)))
+		(key.Key() == tcell.KeyRune &&
+			key.Modifiers()&tcell.ModCtrl != 0 &&
+			strings.EqualFold(key.Str(), string(char)))
 }
 
 func keyBytes(key *tcell.EventKey) []byte {

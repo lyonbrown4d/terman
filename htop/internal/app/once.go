@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-func printOnce(ctx context.Context, cfg Config) error {
-	snapshot := newCollector().collect(ctx)
+func printOnce(ctx context.Context, cfg Config, collector Collector) error {
+	snapshot := collector.Collect(ctx)
 	if snapshot.Warning != "" {
 		fmt.Fprintln(os.Stdout, "warning:", snapshot.Warning)
 	}

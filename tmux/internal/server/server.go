@@ -1,24 +1,21 @@
 package server
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"os"
-	"os/signal"
 	"sync"
 	"time"
 
+	appconfig "github.com/lyonbrown4d/terman/tmux/internal/config"
 	"github.com/lyonbrown4d/terman/tmux/internal/ipc"
-	"github.com/lyonbrown4d/terman/tmux/internal/protocol"
 	"github.com/lyonbrown4d/terman/tmux/internal/session"
-	"github.com/lyonbrown4d/terman/tmux/internal/store"
+	sessionstore "github.com/lyonbrown4d/terman/tmux/internal/store"
 )
 
-type Config struct {
+type Launch struct {
 	Name     string
 	Endpoint string
 	Command  string
@@ -27,134 +24,203 @@ type Config struct {
 	Created  time.Time
 }
 
-func Run(parent context.Context, config Config) error {
-	listener, err := ipc.Listen(config.Endpoint)
+type Store interface {
+	Save(sessionstore.Record) error
+	Remove(string) error
+}
+
+type ListenerFactory func() (net.Listener, error)
+type ReactorFactory func(context.Context) (*session.Reactor, error)
+type ServerFactory func(
+	appconfig.Config,
+	Store,
+	ListenerFactory,
+	ReactorFactory,
+) *Server
+
+type fileStore struct{}
+
+func (fileStore) Save(record sessionstore.Record) error {
+	return sessionstore.Save(record)
+}
+
+func (fileStore) Remove(name string) error {
+	return sessionstore.Remove(name)
+}
+
+type Server struct {
+	launch          Launch
+	settings        appconfig.Config
+	store           Store
+	listenerFactory ListenerFactory
+	reactorFactory  ReactorFactory
+
+	ctx       context.Context
+	cancel    context.CancelFunc
+	listener  net.Listener
+	reactor   *session.Reactor
+	clients   sync.WaitGroup
+	acceptErr chan error
+	done      chan struct{}
+	doneOnce  sync.Once
+	stopOnce  sync.Once
+	mu        sync.Mutex
+	runErr    error
+	stopErr   error
+}
+
+func newServer(
+	launch Launch,
+	settings appconfig.Config,
+	store Store,
+	listenerFactory ListenerFactory,
+	reactorFactory ReactorFactory,
+) *Server {
+	return &Server{
+		launch: launch, settings: settings, store: store,
+		listenerFactory: listenerFactory,
+		reactorFactory:  reactorFactory,
+		acceptErr:       make(chan error, 1),
+		done:            make(chan struct{}),
+	}
+}
+
+func (s *Server) Start(ctx context.Context) error {
+	s.ctx, s.cancel = context.WithCancel(context.WithoutCancel(ctx))
+	listener, err := s.listenerFactory()
 	if err != nil {
 		return fmt.Errorf("listen on session endpoint: %w", err)
 	}
-	defer listener.Close()
-	defer ipc.Cleanup(config.Endpoint)
-	defer store.Remove(config.Name)
-	ctx, stop := signal.NotifyContext(parent, os.Interrupt)
-	defer stop()
-	reactor, err := session.New(ctx, config.Name, config.Command, config.Cols, config.Rows)
+	s.listener = listener
+	reactor, err := s.reactorFactory(s.ctx)
 	if err != nil {
+		_ = listener.Close()
+		_ = ipc.Cleanup(s.launch.Endpoint)
 		return err
 	}
-	record := store.Record{
-		SchemaVersion: store.SchemaVersion, Name: config.Name, Endpoint: config.Endpoint,
-		PID: os.Getpid(), CreatedAt: config.Created,
+	s.reactor = reactor
+	record := sessionstore.Record{
+		SchemaVersion: sessionstore.SchemaVersion,
+		Name:          s.launch.Name,
+		Endpoint:      s.launch.Endpoint,
+		PID:           os.Getpid(),
+		CreatedAt:     s.launch.Created,
 	}
 	if record.CreatedAt.IsZero() {
 		record.CreatedAt = time.Now()
 	}
-	if err := store.Save(record); err != nil {
-		reactor.Stop()
+	if err := s.store.Save(record); err != nil {
+		s.cancel()
+		s.reactor.Stop()
+		<-s.reactor.Done()
+		_ = listener.Close()
+		_ = ipc.Cleanup(s.launch.Endpoint)
 		return err
 	}
-
-	var clients sync.WaitGroup
-	acceptErr := make(chan error, 1)
-	go func() {
-		for {
-			conn, accept := listener.Accept()
-			if accept != nil {
-				acceptErr <- accept
-				return
-			}
-			clients.Add(1)
-			go func() {
-				defer clients.Done()
-				handleClient(ctx, conn, reactor)
-			}()
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		reactor.Stop()
-	case <-reactor.Done():
-	case err := <-acceptErr:
-		if !errors.Is(err, net.ErrClosed) {
-			reactor.Stop()
-			return fmt.Errorf("accept client: %w", err)
-		}
-	}
-	_ = listener.Close()
-	reactor.Stop()
-	<-reactor.Done()
-	clients.Wait()
+	go s.acceptLoop()
+	go s.monitor()
 	return nil
 }
 
-func handleClient(ctx context.Context, conn net.Conn, reactor *session.Reactor) {
-	defer conn.Close()
-	decoder := json.NewDecoder(bufio.NewReader(conn))
-	var first protocol.Request
-	if err := decoder.Decode(&first); err != nil {
-		return
-	}
-	if first.Op != "attach" {
-		resp, err := reactor.Call(ctx, first)
+func (s *Server) acceptLoop() {
+	for {
+		conn, err := s.listener.Accept()
 		if err != nil {
-			resp = protocol.Response{ID: first.ID, Error: err.Error()}
+			select {
+			case s.acceptErr <- err:
+			default:
+			}
+			return
 		}
-		_ = json.NewEncoder(conn).Encode(resp)
-		return
+		s.clients.Add(1)
+		go func() {
+			defer s.clients.Done()
+			handleClient(s.ctx, conn, s.reactor)
+		}()
 	}
-	handleAttach(ctx, conn, decoder, reactor, first)
 }
 
-func handleAttach(ctx context.Context, conn net.Conn, decoder *json.Decoder, reactor *session.Reactor, request protocol.Request) {
-	client := &session.Client{ID: request.ClientID, Width: request.Width, Height: request.Height}
-	id, frame, frames, err := reactor.Subscribe(ctx, client)
-	if err != nil {
-		_ = json.NewEncoder(conn).Encode(protocol.Response{ID: request.ID, Error: err.Error()})
-		return
-	}
-	defer reactor.Unsubscribe(id)
-	encoder := json.NewEncoder(conn)
-	if err := encoder.Encode(protocol.Response{ID: request.ID, OK: true, Event: "attached", Frame: &frame}); err != nil {
-		return
-	}
-	requests := make(chan protocol.Request)
-	readErr := make(chan struct{})
-	go func() {
-		defer close(readErr)
-		for {
-			var req protocol.Request
-			if decoder.Decode(&req) != nil {
-				return
-			}
-			select {
-			case requests <- req:
-			case <-ctx.Done():
-				return
-			}
+func (s *Server) monitor() {
+	select {
+	case <-s.ctx.Done():
+	case <-s.reactor.Done():
+	case err := <-s.acceptErr:
+		if !errors.Is(err, net.ErrClosed) {
+			s.setError(fmt.Errorf("accept client: %w", err))
 		}
-	}()
-	for {
+	}
+	s.signalDone()
+}
+
+func (s *Server) Stop(ctx context.Context) error {
+	s.stopOnce.Do(func() {
+		s.stopErr = s.stop(ctx)
+	})
+	return s.stopErr
+}
+
+func (s *Server) stop(ctx context.Context) error {
+	if s.cancel != nil {
+		s.cancel()
+	}
+	var failures []error
+	if s.listener != nil {
+		if err := s.listener.Close(); err != nil &&
+			!errors.Is(err, net.ErrClosed) {
+			failures = append(failures, err)
+		}
+	}
+	if s.reactor != nil {
+		s.reactor.Stop()
 		select {
+		case <-s.reactor.Done():
 		case <-ctx.Done():
-			return
-		case <-readErr:
-			return
-		case next, ok := <-frames:
-			if !ok || encoder.Encode(protocol.Response{OK: true, Event: "frame", Frame: &next}) != nil {
-				return
-			}
-		case req := <-requests:
-			if req.Op == "detach" {
-				_ = encoder.Encode(protocol.Response{ID: req.ID, OK: true, Event: "detached"})
-				return
-			}
-			resp, callErr := reactor.Call(ctx, req)
-			if callErr != nil {
-				resp = protocol.Response{ID: req.ID, Error: callErr.Error()}
-			}
-			if encoder.Encode(resp) != nil {
-				return
-			}
+			failures = append(failures, ctx.Err())
 		}
 	}
+	if err := s.waitClients(ctx); err != nil {
+		failures = append(failures, err)
+	}
+	if err := ipc.Cleanup(s.launch.Endpoint); err != nil {
+		failures = append(failures, err)
+	}
+	if err := s.store.Remove(s.launch.Name); err != nil {
+		failures = append(failures, err)
+	}
+	s.signalDone()
+	return errors.Join(failures...)
+}
+
+func (s *Server) waitClients(ctx context.Context) error {
+	done := make(chan struct{})
+	go func() {
+		s.clients.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *Server) Done() <-chan struct{} {
+	return s.done
+}
+
+func (s *Server) Err() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.runErr
+}
+
+func (s *Server) setError(err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.runErr = err
+}
+
+func (s *Server) signalDone() {
+	s.doneOnce.Do(func() { close(s.done) })
 }

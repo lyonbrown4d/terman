@@ -6,49 +6,99 @@ import (
 	"errors"
 	"io"
 	"net"
-	"os"
 	"sync"
 
 	"github.com/lyonbrown4d/terman/screen/internal/proto"
-	"github.com/lyonbrown4d/terman/screen/internal/store"
 	"github.com/lyonbrown4d/terman/screen/internal/transport"
 )
 
-func Serve(ctx context.Context, config Config) error {
-	listener, err := transport.Listen(config.Endpoint)
-	if err != nil {
-		return err
-	}
-	defer listener.Close()
-	defer transport.Cleanup(config.Endpoint)
+type Server struct {
+	config   Config
+	records  Store
+	listener *Listener
+	factory  SessionFactory
 
-	owner, err := New(ctx, config)
-	if err != nil {
-		return err
+	owner *Owner
+	done  chan struct{}
+	err   error
+}
+
+func newServer(
+	config Config,
+	records Store,
+	listener *Listener,
+	factory SessionFactory,
+) *Server {
+	return &Server{
+		config: config, records: records, listener: listener,
+		factory: factory, done: make(chan struct{}),
 	}
-	if err := store.Save(owner.record()); err != nil {
+}
+
+func (s *Server) Start(ctx context.Context) error {
+	owner, err := s.factory(ctx, s.config)
+	if err != nil {
+		return errors.Join(err, s.closeListener())
+	}
+	s.owner = owner
+	if err := s.records.Save(owner.record()); err != nil {
 		owner.cancel()
-		return err
+		<-owner.Done()
+		return errors.Join(err, s.closeListener())
 	}
-	defer store.Delete(config.Name)
+	go s.accept(ctx)
+	return nil
+}
 
+func (s *Server) Stop(ctx context.Context) error {
+	closeErr := s.closeListener()
+	var waitErr error
+	if s.owner != nil {
+		s.owner.cancel()
+		select {
+		case <-s.done:
+		case <-ctx.Done():
+			waitErr = ctx.Err()
+		}
+	}
+	name := s.config.Name
+	if s.owner != nil {
+		name = s.owner.config.Name
+	}
+	return errors.Join(waitErr, closeErr, s.records.Delete(name))
+}
+
+func (s *Server) closeListener() error {
+	closeErr := s.listener.Close()
+	if errors.Is(closeErr, net.ErrClosed) {
+		closeErr = nil
+	}
+	return errors.Join(closeErr, transport.Cleanup(s.config.Endpoint))
+}
+
+func (s *Server) Done() <-chan struct{} { return s.done }
+
+func (s *Server) Err() error { return s.err }
+
+func (s *Server) accept(ctx context.Context) {
+	defer close(s.done)
 	var clients sync.WaitGroup
 	go func() {
-		<-owner.Done()
-		_ = listener.Close()
+		<-s.owner.Done()
+		_ = s.listener.Close()
 	}()
 	for {
-		conn, acceptErr := listener.Accept()
-		if acceptErr != nil {
-			if errors.Is(acceptErr, net.ErrClosed) {
-				break
+		conn, err := s.listener.Accept()
+		if err != nil {
+			if !errors.Is(err, net.ErrClosed) {
+				s.err = err
+				s.owner.cancel()
 			}
-			return acceptErr
+			break
 		}
-		clients.Go(func() { serveConn(ctx, owner, conn) })
+		clients.Go(func() { serveConn(ctx, s.owner, conn) })
 	}
 	clients.Wait()
-	return nil
 }
 
 func serveConn(ctx context.Context, owner *Owner, conn net.Conn) {
@@ -90,13 +140,5 @@ func serveConn(ctx context.Context, owner *Owner, conn net.Conn) {
 		if encoder.Encode(response) != nil {
 			return
 		}
-	}
-}
-
-func DefaultConfig(name, endpoint, command string, cols, rows int, login bool) Config {
-	cwd, _ := os.Getwd()
-	return Config{
-		Name: name, Endpoint: endpoint, Command: command, Cwd: cwd,
-		Cols: cols, Rows: rows, LoginShell: login,
 	}
 }

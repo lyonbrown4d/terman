@@ -1,12 +1,18 @@
 package app
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/gdamore/tcell/v3"
+)
 
 var (
 	styleBase     = tcell.StyleDefault.Foreground(tcell.ColorSilver).Background(tcell.ColorBlack)
 	styleAccent   = tcell.StyleDefault.Foreground(tcell.ColorAqua).Bold(true)
 	styleHeader   = tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorTeal).Bold(true)
 	styleSelected = tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorGreen)
+	styleTagged   = tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorDarkCyan)
 	styleMuted    = tcell.StyleDefault.Foreground(tcell.ColorGray)
 	styleWarning  = tcell.StyleDefault.Foreground(tcell.ColorYellow)
 	styleDanger   = tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true)
@@ -32,7 +38,10 @@ func (c canvas) text(x, y int, style tcell.Style, value string) {
 			return
 		}
 		if x >= 0 {
-			c.screen.SetContent(x, y, character, nil, style)
+			_, cellWidth := c.screen.Put(x, y, string(character), style)
+			if cellWidth > 1 {
+				x += cellWidth - 1
+			}
 		}
 		x++
 	}
@@ -42,32 +51,26 @@ func (c canvas) row(y int, style tcell.Style) {
 	if y < 0 || y >= c.height {
 		return
 	}
-	for x := 0; x < c.width; x++ {
-		c.screen.SetContent(x, y, ' ', nil, style)
-	}
+	c.screen.FillArea(0, y, c.width, 1, ' ', style)
 }
 
 func (s *state) draw(screen tcell.Screen) {
 	screen.Clear()
 	c := newCanvas(screen)
+	s.hitboxes = s.hitboxes[:0]
 	if c.width < 30 || c.height < 8 {
 		c.text(0, 0, styleWarning, "Terminal too small (minimum 30x8)")
 		screen.Show()
 		return
 	}
-	s.drawTabs(c)
-	switch s.tab {
-	case TabOverview:
-		s.drawOverview(c)
-	case TabProcesses:
-		s.drawProcesses(c)
-	case TabIO:
-		s.drawIO(c)
-	case TabNetwork:
-		s.drawNetwork(c)
-	}
-	if s.detail {
-		s.drawDetail(c)
+	if s.view != viewNone {
+		s.drawFullView(c)
+	} else {
+		s.drawTabs(c)
+		s.drawCurrentTab(c)
+		if s.overlay != nil {
+			s.drawOverlay(c)
+		}
 	}
 	s.drawStatus(c)
 	s.drawFooter(c)
@@ -83,14 +86,29 @@ func (s *state) drawTabs(c canvas) {
 			style = styleHeader
 		}
 		c.text(x, 0, style, label)
+		s.hitboxes = append(s.hitboxes, hitbox{x1: x, y1: 0, x2: x + len(label), y2: 1, action: fmt.Sprintf("tab:%d", index)})
 		x += len(label)
 	}
 	title := " terman-htop "
 	c.text(max(x, c.width-len(title)), 0, styleAccent, title)
 }
 
+func (s *state) drawCurrentTab(c canvas) {
+	switch s.tab {
+	case TabOverview:
+		s.drawOverview(c)
+	case TabProcesses:
+		s.drawProcessTable(c, 1)
+	case TabIO:
+		s.drawIO(c)
+	case TabNetwork:
+		s.drawNetwork(c)
+	}
+}
+
 func (s *state) drawOverview(c canvas) {
-	c.text(0, 1, styleAccent, fit("Host "+fallback(s.snapshot.Hostname, "-")+"  Uptime "+formatDuration(s.snapshot.Uptime), c.width))
+	heading := "Host " + fallback(s.snapshot.Hostname, "-") + "  Uptime " + formatDuration(s.snapshot.Uptime)
+	c.text(0, 1, styleAccent, fit(heading, c.width))
 	c.text(0, 2, styleBase, meter("CPU", cpuAverage(s.snapshot.CPU), 100, c.width))
 	c.text(0, 3, styleBase, meter("MEM", percent(s.snapshot.MemoryUsed, s.snapshot.MemoryTotal), 100, c.width))
 	var sent, received uint64
@@ -102,38 +120,63 @@ func (s *state) drawOverview(c canvas) {
 	s.drawProcessTable(c, 5)
 }
 
-func (s *state) drawProcesses(c canvas) {
-	s.drawProcessTable(c, 1)
-}
-
 func (s *state) drawProcessTable(c canvas, headerY int) {
 	c.row(headerY, styleHeader)
-	c.text(0, headerY, styleHeader, processHeader(c.width))
-	rows := processRows(s.snapshot, s.sort, s.reverse, s.filter)
+	c.text(0, headerY, styleHeader, fit("  PID     USER         CPU%     MEM       IO/s      S COMMAND", c.width))
+	s.addProcessHeaderHitboxes(headerY, c.width)
+	rows := s.visibleProcessRows()
 	start, end := s.visibleRange(c, len(rows), headerY)
 	for index := start; index < end; index++ {
 		row := rows[index]
 		style := styleBase
+		if s.tags[row.PID] {
+			style = styleTagged
+		}
 		if index == s.selected[s.tab] {
 			style = styleSelected
 		}
-		c.row(headerY+1+index-start, style)
-		c.text(0, headerY+1+index-start, style, processLine(row, c.width))
+		y := headerY + 1 + index - start
+		c.row(y, style)
+		c.text(0, y, style, s.processLine(row, c.width))
 	}
 }
 
-func processHeader(width int) string {
-	return fit("PID     USER        CPU%    MEM       IO/s      S NAME / COMMAND", width)
-}
-
-func processLine(row Process, width int) string {
+func (s *state) processLine(row ProcessRow, width int) string {
+	tag := " "
+	if s.tags[row.PID] {
+		tag = "*"
+	}
+	name := fallback(row.Name, "-")
+	if s.showCommand && row.Command != "" {
+		name += " " + row.Command
+	}
+	if s.tree {
+		branch := "  "
+		if row.HasChildren && row.Collapsed {
+			branch = "+ "
+		} else if row.HasChildren {
+			branch = "- "
+		}
+		name = strings.Repeat("| ", row.Depth) + branch + name
+	}
 	value := formatColumns(
-		[]string{formatInt(row.PID, 7), fit(row.User, 11), formatFloat(row.CPU, 7),
-			left(formatBytes(row.Memory), 10), left(formatBytes(row.ReadRate+row.WriteRate), 10),
-			fallback(row.Name, "-") + " " + row.Command},
-		[]int{7, 12, 8, 10, 10, max(1, width-47)},
+		[]string{tag, formatInt(row.PID, 7), row.User, formatFloat(row.CPU, 7),
+			formatBytes(row.Memory), formatBytes(row.ReadRate + row.WriteRate), row.Status, name},
+		[]int{1, 7, 12, 8, 10, 10, 2, max(1, width-57)},
 	)
 	return fit(value, width)
+}
+
+func (s *state) addProcessHeaderHitboxes(y, width int) {
+	boxes := []hitbox{
+		{x1: 0, y1: y, x2: 10, y2: y + 1, action: "sort-pid"},
+		{x1: 10, y1: y, x2: 23, y2: y + 1, action: "sort-user"},
+		{x1: 23, y1: y, x2: 32, y2: y + 1, action: "sort-cpu"},
+		{x1: 32, y1: y, x2: 43, y2: y + 1, action: "sort-memory"},
+		{x1: 43, y1: y, x2: 54, y2: y + 1, action: "sort-io"},
+		{x1: 54, y1: y, x2: width, y2: y + 1, action: "sort-name"},
+	}
+	s.hitboxes = append(s.hitboxes, boxes...)
 }
 
 func (s *state) drawIO(c canvas) {
@@ -145,24 +188,27 @@ func (s *state) drawIO(c canvas) {
 	for index := start; index < end; index++ {
 		row := rows[index]
 		style := styleBase
+		if s.tags[row.PID] {
+			style = styleTagged
+		}
 		if index == s.selected[s.tab] {
 			style = styleSelected
 		}
 		line := formatColumns(
 			[]string{formatInt(row.PID, 7), formatBytes(row.ReadRate), formatBytes(row.WriteRate),
 				formatBytes(row.ReadTotal), formatBytes(row.WriteTotal), row.Name},
-			[]int{7, 11, 11, 13, 13, max(1, c.width-55)},
+			[]int{7, 11, 11, 13, 13, max(1, c.width-60)},
 		)
-		c.row(headerY+1+index-start, style)
-		c.text(0, headerY+1+index-start, style, fit(line, c.width))
+		y := headerY + 1 + index - start
+		c.row(y, style)
+		c.text(0, y, style, fit(line, c.width))
 	}
 }
 
 func (s *state) drawNetwork(c canvas) {
 	c.text(0, 1, styleAccent, "Interfaces")
 	y := 2
-	limit := min(len(s.snapshot.Interfaces), 3)
-	for _, row := range s.snapshot.Interfaces[:limit] {
+	for _, row := range s.snapshot.Interfaces[:min(len(s.snapshot.Interfaces), 3)] {
 		line := formatColumns(
 			[]string{row.Name, "RX/s " + formatBytes(row.RecvRate), "TX/s " + formatBytes(row.SendRate)},
 			[]int{18, 18, 18},
@@ -176,42 +222,18 @@ func (s *state) drawNetwork(c canvas) {
 	for index := start; index < end; index++ {
 		row := s.snapshot.Connections[index]
 		style := styleBase
+		if s.tags[row.PID] {
+			style = styleTagged
+		}
 		if index == s.selected[s.tab] {
 			style = styleSelected
 		}
 		line := formatColumns(
 			[]string{row.Protocol, formatInt(row.PID, 7), row.Local, row.Remote, row.Status, row.Process},
-			[]int{6, 8, 26, 26, 13, max(1, c.width-79)},
+			[]int{6, 8, 26, 26, 13, max(1, c.width-84)},
 		)
-		c.row(y+1+index-start, style)
-		c.text(0, y+1+index-start, style, fit(line, c.width))
-	}
-}
-
-func (s *state) drawDetail(c canvas) {
-	process, ok := s.currentProcess()
-	if !ok {
-		return
-	}
-	top := max(s.bodyStart()+2, c.height-10)
-	detailStyle := tcell.StyleDefault.Background(tcell.ColorDarkSlateGray).Foreground(tcell.ColorWhite)
-	for y := top; y < c.height-2; y++ {
-		c.row(y, detailStyle)
-	}
-	c.text(0, top, styleAccent.Background(tcell.ColorDarkSlateGray), " Process detail ")
-	lines := []string{
-		"PID " + formatInt(process.PID, 0) + "  PPID " + formatInt(process.PPID, 0) + "  USER " + process.User + "  STATE " + process.Status,
-		"CPU " + formatFloat(process.CPU, 0) + "%  RSS " + formatBytes(process.Memory) + "  NICE " + formatInt(process.Nice, 0),
-		"READ " + formatBytes(process.ReadRate) + "/s (" + formatBytes(process.ReadTotal) + ")  WRITE " + formatBytes(process.WriteRate) + "/s (" + formatBytes(process.WriteTotal) + ")",
-		"NAME " + process.Name,
-		"CMD  " + process.Command,
-	}
-	for index, line := range lines {
-		if top+1+index < c.height-2 {
-			c.text(0, top+1+index, detailStyle, fit(line, c.width))
-		}
-	}
-	if len(s.environment) != 0 && top+6 < c.height-2 {
-		c.text(0, top+6, detailStyle, fit("ENV  "+joinEnvironment(s.environment), c.width))
+		rowY := y + 1 + index - start
+		c.row(rowY, style)
+		c.text(0, rowY, style, fit(line, c.width))
 	}
 }

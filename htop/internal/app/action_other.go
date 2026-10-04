@@ -4,10 +4,14 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"os"
 )
 
-func signalProcess(pid int32, force bool) error {
+func signalProcess(pid int32, signal ProcessSignal) error {
+	if signal != SignalTerm && signal != SignalKill {
+		return fmt.Errorf("signal %s is unsupported on this platform", signal)
+	}
 	process, err := os.FindProcess(int(pid))
 	if err != nil {
 		return err

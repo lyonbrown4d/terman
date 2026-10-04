@@ -5,48 +5,10 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/gdamore/tcell/v2"
 )
 
-func (s *state) drawStatus(c canvas) {
-	y := c.height - 2
-	c.row(y, styleBase)
-	message := s.status
-	style := styleMuted
-	if s.confirm != "" {
-		process, _ := s.currentProcess()
-		message = fmt.Sprintf("%s PID %d? press y to confirm, n to cancel", strings.ToUpper(s.confirm), process.PID)
-		style = styleDanger
-	} else if s.filterEdit {
-		message = "Filter: " + s.filter + "_"
-		style = styleAccent
-	} else if message == "" {
-		message = s.snapshot.Warning
-		style = styleWarning
-	}
-	c.text(0, y, style, fit(message, c.width))
-}
-
-func (s *state) drawFooter(c canvas) {
-	y := c.height - 1
-	c.row(y, styleHeader)
-	direction := "normal"
-	if s.reverse {
-		direction = "reverse"
-	}
-	value := fmt.Sprintf(" Arrows/Mouse select  / filter  %s sort:%s  r:%s  d detail  e env  [ ] nice  k/K signal  F10 quit ",
-		fallback(s.filter, "-"), s.sort.String(), direction)
-	c.text(0, y, styleHeader, fit(value, c.width))
-}
-
 func (s *state) visibleRange(c canvas, total, headerY int) (int, int) {
-	rows := c.height - headerY - 3
-	if s.detail {
-		rows -= 8
-	}
-	rows = max(0, rows)
+	rows := max(0, c.height-headerY-3)
 	selected := clamp(s.selected[s.tab], 0, max(0, total-1))
 	s.selected[s.tab] = selected
 	scroll := clamp(s.scroll[s.tab], 0, max(0, total-rows))
@@ -58,55 +20,6 @@ func (s *state) visibleRange(c canvas, total, headerY int) (int, int) {
 	}
 	s.scroll[s.tab] = scroll
 	return scroll, min(total, scroll+rows)
-}
-
-func (s *state) normalize(screen tcell.Screen) {
-	total := s.currentLength()
-	s.selected[s.tab] = clamp(s.selected[s.tab], 0, max(0, total-1))
-	_, height := screen.Size()
-	rows := max(0, height-s.bodyStart()-3)
-	if s.detail {
-		rows = max(0, rows-8)
-	}
-	s.scroll[s.tab] = clamp(s.scroll[s.tab], 0, max(0, total-rows))
-}
-
-func (s *state) currentLength() int {
-	switch s.tab {
-	case TabOverview, TabProcesses:
-		return len(processRows(s.snapshot, s.sort, s.reverse, s.filter))
-	case TabIO:
-		return len(s.snapshot.IO)
-	default:
-		return len(s.snapshot.Connections)
-	}
-}
-
-func (s *state) bodyStart() int {
-	switch s.tab {
-	case TabOverview:
-		return 5
-	case TabNetwork:
-		return 2 + min(len(s.snapshot.Interfaces), 3)
-	default:
-		return 1
-	}
-}
-
-func tabAt(x int) (Tab, bool) {
-	offset := 0
-	for index, name := range tabNames {
-		width := len(name) + 5
-		if x >= offset && x < offset+width {
-			return Tab(index), true
-		}
-		offset += width
-	}
-	return 0, false
-}
-
-func (s *state) setStatus(value string) {
-	s.status, s.statusAt = value, time.Now()
 }
 
 func formatBytes(bytes uint64) string {
@@ -138,7 +51,13 @@ func meter(label string, value, maximum float64, width int) string {
 	if maximum > 0 {
 		filled = clamp(int(math.Round(value/maximum*float64(barWidth))), 0, barWidth)
 	}
-	return fmt.Sprintf("%-4s [%s%s] %6.1f%%", label, strings.Repeat("|", filled), strings.Repeat(" ", barWidth-filled), value)
+	return fmt.Sprintf(
+		"%-4s [%s%s] %6.1f%%",
+		label,
+		strings.Repeat("|", filled),
+		strings.Repeat(" ", barWidth-filled),
+		value,
+	)
 }
 
 func cpuAverage(values []float64) float64 {
@@ -204,14 +123,6 @@ func formatInt[T ~int32 | ~int64](value T, width int) string {
 		return strconv.FormatInt(int64(value), 10)
 	}
 	return fmt.Sprintf("%*d", width, value)
-}
-
-func joinEnvironment(values []string) string {
-	const limit = 6
-	if len(values) > limit {
-		return strings.Join(values[:limit], "; ") + fmt.Sprintf("; ... (%d more)", len(values)-limit)
-	}
-	return strings.Join(values, "; ")
 }
 
 func at[T any](values []T, index int) (T, bool) {

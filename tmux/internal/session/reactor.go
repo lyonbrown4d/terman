@@ -3,6 +3,7 @@ package session
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,22 +21,9 @@ func (r *Reactor) loop() {
 			r.closeAll()
 			return
 		case raw := <-r.events:
-			switch event := raw.(type) {
-			case requestEvent:
-				resp, stop := r.handle(event.request)
-				event.result <- resp
-				if stop {
-					r.closeAll()
-					return
-				}
-			case outputEvent:
-				r.handleOutput(event)
-			case exitEvent:
-				r.handleExit(event)
-			case subscribeEvent:
-				r.handleSubscribe(event)
-			case unsubscribeEvent:
-				r.handleUnsubscribe(event.id)
+			if r.handleEvent(raw) {
+				r.closeAll()
+				return
 			}
 		case <-ticker.C:
 			if len(r.state.Clients) > 0 {
@@ -43,6 +31,26 @@ func (r *Reactor) loop() {
 			}
 		}
 	}
+}
+
+func (r *Reactor) handleEvent(raw any) bool {
+	switch event := raw.(type) {
+	case requestEvent:
+		resp, stop := r.handle(event.request)
+		event.result <- resp
+		return stop
+	case outputEvent:
+		r.handleOutput(event)
+	case exitEvent:
+		r.handleExit(event)
+	case subscribeEvent:
+		r.handleSubscribe(event)
+	case unsubscribeEvent:
+		r.handleUnsubscribe(event.id)
+	case resizeClientEvent:
+		r.handleResizeClient(event)
+	}
+	return false
 }
 
 func (r *Reactor) handle(req protocol.Request) (protocol.Response, bool) {
@@ -81,8 +89,16 @@ func (r *Reactor) handle(req protocol.Request) (protocol.Response, bool) {
 		err = r.killWindow(req.Window)
 	case "select-pane":
 		err = r.selectPane(req.Window, req.Pane, req.Direction)
+		if err == nil {
+			r.state.DisplayPanesUntil = time.Time{}
+		}
 	case "swap-pane":
-		err = r.swapPane(req.Window, req.SourcePane, req.Pane, req.Direction)
+		err = r.swapPane(
+			req.Window,
+			req.SourcePane,
+			req.Pane,
+			req.Direction,
+		)
 	case "kill-pane":
 		err = r.killPane(req.Window, req.Pane)
 	case "resize-pane":
@@ -94,7 +110,15 @@ func (r *Reactor) handle(req protocol.Request) (protocol.Response, bool) {
 	case "set-synchronize-panes":
 		err = r.setSynchronize(req.Window, req.Enabled)
 	case "resize-client":
-		err = r.resize(req.Width, req.Height)
+		err = r.resizeNamedClient(req.ClientID, req.Width, req.Height)
+	case "detach-client":
+		var count int
+		count, err = r.detachClients(req.ClientID, req.All)
+		resp.Data = strconv.Itoa(count)
+	case "display-panes":
+		r.state.DisplayPanesUntil = time.Now().Add(r.displayPanesTimeout)
+	case "cancel-display-panes":
+		r.state.DisplayPanesUntil = time.Time{}
 	case "display-message":
 		if req.Data == "" {
 			resp.Data = r.statusText()
@@ -131,10 +155,18 @@ func (r *Reactor) handle(req protocol.Request) (protocol.Response, bool) {
 		resp.Error = err.Error()
 		return resp, false
 	}
-	if req.Op != "ping" && req.Op != "info" && !strings.HasPrefix(req.Op, "list-") && req.Op != "capture-pane" && req.Op != "get-buffer" {
+	if shouldBroadcast(req.Op) {
 		r.broadcast()
 	}
 	return resp, false
+}
+
+func shouldBroadcast(operation string) bool {
+	if operation == "ping" || operation == "info" ||
+		operation == "capture-pane" || operation == "get-buffer" {
+		return false
+	}
+	return !strings.HasPrefix(operation, "list-")
 }
 
 func (r *Reactor) handleOutput(event outputEvent) {
@@ -149,7 +181,10 @@ func (r *Reactor) handleOutput(event outputEvent) {
 	_, _ = pane.Term.Write(event.data)
 	pane.History = append(pane.History, event.data...)
 	if len(pane.History) > maxHistory {
-		pane.History = append([]byte(nil), pane.History[len(pane.History)-maxHistory:]...)
+		pane.History = append(
+			[]byte(nil),
+			pane.History[len(pane.History)-maxHistory:]...,
+		)
 	}
 	r.broadcast()
 }
@@ -163,41 +198,11 @@ func (r *Reactor) handleExit(event exitEvent) {
 	r.broadcast()
 }
 
-func (r *Reactor) handleSubscribe(event subscribeEvent) {
-	r.state.NextClient++
-	id := r.state.NextClient
-	event.client.Frames = make(chan protocol.Frame, 4)
-	if event.client.ID == "" {
-		event.client.ID = fmt.Sprintf("client-%d", id)
-	}
-	event.client.Attached = time.Now()
-	r.state.Clients[id] = event.client
-	frame := r.frame()
-	event.result <- subscription{id: id, frame: frame, ch: event.client.Frames}
-}
-
-func (r *Reactor) handleUnsubscribe(id uint64) {
-	if client := r.state.Clients[id]; client != nil {
-		delete(r.state.Clients, id)
-		close(client.Frames)
-	}
-}
-
 func (r *Reactor) broadcast() {
 	frame := r.frame()
+	response := protocol.Response{OK: true, Event: "frame", Frame: &frame}
 	for _, client := range r.state.Clients {
-		select {
-		case client.Frames <- frame:
-		default:
-			select {
-			case <-client.Frames:
-			default:
-			}
-			select {
-			case client.Frames <- frame:
-			default:
-			}
-		}
+		r.sendClient(client, response)
 	}
 }
 
@@ -207,8 +212,9 @@ func (r *Reactor) closeAll() {
 			closePane(pane)
 		}
 	}
-	for id := range r.state.Clients {
-		r.handleUnsubscribe(id)
+	for id, client := range r.state.Clients {
+		delete(r.state.Clients, id)
+		close(client.Frames)
 	}
 }
 

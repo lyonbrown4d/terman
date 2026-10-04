@@ -2,78 +2,89 @@ package session
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 	"time"
-	"unicode/utf8"
 
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/lyonbrown4d/terman/common"
 	"github.com/lyonbrown4d/terman/tmux/internal/protocol"
 )
 
 func (r *Reactor) frame() protocol.Frame {
+	now := time.Now()
 	window := r.state.Windows[r.state.ActiveWindow]
 	frame := protocol.Frame{
-		Session: r.state.Name, Window: r.state.ActiveWindow,
-		Status: r.statusText(), Message: r.state.Message, GeneratedAt: time.Now(),
+		Session:      r.state.Name,
+		Window:       r.state.ActiveWindow,
+		Status:       r.statusText(),
+		Message:      r.state.Message,
+		DisplayPanes: now.Before(r.state.DisplayPanesUntil),
+		GeneratedAt:  now,
 	}
 	if window == nil {
 		return frame
 	}
 	frame.ActivePane = window.ActivePane
 	rects := r.layoutRects(window)
+	frame.Panes = make([]protocol.PaneFrame, 0, len(window.PaneOrder))
 	for _, index := range window.PaneOrder {
 		rect, visible := rects[index]
 		if !visible {
 			continue
 		}
 		pane := window.Panes[index]
-		lines := terminalLines(pane.Term.String(), rect.W, rect.H)
 		frame.Panes = append(frame.Panes, protocol.PaneFrame{
-			Index: index, Rect: rect, Lines: lines, Active: index == window.ActivePane, Dead: pane.Dead,
+			Index:  index,
+			Rect:   rect,
+			Cells:  terminalCells(pane, rect.W, rect.H),
+			Active: index == window.ActivePane,
+			Dead:   pane.Dead,
 		})
 	}
 	frame.WindowHits = r.windowHits()
 	return frame
 }
 
-func terminalLines(value string, width, height int) []string {
-	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "")
-	lines := strings.Split(value, "\n")
-	if len(lines) > height {
-		lines = lines[len(lines)-height:]
+func terminalCells(pane *Pane, width, height int) [][]protocol.Cell {
+	rows := make([][]protocol.Cell, height)
+	for y := range height {
+		rows[y] = make([]protocol.Cell, width)
+		for x := range width {
+			rows[y][x] = protocolCell(pane.Term.CellAt(x, y))
+		}
 	}
-	result := make([]string, 0, height)
-	for _, line := range lines {
-		result = append(result, common.FitTerminalText(stripControls(line), width))
-	}
-	for len(result) < height {
-		result = append(result, strings.Repeat(" ", max(width, 0)))
-	}
-	return result
+	return rows
 }
 
-func stripControls(value string) string {
-	var out strings.Builder
-	escaped := false
-	for len(value) > 0 {
-		char, size := utf8.DecodeRuneInString(value)
-		value = value[size:]
-		if char == '\x1b' {
-			escaped = true
-			continue
-		}
-		if escaped {
-			if (char >= '@' && char <= '~') || char == '\a' {
-				escaped = false
-			}
-			continue
-		}
-		if char >= 0x20 || char == '\t' {
-			out.WriteRune(char)
-		}
+func protocolCell(cell *uv.Cell) protocol.Cell {
+	if cell == nil {
+		return protocol.Cell{Content: " ", Width: 1}
 	}
-	return out.String()
+	fg, hasFG := packedColor(cell.Style.Fg)
+	bg, hasBG := packedColor(cell.Style.Bg)
+	return protocol.Cell{
+		Content: cell.Content,
+		Width:   cell.Width,
+		Style: protocol.CellStyle{
+			Foreground:    fg,
+			Background:    bg,
+			HasForeground: hasFG,
+			HasBackground: hasBG,
+			Bold:          cell.Style.Attrs&uv.AttrBold != 0,
+			Underline:     cell.Style.Underline != 0,
+			Reverse:       cell.Style.Attrs&uv.AttrReverse != 0,
+		},
+	}
+}
+
+func packedColor(value color.Color) (uint32, bool) {
+	if value == nil {
+		return 0, false
+	}
+	red, green, blue, _ := value.RGBA()
+	packed := uint32(red>>8)<<16 | uint32(green>>8)<<8 | uint32(blue>>8)
+	return packed, true
 }
 
 func (r *Reactor) statusText() string {
@@ -110,7 +121,11 @@ func (r *Reactor) windowHits() []protocol.WindowHit {
 		}
 		label := fmt.Sprintf("%d:%s%s ", index, window.Name, marker)
 		end := start + len([]rune(label))
-		hits = append(hits, protocol.WindowHit{Index: index, Start: start, End: end})
+		hits = append(hits, protocol.WindowHit{
+			Index: index,
+			Start: start,
+			End:   end,
+		})
 		start = end
 	}
 	return hits

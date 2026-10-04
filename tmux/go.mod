@@ -7,11 +7,13 @@ require (
 	github.com/aymanbagabas/go-pty v0.2.3
 	github.com/charmbracelet/x/vt v0.0.0-20260927004216-9c77d672503d
 	github.com/gdamore/tcell/v3 v3.5.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 )
 
 require (
 	github.com/Xuanwo/go-locale v1.1.0 // indirect
+	github.com/arcgolabs/configx v0.6.4
+	github.com/arcgolabs/dix v0.11.2
 	github.com/charmbracelet/colorprofile v0.4.2 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260303162955-0b88c25f3fff // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect

@@ -31,3 +31,11 @@ func Record(name string) (string, error) {
 	}
 	return filepath.Join(root, Key(name)+".json"), nil
 }
+
+func Buffer() (string, error) {
+	root, err := Root()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "exchange"), nil
+}
