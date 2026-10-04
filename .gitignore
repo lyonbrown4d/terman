@@ -1,4 +1,10 @@
-/target
+/bin/
+/target/
+*.exe
+*-linux-*
+*.test
+*.out
+
 # IDE/project config
 .idea/
 .vscode/
