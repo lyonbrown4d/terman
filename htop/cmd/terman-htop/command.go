@@ -52,7 +52,7 @@ func newRootCommand(run runFunc) *cobra.Command {
 	flags := command.Flags()
 	flags.Int("refresh-ms", defaultRefreshMS, "refresh interval in milliseconds (minimum 100)")
 	flags.Bool("once", false, "print one snapshot and exit")
-	flags.String("sort", "cpu", "sort by cpu, memory, io, pid, or name")
+	flags.String("sort", "cpu", "sort by cpu, memory, io, pid, user, or name")
 	flags.Bool("reverse", false, "reverse the selected sort")
 	flags.String("filter", "", "show processes matching this text")
 	return command

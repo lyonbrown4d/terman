@@ -29,8 +29,8 @@ type menuOverlay struct {
 }
 
 func (s *state) openSortMenu() {
-	entries := make([]menuEntry, 0, 5)
-	for _, key := range []SortKey{SortCPU, SortMemory, SortIO, SortPID, SortName} {
+	entries := make([]menuEntry, 0, 6)
+	for _, key := range []SortKey{SortCPU, SortMemory, SortIO, SortPID, SortUser, SortName} {
 		entries = append(entries, menuEntry{label: key.String(), value: key.String()})
 	}
 	s.overlay = &menuOverlay{kind: menuSort, title: "Sort by", entries: entries, selected: int(s.sort)}
@@ -116,7 +116,10 @@ func (s *state) activateMenuEntry(index int) {
 	}
 	switch s.overlay.kind {
 	case menuSort:
-		keys := map[string]SortKey{"CPU": SortCPU, "MEM": SortMemory, "IO": SortIO, "PID": SortPID, "NAME": SortName}
+		keys := map[string]SortKey{
+			"CPU": SortCPU, "MEM": SortMemory, "IO": SortIO,
+			"PID": SortPID, "USER": SortUser, "NAME": SortName,
+		}
 		s.setSort(keys[entry.value])
 		s.overlay = nil
 	case menuSignal:

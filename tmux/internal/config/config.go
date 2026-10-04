@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
+
+	commonlogging "github.com/lyonbrown4d/terman/common/modules/logging"
 )
 
 type Config struct {
@@ -39,8 +40,7 @@ func (c Config) Validate() error {
 	if c.TerminalCols < 2 || c.TerminalRows < 2 {
 		return fmt.Errorf("terminal defaults must be at least 2x2")
 	}
-	var level slog.Level
-	if err := level.UnmarshalText([]byte(c.LogLevel)); err != nil {
+	if err := commonlogging.ValidateLevel(c.LogLevel); err != nil {
 		return fmt.Errorf("invalid log level %q: %w", c.LogLevel, err)
 	}
 	return nil

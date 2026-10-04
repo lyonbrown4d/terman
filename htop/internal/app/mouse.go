@@ -19,27 +19,22 @@ func (s *state) handleMouse(ctx context.Context, event *tcell.EventMouse) (bool,
 		s.scrollMouse(3)
 		return false, nil
 	}
-	if s.overlay != nil {
-		if buttons&tcell.Button1 != 0 {
-			s.clickOverlay(x, y)
-		}
+	if buttons&tcell.Button1 != 0 {
+		s.primaryDown = true
 		return false, nil
 	}
+	if buttons == tcell.ButtonNone && s.primaryDown {
+		s.primaryDown = false
+		return s.activatePrimary(ctx, x, y)
+	}
 	if s.view != viewNone {
-		if buttons&tcell.Button3 != 0 || buttons&tcell.Button1 != 0 && y == 0 {
+		if buttons&tcell.Button3 != 0 {
 			s.closeView()
 		}
 		return false, nil
 	}
-	if buttons&tcell.Button1 != 0 {
-		for _, box := range s.hitboxes {
-			if x >= box.x1 && x < box.x2 && y >= box.y1 && y < box.y2 {
-				return s.activateHitbox(ctx, box.action)
-			}
-		}
-	}
 	start := s.bodyStart()
-	if y > start {
+	if buttons&(tcell.Button2|tcell.Button3) != 0 && y > start {
 		index := s.scroll[s.tab] + y - start - 1
 		if index >= 0 && index < s.currentLength() {
 			s.selected[s.tab] = index
@@ -49,6 +44,32 @@ func (s *state) handleMouse(ctx context.Context, event *tcell.EventMouse) (bool,
 			if buttons&tcell.Button3 != 0 {
 				return false, s.openDetail()
 			}
+		}
+	}
+	return false, nil
+}
+
+func (s *state) activatePrimary(ctx context.Context, x, y int) (bool, error) {
+	if s.overlay != nil {
+		s.clickOverlay(x, y)
+		return false, nil
+	}
+	if s.view != viewNone {
+		if y == 0 {
+			s.closeView()
+		}
+		return false, nil
+	}
+	for _, box := range s.hitboxes {
+		if x >= box.x1 && x < box.x2 && y >= box.y1 && y < box.y2 {
+			return s.activateHitbox(ctx, box.action)
+		}
+	}
+	start := s.bodyStart()
+	if y > start {
+		index := s.scroll[s.tab] + y - start - 1
+		if index >= 0 && index < s.currentLength() {
+			s.selected[s.tab] = index
 		}
 	}
 	return false, nil
@@ -109,7 +130,9 @@ func (s *state) activateHitbox(ctx context.Context, action string) (bool, error)
 		return true, nil
 	case "sort-pid":
 		s.setSort(SortPID)
-	case "sort-user", "sort-name":
+	case "sort-user":
+		s.setSort(SortUser)
+	case "sort-name":
 		s.setSort(SortName)
 	case "sort-cpu":
 		s.setSort(SortCPU)

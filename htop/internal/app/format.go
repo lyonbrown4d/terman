@@ -46,17 +46,27 @@ func formatDuration(seconds uint64) string {
 }
 
 func meter(label string, value, maximum float64, width int) string {
-	barWidth := clamp(width-24, 6, 60)
+	return meterDetails(label, value, maximum, width, "")
+}
+
+func meterDetails(label string, value, maximum float64, width int, details string) string {
+	labelWidth := max(4, len([]rune(label)))
+	suffix := fmt.Sprintf("%6.1f%%", value)
+	if details != "" {
+		suffix += " " + details
+	}
+	barWidth := clamp(width-labelWidth-len([]rune(suffix))-4, 1, 60)
 	filled := 0
 	if maximum > 0 {
 		filled = clamp(int(math.Round(value/maximum*float64(barWidth))), 0, barWidth)
 	}
 	return fmt.Sprintf(
-		"%-4s [%s%s] %6.1f%%",
+		"%-*s [%s%s] %s",
+		labelWidth,
 		label,
 		strings.Repeat("|", filled),
 		strings.Repeat(" ", barWidth-filled),
-		value,
+		suffix,
 	)
 }
 

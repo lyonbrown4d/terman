@@ -67,6 +67,9 @@ type state struct {
 	status   string
 	statusAt time.Time
 	hitboxes []hitbox
+
+	primaryDown   bool
+	processHeader int
 }
 
 func newState(cfg Config) *state {
@@ -186,7 +189,7 @@ func (s *state) normalize(screen tcell.Screen) {
 func (s *state) bodyStart() int {
 	switch s.tab {
 	case TabOverview:
-		return 5
+		return max(5, s.processHeader)
 	case TabNetwork:
 		return 2 + min(len(s.snapshot.Interfaces), 3)
 	default:

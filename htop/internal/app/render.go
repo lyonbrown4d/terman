@@ -110,7 +110,13 @@ func (s *state) drawOverview(c canvas) {
 	heading := "Host " + fallback(s.snapshot.Hostname, "-") + "  Uptime " + formatDuration(s.snapshot.Uptime)
 	c.text(0, 1, styleAccent, fit(heading, c.width))
 	nextY := s.drawCPUMeters(c, 2)
-	c.text(0, nextY, styleBase, meter("MEM", percent(s.snapshot.MemoryUsed, s.snapshot.MemoryTotal), 100, c.width))
+	memory := formatBytes(s.snapshot.MemoryUsed) + "/" + formatBytes(s.snapshot.MemoryTotal)
+	c.text(
+		0,
+		nextY,
+		styleBase,
+		meterDetails("MEM", percent(s.snapshot.MemoryUsed, s.snapshot.MemoryTotal), 100, c.width, memory),
+	)
 	var sent, received uint64
 	for _, row := range s.snapshot.Interfaces {
 		sent += row.SendRate
@@ -122,8 +128,11 @@ func (s *state) drawOverview(c canvas) {
 }
 
 func (s *state) drawProcessTable(c canvas, headerY int) {
+	if s.tab == TabOverview {
+		s.processHeader = headerY
+	}
 	c.row(headerY, styleHeader)
-	c.text(0, headerY, styleHeader, fit("  PID     USER         CPU%     MEM       IO/s      S COMMAND", c.width))
+	c.text(0, headerY, styleHeader, s.processHeaderLine(c.width))
 	s.addProcessHeaderHitboxes(headerY, c.width)
 	rows := s.visibleProcessRows()
 	start, end := s.visibleRange(c, len(rows), headerY)

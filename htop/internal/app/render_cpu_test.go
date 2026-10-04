@@ -21,9 +21,9 @@ func TestOverviewDrawsEveryCPUCore(t *testing.T) {
 	state.draw(screen)
 	lines := strings.Split(testFrame(screen), "\n")
 
-	assertLineContains(t, lines[2], "0    [", "11.1%", "2    [", "33.3%")
-	assertLineContains(t, lines[3], "1    [", "22.2%", "3    [", "44.4%")
-	assertLineContains(t, lines[4], "MEM", "50.0%")
+	assertLineContains(t, lines[2], "CPU0 [", "11.1%", "CPU2 [", "33.3%")
+	assertLineContains(t, lines[3], "CPU1 [", "22.2%", "CPU3 [", "44.4%")
+	assertLineContains(t, lines[4], "MEM", "50.0%", "1B/2B")
 	assertLineContains(t, lines[5], "NET")
 	assertLineContains(t, lines[6], "PID", "COMMAND")
 }

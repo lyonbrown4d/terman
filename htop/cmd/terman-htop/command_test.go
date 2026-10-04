@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	commonlogging "github.com/lyonbrown4d/terman/common/modules/logging"
 	"github.com/lyonbrown4d/terman/htop/internal/app"
 )
 
@@ -48,11 +49,24 @@ func TestCommandRejectsInvalidRefresh(t *testing.T) {
 }
 
 func TestDixCompositionBuildsRunner(t *testing.T) {
-	runner, err := composeRunner(app.Config{Refresh: time.Second, Sort: app.SortCPU})
+	logs, err := commonlogging.New(commonlogging.Config{
+		Component: "htop-test", Directory: t.TempDir(),
+	})
 	if err != nil {
-		t.Fatalf("compose runner: %v", err)
+		t.Fatalf("create logging module: %v", err)
 	}
-	if runner == nil {
-		t.Fatal("compose runner returned nil")
+	runtime, err := composeApplication(
+		app.Config{Refresh: time.Second, Sort: app.SortCPU},
+		logs,
+	).Start(context.Background())
+	if err != nil {
+		_ = logs.Close()
+		t.Fatalf("start application: %v", err)
+	}
+	if _, err := runtime.Container().Resolve[*app.Runner](); err != nil {
+		t.Errorf("resolve runner: %v", err)
+	}
+	if err := stopRuntime(runtime, logs); err != nil {
+		t.Fatalf("stop application: %v", err)
 	}
 }

@@ -26,7 +26,7 @@ func (s *state) drawCPUMeters(c canvas, startY int) int {
 			if column == columns-1 {
 				width = c.width - x
 			}
-			label := strconv.Itoa(index)
+			label := "CPU" + strconv.Itoa(index)
 			c.text(x, startY+row, styleBase, fit(meter(label, values[index], 100, width), width))
 		}
 	}

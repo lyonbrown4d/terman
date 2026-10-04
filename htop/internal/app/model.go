@@ -34,6 +34,7 @@ const (
 	SortMemory
 	SortIO
 	SortPID
+	SortUser
 	SortName
 )
 
@@ -47,6 +48,8 @@ func ParseSortKey(value string) (SortKey, error) {
 		return SortIO, nil
 	case "pid":
 		return SortPID, nil
+	case "user":
+		return SortUser, nil
 	case "name":
 		return SortName, nil
 	default:
@@ -55,7 +58,7 @@ func ParseSortKey(value string) (SortKey, error) {
 }
 
 func (s SortKey) String() string {
-	return [...]string{"CPU", "MEM", "IO", "PID", "NAME"}[s]
+	return [...]string{"CPU", "MEM", "IO", "PID", "USER", "NAME"}[s]
 }
 
 type Snapshot struct {
@@ -160,8 +163,16 @@ func compareProcess(a, b Process, key SortKey) int {
 		return compareDescending(a.ReadRate+a.WriteRate, b.ReadRate+b.WriteRate)
 	case SortPID:
 		return compareOrdered(a.PID, b.PID)
+	case SortUser:
+		if comparison := strings.Compare(strings.ToLower(a.User), strings.ToLower(b.User)); comparison != 0 {
+			return comparison
+		}
+		return compareOrdered(a.PID, b.PID)
 	case SortName:
-		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+		if comparison := strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)); comparison != 0 {
+			return comparison
+		}
+		return compareOrdered(a.PID, b.PID)
 	default:
 		if a.CPU > b.CPU {
 			return -1

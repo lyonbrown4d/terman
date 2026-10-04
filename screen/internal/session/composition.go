@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/arcgolabs/dix"
+	commonlogging "github.com/lyonbrown4d/terman/common/modules/logging"
 	"github.com/lyonbrown4d/terman/screen/internal/store"
 	"github.com/lyonbrown4d/terman/screen/internal/transport"
 )
@@ -62,17 +63,25 @@ func serverModule(config Config) dix.Module {
 }
 
 func Serve(ctx context.Context, config Config) error {
-	app := dix.New("terman-screen-server", dix.Modules(serverModule(config)))
-	if err := app.ValidateContext(ctx); err != nil {
+	logs, err := commonlogging.New(commonlogging.Config{Component: "screen-" + config.Name})
+	if err != nil {
 		return err
+	}
+	app := dix.New(
+		"terman-screen-server",
+		dix.WithLogger(logs.Logger),
+		dix.Modules(logs.Module, serverModule(config)),
+	)
+	if err := app.ValidateContext(ctx); err != nil {
+		return errors.Join(err, logs.Close())
 	}
 	runtime, err := app.Start(ctx)
 	if err != nil {
-		return err
+		return errors.Join(err, logs.Close())
 	}
 	server, err := runtime.Container().Resolve[*Server]()
 	if err != nil {
-		return errors.Join(err, stopRuntime(runtime))
+		return errors.Join(err, stopRuntime(runtime, logs))
 	}
 
 	var serveErr error
@@ -81,11 +90,14 @@ func Serve(ctx context.Context, config Config) error {
 	case <-server.Done():
 		serveErr = server.Err()
 	}
-	return errors.Join(serveErr, stopRuntime(runtime))
+	if serveErr != nil {
+		logs.Logger.ErrorContext(ctx, "screen session server stopped", "session", config.Name, "error", serveErr)
+	}
+	return errors.Join(serveErr, stopRuntime(runtime, logs))
 }
 
-func stopRuntime(runtime *dix.Runtime) error {
+func stopRuntime(runtime *dix.Runtime, logs commonlogging.Bundle) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return runtime.Stop(ctx)
+	return logs.Stop(ctx, runtime)
 }

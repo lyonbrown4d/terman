@@ -3,13 +3,13 @@ package server
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/arcgolabs/dix"
+	commonlogging "github.com/lyonbrown4d/terman/common/modules/logging"
 	appconfig "github.com/lyonbrown4d/terman/tmux/internal/config"
 	"github.com/lyonbrown4d/terman/tmux/internal/ipc"
 	"github.com/lyonbrown4d/terman/tmux/internal/session"
@@ -22,25 +22,33 @@ func Run(
 ) error {
 	ctx, cancel := signal.NotifyContext(parent, os.Interrupt)
 	defer cancel()
-	app := compose(launch, settings)
-	runtime, err := app.Start(ctx)
+	logs, err := commonlogging.New(commonlogging.Config{Component: "tmux-" + launch.Name, Level: settings.LogLevel})
 	if err != nil {
 		return err
 	}
+	app := compose(launch, settings, logs)
+	runtime, err := app.Start(ctx)
+	if err != nil {
+		return errors.Join(err, logs.Close())
+	}
 	server, err := runtime.Container().Resolve[*Server]()
 	if err != nil {
-		stopRuntime(runtime, settings.ShutdownTimeout)
+		stopRuntime(runtime, settings.ShutdownTimeout, logs)
 		return err
 	}
 	select {
 	case <-ctx.Done():
 	case <-server.Done():
 	}
-	stopErr := stopRuntime(runtime, settings.ShutdownTimeout)
-	return errors.Join(server.Err(), stopErr)
+	runErr := server.Err()
+	if runErr != nil {
+		logs.Logger.ErrorContext(ctx, "tmux session server stopped", "session", launch.Name, "error", runErr)
+	}
+	stopErr := stopRuntime(runtime, settings.ShutdownTimeout, logs)
+	return errors.Join(runErr, stopErr)
 }
 
-func compose(launch Launch, settings appconfig.Config) *dix.App {
+func compose(launch Launch, settings appconfig.Config, logs commonlogging.Bundle) *dix.App {
 	listenerFactory := ListenerFactory(func() (net.Listener, error) {
 		return ipc.Listen(launch.Endpoint)
 	})
@@ -104,22 +112,13 @@ func compose(launch Launch, settings appconfig.Config) *dix.App {
 	)
 	return dix.New(
 		"terman-tmux-server",
-		dix.WithLogger(configLogger(settings)),
-		dix.Modules(module),
+		dix.WithLogger(logs.Logger),
+		dix.Modules(logs.Module, module),
 	)
 }
 
-func configLogger(settings appconfig.Config) *slog.Logger {
-	var level slog.Level
-	_ = level.UnmarshalText([]byte(settings.LogLevel))
-	return slog.New(slog.NewTextHandler(
-		os.Stderr,
-		&slog.HandlerOptions{Level: level},
-	))
-}
-
-func stopRuntime(runtime *dix.Runtime, timeout time.Duration) error {
+func stopRuntime(runtime *dix.Runtime, timeout time.Duration, logs commonlogging.Bundle) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	return runtime.Stop(ctx)
+	return logs.Stop(ctx, runtime)
 }
