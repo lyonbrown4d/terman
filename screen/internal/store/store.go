@@ -10,6 +10,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/lyonbrown4d/terman/screen/internal/paths"
 )
 
@@ -23,6 +24,15 @@ type Record struct {
 }
 
 func Save(record Record) error {
+	lock, err := lockStore()
+	if err != nil {
+		return err
+	}
+	defer unlockStore(lock)
+	return save(record)
+}
+
+func save(record Record) error {
 	path, err := paths.Record(record.Name)
 	if err != nil {
 		return err
@@ -35,6 +45,15 @@ func Save(record Record) error {
 }
 
 func Delete(name string) error {
+	lock, err := lockStore()
+	if err != nil {
+		return err
+	}
+	defer unlockStore(lock)
+	return deleteRecord(name)
+}
+
+func deleteRecord(name string) error {
 	path, err := paths.Record(name)
 	if err != nil {
 		return err
@@ -47,6 +66,12 @@ func Delete(name string) error {
 }
 
 func Rename(oldName string, record Record) error {
+	lock, err := lockStore()
+	if err != nil {
+		return err
+	}
+	defer unlockStore(lock)
+
 	oldPath, err := paths.Record(oldName)
 	if err != nil {
 		return err
@@ -56,7 +81,7 @@ func Rename(oldName string, record Record) error {
 		return err
 	}
 	if oldPath == newPath {
-		return Save(record)
+		return save(record)
 	}
 	if _, err := os.Stat(newPath); err == nil {
 		return fmt.Errorf("session %q already exists", record.Name)
@@ -110,6 +135,15 @@ func writeAtomic(path string, data []byte) error {
 }
 
 func List() ([]Record, error) {
+	lock, err := lockStore()
+	if err != nil {
+		return nil, err
+	}
+	defer unlockStore(lock)
+	return list()
+}
+
+func list() ([]Record, error) {
 	root, err := paths.Root()
 	if err != nil {
 		return nil, err
@@ -131,6 +165,22 @@ func List() ([]Record, error) {
 	}
 	sort.Slice(records, func(i, j int) bool { return records[i].Name < records[j].Name })
 	return records, nil
+}
+
+func lockStore() (*flock.Flock, error) {
+	root, err := paths.Root()
+	if err != nil {
+		return nil, err
+	}
+	lock := flock.New(filepath.Join(root, ".sessions.lock"))
+	if err := lock.Lock(); err != nil {
+		return nil, fmt.Errorf("lock session store: %w", err)
+	}
+	return lock, nil
+}
+
+func unlockStore(lock *flock.Flock) {
+	_ = lock.Unlock()
 }
 
 func Find(name string) (Record, error) {

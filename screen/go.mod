@@ -7,11 +7,14 @@ require (
 	github.com/arcgolabs/configx v0.6.4
 	github.com/arcgolabs/dix v0.11.2
 	github.com/aymanbagabas/go-pty v0.2.3
+	github.com/cenkalti/backoff/v7 v7.0.1
 	github.com/charmbracelet/x/vt v0.0.0-20260927004216-9c77d672503d
 	github.com/gdamore/tcell/v3 v3.5.0
+	github.com/gofrs/flock v0.13.1
 	github.com/mattn/go-runewidth v0.0.30
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
+	go.uber.org/goleak v1.3.0
 )
 
 require (

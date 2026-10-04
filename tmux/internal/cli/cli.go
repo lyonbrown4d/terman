@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v7"
 	"github.com/lyonbrown4d/terman/tmux/internal/client"
 	appconfig "github.com/lyonbrown4d/terman/tmux/internal/config"
 	"github.com/lyonbrown4d/terman/tmux/internal/ipc"
@@ -229,19 +231,29 @@ func runNew(args []string) error {
 	}
 	rec.PID = pid
 	_ = store.Save(rec)
-	deadline := time.Now().Add(settings.StartupTimeout)
-	for time.Now().Before(deadline) {
+	startupCtx, cancel := context.WithTimeout(
+		context.Background(), settings.StartupTimeout,
+	)
+	notReady := errors.New("session server is not ready")
+	_, err = backoff.Retry(startupCtx, func() (bool, error) {
 		if ipc.Ping(endpoint) {
-			if has(args, "-d", "--detached") {
-				fmt.Println(name)
-				return nil
-			}
-			return client.Attach(context.Background(), rec)
+			return true, nil
 		}
-		time.Sleep(40 * time.Millisecond)
+		return false, notReady
+	},
+		backoff.WithBackOff(backoff.NewConstantBackOff(40*time.Millisecond)),
+		backoff.WithMaxElapsedTime(0),
+	)
+	cancel()
+	if err != nil {
+		_ = store.Remove(name)
+		return fmt.Errorf("session server did not become ready")
 	}
-	_ = store.Remove(name)
-	return fmt.Errorf("session server did not become ready")
+	if has(args, "-d", "--detached") {
+		fmt.Println(name)
+		return nil
+	}
+	return client.Attach(context.Background(), rec)
 }
 
 func runAttach(args []string) error {

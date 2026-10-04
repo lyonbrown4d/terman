@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gofrs/flock"
 )
 
 const SchemaVersion = 1
@@ -52,6 +54,15 @@ func Dir() (string, error) {
 }
 
 func Reserve(name, endpoint string) (Record, error) {
+	lock, err := lockStore()
+	if err != nil {
+		return Record{}, err
+	}
+	defer unlockStore(lock)
+	return reserve(name, endpoint)
+}
+
+func reserve(name, endpoint string) (Record, error) {
 	if err := ValidateName(name); err != nil {
 		return Record{}, err
 	}
@@ -81,6 +92,15 @@ func Reserve(name, endpoint string) (Record, error) {
 }
 
 func Save(rec Record) error {
+	lock, err := lockStore()
+	if err != nil {
+		return err
+	}
+	defer unlockStore(lock)
+	return save(rec)
+}
+
+func save(rec Record) error {
 	if err := ValidateName(rec.Name); err != nil {
 		return err
 	}
@@ -106,6 +126,15 @@ func Save(rec Record) error {
 }
 
 func Load() ([]Record, error) {
+	lock, err := lockStore()
+	if err != nil {
+		return nil, err
+	}
+	defer unlockStore(lock)
+	return load()
+}
+
+func load() ([]Record, error) {
 	dir, err := Dir()
 	if err != nil {
 		return nil, err
@@ -132,6 +161,15 @@ func Load() ([]Record, error) {
 }
 
 func Remove(name string) error {
+	lock, err := lockStore()
+	if err != nil {
+		return err
+	}
+	defer unlockStore(lock)
+	return remove(name)
+}
+
+func remove(name string) error {
 	path, err := pathFor(name)
 	if err != nil {
 		return err
@@ -144,10 +182,16 @@ func Remove(name string) error {
 }
 
 func Rename(oldName, newName string) error {
+	lock, err := lockStore()
+	if err != nil {
+		return err
+	}
+	defer unlockStore(lock)
+
 	if err := ValidateName(newName); err != nil {
 		return err
 	}
-	records, err := Load()
+	records, err := load()
 	if err != nil {
 		return err
 	}
@@ -156,12 +200,28 @@ func Rename(oldName, newName string) error {
 			continue
 		}
 		rec.Name = newName
-		if err := Save(rec); err != nil {
+		if err := save(rec); err != nil {
 			return err
 		}
-		return Remove(oldName)
+		return remove(oldName)
 	}
 	return os.ErrNotExist
+}
+
+func lockStore() (*flock.Flock, error) {
+	dir, err := Dir()
+	if err != nil {
+		return nil, err
+	}
+	lock := flock.New(filepath.Join(dir, ".sessions.lock"))
+	if err := lock.Lock(); err != nil {
+		return nil, fmt.Errorf("lock session store: %w", err)
+	}
+	return lock, nil
+}
+
+func unlockStore(lock *flock.Flock) {
+	_ = lock.Unlock()
 }
 
 func pathFor(name string) (string, error) {

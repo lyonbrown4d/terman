@@ -87,15 +87,13 @@ func attachWith(
 	state.frame = first.Frame
 	state.draw()
 
-	events := make(chan tcell.Event, 8)
 	responses := make(chan protocol.Response, 8)
-	go pollEvents(ctx, screen, events)
 	go readResponses(ctx, stream, responses)
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case event := <-events:
+		case event := <-screen.EventQ():
 			detach, err := state.handleEvent(event)
 			if err != nil {
 				return err
@@ -130,21 +128,6 @@ func attachWith(
 			if response.Event == "detached" {
 				return nil
 			}
-		}
-	}
-}
-
-func pollEvents(
-	ctx context.Context,
-	screen tcell.Screen,
-	output chan<- tcell.Event,
-) {
-	for {
-		event := <-screen.EventQ()
-		select {
-		case output <- event:
-		case <-ctx.Done():
-			return
 		}
 	}
 }

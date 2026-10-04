@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff/v7"
 	"github.com/lyonbrown4d/terman/common"
 	"github.com/lyonbrown4d/terman/screen/internal/client"
 	"github.com/lyonbrown4d/terman/screen/internal/platform"
@@ -143,22 +144,23 @@ func spawn(args Args, endpoint string, config PersistentConfig) error {
 }
 
 func waitReady(ctx context.Context, endpoint string) error {
-	timer := time.NewTimer(3 * time.Second)
-	defer timer.Stop()
-	ticker := time.NewTicker(25 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-timer.C:
-			return fmt.Errorf("screen server startup timed out")
-		case <-ticker.C:
-			if client.Ping(ctx, endpoint) {
-				return nil
-			}
+	notReady := errors.New("screen server is not ready")
+	_, err := backoff.Retry(ctx, func() (bool, error) {
+		if client.Ping(ctx, endpoint) {
+			return true, nil
 		}
+		return false, notReady
+	},
+		backoff.WithBackOff(backoff.NewConstantBackOff(25*time.Millisecond)),
+		backoff.WithMaxElapsedTime(3*time.Second),
+	)
+	if err == nil {
+		return nil
 	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return fmt.Errorf("screen server startup timed out")
 }
 
 func findLive(ctx context.Context, name string) (store.Record, error) {
