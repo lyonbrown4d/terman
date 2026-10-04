@@ -109,15 +109,16 @@ func (s *state) drawCurrentTab(c canvas) {
 func (s *state) drawOverview(c canvas) {
 	heading := "Host " + fallback(s.snapshot.Hostname, "-") + "  Uptime " + formatDuration(s.snapshot.Uptime)
 	c.text(0, 1, styleAccent, fit(heading, c.width))
-	c.text(0, 2, styleBase, meter("CPU", cpuAverage(s.snapshot.CPU), 100, c.width))
-	c.text(0, 3, styleBase, meter("MEM", percent(s.snapshot.MemoryUsed, s.snapshot.MemoryTotal), 100, c.width))
+	nextY := s.drawCPUMeters(c, 2)
+	c.text(0, nextY, styleBase, meter("MEM", percent(s.snapshot.MemoryUsed, s.snapshot.MemoryTotal), 100, c.width))
 	var sent, received uint64
 	for _, row := range s.snapshot.Interfaces {
 		sent += row.SendRate
 		received += row.RecvRate
 	}
-	c.text(0, 4, styleBase, fit("NET  RX/s "+formatBytes(received)+"  TX/s "+formatBytes(sent), c.width))
-	s.drawProcessTable(c, 5)
+	nextY++
+	c.text(0, nextY, styleBase, fit("NET  RX/s "+formatBytes(received)+"  TX/s "+formatBytes(sent), c.width))
+	s.drawProcessTable(c, nextY+1)
 }
 
 func (s *state) drawProcessTable(c canvas, headerY int) {
