@@ -124,7 +124,9 @@ func serveConn(ctx context.Context, owner *Owner, conn net.Conn) {
 	}
 	defer owner.Remove(first.ClientID)
 
+	disconnected := make(chan struct{})
 	go func() {
+		defer close(disconnected)
 		for {
 			var request proto.Request
 			if decoder.Decode(&request) != nil {
@@ -136,8 +138,15 @@ func serveConn(ctx context.Context, owner *Owner, conn net.Conn) {
 			_, _ = owner.Submit(ctx, request)
 		}
 	}()
-	for response := range queue {
-		if encoder.Encode(response) != nil {
+	for {
+		select {
+		case response, open := <-queue:
+			if !open || encoder.Encode(response) != nil {
+				return
+			}
+		case <-disconnected:
+			return
+		case <-ctx.Done():
 			return
 		}
 	}

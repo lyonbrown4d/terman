@@ -1,0 +1,44 @@
+name: Screen process E2E
+
+on:
+  push:
+    paths:
+      - "screen/**"
+      - "common/**"
+      - "testkit/**"
+      - "go.work*"
+      - ".github/workflows/screen-e2e.yml"
+  pull_request:
+    paths:
+      - "screen/**"
+      - "common/**"
+      - "testkit/**"
+      - "go.work*"
+      - ".github/workflows/screen-e2e.yml"
+  schedule:
+    - cron: "23 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  process-e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      TERMAN_SCREEN_E2E_SOAK: ${{ github.event_name == 'schedule' && '2m' || '5s' }}
+      TERMAN_SCREEN_E2E_ATTACH_CYCLES: ${{ github.event_name == 'schedule' && '100' || '12' }}
+      TERMAN_SCREEN_E2E_CLIENTS: ${{ github.event_name == 'schedule' && '8' || '4' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+          cache-dependency-path: "**/go.sum"
+      - name: Run screen process E2E
+        run: go test -tags=integration -timeout=15m ./screen/e2e
