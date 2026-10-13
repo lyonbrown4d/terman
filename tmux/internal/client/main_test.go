@@ -7,5 +7,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	goleak.VerifyTestMain(m)
+	// The service module initializes ants' process-wide pool at import time.
+	goleak.VerifyTestMain(m, goleak.IgnoreCurrent())
 }

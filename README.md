@@ -137,3 +137,89 @@ terman-htop --once
 - screen 前缀：`Ctrl-A`。
 - tmux 前缀：`Ctrl-B`。
 - htop：Tab/Shift-Tab 或方向键切换视图，支持鼠标，`Ctrl-C`、`q`、`F10` 退出。
+
+## Native supervisor services
+
+Screen and tmux can each run a native per-user supervisor. Sessions remain separate
+processes; neither tool calls the other. Htop has no background service.
+
+```text
+terman-screen service install
+terman-screen service start
+terman-screen service status --json
+terman-screen service stop
+terman-screen service uninstall
+```
+
+The same commands are available with `terman-tmux`. `service run` runs the supervisor
+in the foreground. Session creation uses a reachable supervisor automatically and
+falls back to direct spawning only when no supervisor is available. Supervisor
+errors are reported rather than silently bypassed.
+
+Linux uses systemd **user** units, never a root terminal service. DEB/RPM packages
+install units under `/usr/lib/systemd/user`; they do not enable services for every
+account automatically. Activate the packaged unit as the intended session owner:
+
+```sh
+systemctl --user enable --now terman-screen.service
+systemctl --user enable --now terman-tmux.service
+```
+
+On upgrade, package hooks reload running user managers and restart only services
+that were already active. Removal stops and disables the packaged services while
+retaining user configuration. Offline installations without a user manager are
+supported; activation happens later in the user's login session. To keep a user
+manager running after logout, an administrator may explicitly enable systemd
+lingering for that account.
+
+Windows uses SCM under an explicitly selected regular user account. Built-in
+system/service accounts are not supported. Installation requires administrative
+rights; the account must have the Windows log-on-as-a-service right. CLI account
+installation reads the password from an environment variable, not an argument:
+
+```powershell
+# Set TERMAN_SERVICE_PASSWORD securely in this process before invoking install.
+terman-screen service install --username 'COMPUTER\user' --password-env TERMAN_SERVICE_PASSWORD
+terman-screen service start
+```
+
+Windows MSI packages are available for amd64 and arm64. Tools are independent
+features; ScreenService and TmuxService are optional features. The installer grants
+log-on-as-a-service and limited service-control permissions to the selected owner,
+registers/starts selected services, and stops/removes them on uninstall. Password
+properties are hidden in MSI logs. Configuration and user files are not deleted.
+
+Clients must run as the same user as their supervisor. Named Pipes/Unix sockets
+are scoped by SID/UID and protected by owner permissions. A separate instance can
+use `service ... --name terman-screen-example` and matching client environment
+`TERMAN_SERVICE_INSTANCE=example` (similarly for tmux).
+
+Stopping a supervisor stops its managed session processes. Upgrades that restart a
+service also terminate its live sessions; old PTYs cannot be restored by restarting
+it. User configuration retention does not imply live-session persistence.
+
+### Installer builds and lifecycle tests
+
+GoReleaser builds compressed binaries, archives, DEB/RPM packages and Docker images.
+Windows MSI construction is a separate WiX 7 stage using those compressed ZIP
+payloads; it does not require GoReleaser Pro. Build outputs stay outside this repo.
+MSIs include separate SHA-256 checksum files.
+
+```powershell
+./packaging/windows/Build-Msi.ps1 -ReleaseDirectory ../terman-release
+```
+
+WiX 7.0.0 and its matching Util extension must be installed outside the repository.
+Release CI validates MSI native tables and UPX payloads on both Windows architectures.
+Actual installer lifecycle tests are opt-in via `workflow_dispatch` with
+`installer_lifecycle=true`, using disposable runners, test accounts and increasing
+package versions. They cover feature selection, native service identity, real
+session IPC, upgrade, removal and configuration retention. Do not run these
+host-changing tests on a workstation containing an existing Terman installation.
+
+WiX 7 requires explicit EULA acceptance and has OSMF maintenance-fee conditions
+for certain revenue-generating uses. Read the [official WiX terms guidance](https://docs.firegiant.com/wix/osmf/)
+before enabling MSI builds. `Build-Msi.ps1 -AcceptWixEula` is an explicit acceptance
+option; CI uses the repository variable `TERMAN_ACCEPT_WIX_EULA=true` only after
+the responsible person has accepted the terms. The default must not accept them
+on a user's behalf.

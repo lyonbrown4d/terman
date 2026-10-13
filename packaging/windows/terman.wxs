@@ -1,0 +1,98 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Terman" Manufacturer="Terman" Version="$(var.Version)"
+           UpgradeCode="$(var.UpgradeCode)" Scope="perMachine" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="A newer Terman version is already installed."
+                  Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" />
+    <Property Id="INSTALLLEVEL" Value="1" />
+    <Property Id="SERVICEDOMAIN" Value="." Secure="yes" />
+    <Property Id="SERVICEUSERNAME" Secure="yes" />
+    <Property Id="SERVICEPASSWORD" Secure="yes" Hidden="yes" />
+    <Property Id="SCREEN_SERVICE_NAME" Value="terman-screen" Secure="yes">
+      <RegistrySearch Id="ExistingScreenService" Root="HKLM" Key="Software\Terman\Installer" Name="ScreenService" Type="raw" />
+    </Property>
+    <Property Id="TMUX_SERVICE_NAME" Value="terman-tmux" Secure="yes">
+      <RegistrySearch Id="ExistingTmuxService" Root="HKLM" Key="Software\Terman\Installer" Name="TmuxService" Type="raw" />
+    </Property>
+    <Launch Condition="REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE OR NOT ((&amp;ScreenService=3) OR (&amp;TmuxService=3)) OR (SERVICEUSERNAME AND SERVICEPASSWORD AND SERVICEDOMAIN AND NOT (SERVICEUSERNAME ~= &quot;SYSTEM&quot;) AND NOT (SERVICEUSERNAME ~= &quot;LocalSystem&quot;) AND NOT (SERVICEUSERNAME ~= &quot;LocalService&quot;) AND NOT (SERVICEUSERNAME ~= &quot;Local Service&quot;) AND NOT (SERVICEUSERNAME ~= &quot;NetworkService&quot;) AND NOT (SERVICEUSERNAME ~= &quot;Network Service&quot;) AND NOT (SERVICEDOMAIN ~= &quot;NT AUTHORITY&quot;) AND NOT (SERVICEDOMAIN ~= &quot;NT SERVICE&quot;))"
+            Message="Broker services require an existing regular user account and password. Built-in service accounts are not supported." />
+    <Launch Condition="NOT (&amp;ScreenService=3) OR SCREEN_SERVICE_NAME=&quot;terman-screen&quot; OR SCREEN_SERVICE_NAME &lt;&lt; &quot;terman-screen-&quot;"
+            Message="The Screen service name must be terman-screen or start with terman-screen-." />
+    <Launch Condition="NOT (&amp;TmuxService=3) OR TMUX_SERVICE_NAME=&quot;terman-tmux&quot; OR TMUX_SERVICE_NAME &lt;&lt; &quot;terman-tmux-&quot;"
+            Message="The Tmux service name must be terman-tmux or start with terman-tmux-." />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Terman">
+        <Component Id="ScreenBinary" Guid="*">
+          <File Id="ScreenExe" Source="$(var.Payload)/terman-screen.exe" KeyPath="yes" />
+        </Component>
+        <Component Id="TmuxBinary" Guid="*">
+          <File Id="TmuxExe" Source="$(var.Payload)/terman-tmux.exe" KeyPath="yes" />
+        </Component>
+        <Component Id="HtopBinary" Guid="*">
+          <File Id="HtopExe" Source="$(var.Payload)/terman-htop.exe" KeyPath="yes" />
+        </Component>
+        <Component Id="ServiceAccountRight" Guid="*">
+          <RegistryValue Root="HKLM" Key="Software\Terman\Installer" Name="ServiceAccount"
+                         Value="[SERVICEDOMAIN]\[SERVICEUSERNAME]" Type="string" KeyPath="yes" />
+          <util:User Id="BrokerAccount" Name="[SERVICEUSERNAME]" Domain="[SERVICEDOMAIN]"
+                     CreateUser="no" UpdateIfExists="no" FailIfExists="no"
+                     RemoveOnUninstall="no" LogonAsService="yes" Vital="yes" />
+        </Component>
+        <Directory Id="ServicesFolder" Name="services">
+          <Directory Id="ScreenServiceFolder" Name="screen">
+            <Component Id="ScreenBroker" Guid="*">
+              <File Id="ScreenServiceExe" Source="$(var.Payload)/terman-screen.exe" KeyPath="yes" />
+              <RegistryValue Root="HKLM" Key="Software\Terman\Installer" Name="ScreenService" Value="[SCREEN_SERVICE_NAME]" Type="string" />
+              <ServiceInstall Id="ScreenServiceInstall" Name="[SCREEN_SERVICE_NAME]" DisplayName="Terman screen broker"
+                              Description="Screen sessions for the selected user."
+                              Type="ownProcess" Start="auto" ErrorControl="normal" Vital="yes"
+                              Account="[SERVICEDOMAIN]\[SERVICEUSERNAME]" Password="[SERVICEPASSWORD]"
+                              Arguments="service run --name &quot;[SCREEN_SERVICE_NAME]&quot;">
+                <util:PermissionEx User="[SERVICEUSERNAME]" Domain="[SERVICEDOMAIN]"
+                                   ServiceStart="yes" ServiceStop="yes" ServiceQueryStatus="yes"
+                                   ServiceQueryConfig="yes" ReadPermission="yes" />
+              </ServiceInstall>
+              <ServiceControl Id="ScreenServiceControl" Name="[SCREEN_SERVICE_NAME]" Start="install"
+                              Stop="both" Remove="uninstall" Wait="yes" />
+            </Component>
+          </Directory>
+          <Directory Id="TmuxServiceFolder" Name="tmux">
+            <Component Id="TmuxBroker" Guid="*">
+              <File Id="TmuxServiceExe" Source="$(var.Payload)/terman-tmux.exe" KeyPath="yes" />
+              <RegistryValue Root="HKLM" Key="Software\Terman\Installer" Name="TmuxService" Value="[TMUX_SERVICE_NAME]" Type="string" />
+              <ServiceInstall Id="TmuxServiceInstall" Name="[TMUX_SERVICE_NAME]" DisplayName="Terman tmux broker"
+                              Description="Tmux sessions for the selected user."
+                              Type="ownProcess" Start="auto" ErrorControl="normal" Vital="yes"
+                              Account="[SERVICEDOMAIN]\[SERVICEUSERNAME]" Password="[SERVICEPASSWORD]"
+                              Arguments="service run --name &quot;[TMUX_SERVICE_NAME]&quot;">
+                <util:PermissionEx User="[SERVICEUSERNAME]" Domain="[SERVICEDOMAIN]"
+                                   ServiceStart="yes" ServiceStop="yes" ServiceQueryStatus="yes"
+                                   ServiceQueryConfig="yes" ReadPermission="yes" />
+              </ServiceInstall>
+              <ServiceControl Id="TmuxServiceControl" Name="[TMUX_SERVICE_NAME]" Start="install"
+                              Stop="both" Remove="uninstall" Wait="yes" />
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="Screen" Title="Screen" Description="Terminal session manager" Level="1">
+      <ComponentRef Id="ScreenBinary" />
+      <Feature Id="ScreenService" Title="Screen broker service (optional)" Level="2">
+        <ComponentRef Id="ScreenBroker" />
+        <ComponentRef Id="ServiceAccountRight" />
+      </Feature>
+    </Feature>
+    <Feature Id="Tmux" Title="Tmux" Description="Terminal multiplexer" Level="1">
+      <ComponentRef Id="TmuxBinary" />
+      <Feature Id="TmuxService" Title="Tmux broker service (optional)" Level="2">
+        <ComponentRef Id="TmuxBroker" />
+        <ComponentRef Id="ServiceAccountRight" />
+      </Feature>
+    </Feature>
+    <Feature Id="Htop" Title="Htop" Description="Process and system monitor" Level="1">
+      <ComponentRef Id="HtopBinary" />
+    </Feature>
+    <UIRef Id="TermanUI" />
+  </Package>
+</Wix>

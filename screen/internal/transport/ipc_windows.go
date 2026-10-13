@@ -7,16 +7,26 @@ import (
 	"net"
 
 	"github.com/Microsoft/go-winio"
+	"github.com/lyonbrown4d/terman/common/modules/service"
 	"github.com/lyonbrown4d/terman/screen/internal/paths"
 )
 
 func Endpoint(name string) (string, error) {
-	return `\\.\pipe\terman-screen-` + paths.Key(name), nil
+	identity, err := service.UserIdentity()
+	if err != nil {
+		return "", err
+	}
+	return `\\.\pipe\terman-screen-` + identity + "-" + paths.Key(name), nil
 }
 
 func Listen(endpoint string) (net.Listener, error) {
+	descriptor, err := service.PipeSecurityDescriptor()
+	if err != nil {
+		return nil, err
+	}
 	return winio.ListenPipe(endpoint, &winio.PipeConfig{
-		InputBufferSize: 65536, OutputBufferSize: 65536,
+		SecurityDescriptor: descriptor,
+		InputBufferSize:    65536, OutputBufferSize: 65536,
 	})
 }
 

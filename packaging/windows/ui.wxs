@@ -1,0 +1,58 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <UI Id="TermanUI">
+      <TextStyle Id="Normal" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="Title" FaceName="Segoe UI" Size="12" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="Normal" />
+      <Dialog Id="FeaturesDlg" Width="370" Height="270" Title="Terman setup">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="25" Text="{\Title}Choose tools and optional services" />
+        <Control Id="Hint" Type="Text" X="20" Y="45" Width="330" Height="35" Text="Each tool can be installed independently. Broker services run under your regular user account; Htop has no service." />
+        <Control Id="Features" Type="SelectionTree" X="20" Y="85" Width="330" Height="130" Property="_BrowseProperty" Sunken="yes" />
+        <Control Id="Cancel" Type="PushButton" X="190" Y="240" Width="75" Height="18" Text="Cancel" Cancel="yes">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="275" Y="240" Width="75" Height="18" Text="Next" Default="yes">
+          <Publish Event="NewDialog" Value="AccountDlg" Order="1" Condition="(&amp;ScreenService=3) OR (&amp;TmuxService=3)" />
+          <Publish Event="NewDialog" Value="ReadyDlg" Order="2" Condition="NOT ((&amp;ScreenService=3) OR (&amp;TmuxService=3))" />
+        </Control>
+      </Dialog>
+      <Dialog Id="AccountDlg" Width="370" Height="270" Title="Terman broker account">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="25" Text="{\Title}Existing regular user account" />
+        <Control Id="Hint" Type="Text" X="20" Y="45" Width="330" Height="45" Text="Use the account that owns your sessions. Setup grants log on as a service. Configuration and sessions remain in that user's profile. Passwords are hidden in installer logs." />
+        <Control Id="DomainLabel" Type="Text" X="20" Y="100" Width="85" Height="18" Text="Computer/domain" />
+        <Control Id="Domain" Type="Edit" X="115" Y="98" Width="235" Height="18" Property="SERVICEDOMAIN" />
+        <Control Id="UserLabel" Type="Text" X="20" Y="132" Width="85" Height="18" Text="User name" />
+        <Control Id="User" Type="Edit" X="115" Y="130" Width="235" Height="18" Property="SERVICEUSERNAME" />
+        <Control Id="PasswordLabel" Type="Text" X="20" Y="164" Width="85" Height="18" Text="Password" />
+        <Control Id="Password" Type="Edit" X="115" Y="162" Width="235" Height="18" Property="SERVICEPASSWORD" Password="yes" />
+        <Control Id="Back" Type="PushButton" X="105" Y="240" Width="75" Height="18" Text="Back">
+          <Publish Event="NewDialog" Value="FeaturesDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="190" Y="240" Width="75" Height="18" Text="Cancel" Cancel="yes">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="275" Y="240" Width="75" Height="18" Text="Next" Default="yes"
+                 DisableCondition="NOT SERVICEUSERNAME OR NOT SERVICEPASSWORD OR NOT SERVICEDOMAIN"
+                 EnableCondition="SERVICEUSERNAME AND SERVICEPASSWORD AND SERVICEDOMAIN">
+          <Publish Event="NewDialog" Value="ReadyDlg" />
+        </Control>
+      </Dialog>
+      <Dialog Id="ReadyDlg" Width="370" Height="270" Title="Terman setup">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="25" Text="{\Title}Ready to install" />
+        <Control Id="Hint" Type="Text" X="20" Y="55" Width="330" Height="75" Text="Setup installs the selected features. Optional broker services start under the supplied account. User configuration and files are retained. Stopping a broker during upgrade or uninstall ends its live terminal sessions." />
+        <Control Id="Back" Type="PushButton" X="105" Y="240" Width="75" Height="18" Text="Back">
+          <Publish Event="NewDialog" Value="FeaturesDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="190" Y="240" Width="75" Height="18" Text="Cancel" Cancel="yes">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="Install" Type="PushButton" X="275" Y="240" Width="75" Height="18" Text="Install" Default="yes" ElevationShield="yes">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+      <InstallUISequence>
+        <Show Dialog="FeaturesDlg" Before="ExecuteAction" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      </InstallUISequence>
+    </UI>
+  </Fragment>
+</Wix>

@@ -35,9 +35,10 @@ func newRootCommand(
 	defaults PersistentConfig,
 ) (*cobra.Command, error) {
 	root := &cobra.Command{
-		Use:           "terman-screen [flags] [command]",
-		Short:         "native cross-platform terminal sessions",
-		Long:          common.LocalizedMessage("builtin-screen-cli-about", nil),
+		Use:   "terman-screen [flags] [command]",
+		Short: "native cross-platform terminal sessions",
+		Long: common.LocalizedMessage("builtin-screen-cli-about", nil) + "\n\n" +
+			common.LocalizedMessage("service-usage", map[string]string{"tool": "terman-screen"}),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Args:          cobra.ArbitraryArgs,

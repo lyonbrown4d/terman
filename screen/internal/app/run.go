@@ -12,6 +12,7 @@ import (
 
 	"github.com/cenkalti/backoff/v7"
 	"github.com/lyonbrown4d/terman/common"
+	"github.com/lyonbrown4d/terman/common/modules/service"
 	"github.com/lyonbrown4d/terman/screen/internal/client"
 	"github.com/lyonbrown4d/terman/screen/internal/platform"
 	"github.com/lyonbrown4d/terman/screen/internal/proto"
@@ -104,7 +105,7 @@ func createSession(ctx context.Context, args Args, config PersistentConfig) erro
 	if record, findErr := findLive(ctx, args.Session); findErr == nil {
 		return fmt.Errorf("session %q already exists at %s", args.Session, record.Endpoint)
 	}
-	if err := spawn(args, endpoint, config); err != nil {
+	if err := spawn(ctx, args, endpoint, config); err != nil {
 		return err
 	}
 	if err := waitReady(ctx, endpoint); err != nil {
@@ -116,7 +117,7 @@ func createSession(ctx context.Context, args Args, config PersistentConfig) erro
 	return client.Attach(ctx, endpoint, "resume", false)
 }
 
-func spawn(args Args, endpoint string, config PersistentConfig) error {
+func spawn(ctx context.Context, args Args, endpoint string, config PersistentConfig) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return err
@@ -139,6 +140,16 @@ func spawn(args Args, endpoint string, config PersistentConfig) error {
 	}
 	if args.Command != "" {
 		serverArgs = append(serverArgs, "--command", args.Command)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("session working directory: %w", err)
+	}
+	_, used, err := service.TryStart(ctx, ServiceConfig(), service.Launch{
+		Name: args.Session, Cwd: cwd, Args: serverArgs[1:],
+	})
+	if err != nil || used {
+		return err
 	}
 	return platform.StartDetached(executable, serverArgs)
 }

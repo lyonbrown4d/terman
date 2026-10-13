@@ -44,8 +44,8 @@ func (fileStore) Save(record sessionstore.Record) error {
 	return sessionstore.Save(record)
 }
 
-func (fileStore) Remove(name string) error {
-	return sessionstore.Remove(name)
+func (fileStore) Remove(_ string) error {
+	return sessionstore.RemoveByPID(os.Getpid())
 }
 
 type Server struct {

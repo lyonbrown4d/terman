@@ -102,7 +102,19 @@ nfpms:
     description: Native Windows/Linux terminal session manager.
     formats: [deb, rpm]
     bindir: /usr/bin
+    scripts:
+      postinstall: packaging/linux/screen-postinstall.sh
+      preremove: packaging/linux/screen-preremove.sh
+      postremove: packaging/linux/postremove.sh
     contents:
+      - src: packaging/linux/terman-screen.service
+        dst: /usr/lib/systemd/user/terman-screen.service
+        file_info:
+          mode: 0644
+      - src: packaging/linux/user-lifecycle.sh
+        dst: /usr/libexec/terman-screen/user-lifecycle.sh
+        file_info:
+          mode: 0755
       - src: screen/COMPATIBILITY.md
         dst: /usr/share/doc/terman-screen/COMPATIBILITY.md
   - id: tmux
@@ -114,6 +126,19 @@ nfpms:
     description: Native Windows/Linux terminal multiplexer.
     formats: [deb, rpm]
     bindir: /usr/bin
+    scripts:
+      postinstall: packaging/linux/tmux-postinstall.sh
+      preremove: packaging/linux/tmux-preremove.sh
+      postremove: packaging/linux/postremove.sh
+    contents:
+      - src: packaging/linux/terman-tmux.service
+        dst: /usr/lib/systemd/user/terman-tmux.service
+        file_info:
+          mode: 0644
+      - src: packaging/linux/user-lifecycle.sh
+        dst: /usr/libexec/terman-tmux/user-lifecycle.sh
+        file_info:
+          mode: 0755
   - id: htop
     ids: [htop]
     package_name: terman-htop

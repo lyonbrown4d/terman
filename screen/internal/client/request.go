@@ -18,11 +18,20 @@ func Request(ctx context.Context, endpoint string, request proto.Request) (proto
 		return proto.Response{}, err
 	}
 	defer conn.Close()
+	deadline, _ := requestCtx.Deadline()
+	if err := conn.SetDeadline(deadline); err != nil {
+		return proto.Response{}, err
+	}
+	stop := context.AfterFunc(requestCtx, func() { _ = conn.Close() })
+	defer stop()
 	if err := json.NewEncoder(conn).Encode(request); err != nil {
 		return proto.Response{}, err
 	}
 	var response proto.Response
 	if err := json.NewDecoder(conn).Decode(&response); err != nil {
+		if requestCtx.Err() != nil {
+			return proto.Response{}, requestCtx.Err()
+		}
 		return proto.Response{}, err
 	}
 	if response.Error != "" {

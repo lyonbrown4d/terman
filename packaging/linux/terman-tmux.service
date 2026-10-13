@@ -1,0 +1,14 @@
+[Unit]
+Description=Terman tmux user broker
+ConditionUser=!root
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/terman-tmux service run
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=30
+UMask=0077
+
+[Install]
+WantedBy=default.target
