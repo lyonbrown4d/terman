@@ -1,0 +1,189 @@
+version: 2
+project_name: terman
+
+# GoReleaser's dist field is literal, so keep all artifacts outside the repo.
+dist: ../terman-release
+
+env:
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - upx --version
+
+builds:
+  - id: screen
+    dir: screen
+    main: ./cmd/terman-screen
+    binary: terman-screen
+    goos: [linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/lyonbrown4d/terman/common.Version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+  - id: tmux
+    dir: tmux
+    main: ./cmd/terman-tmux
+    binary: terman-tmux
+    goos: [linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/lyonbrown4d/terman/common.Version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+  - id: htop
+    dir: htop
+    main: ./cmd/terman-htop
+    binary: terman-htop
+    goos: [linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/lyonbrown4d/terman/common.Version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+upx:
+  - enabled: true
+    ids: [screen, tmux, htop]
+    goos: [linux, windows]
+    goarch: [amd64, arm64]
+    compress: best
+    lzma: false
+
+archives:
+  - id: suite
+    ids: [screen, tmux, htop]
+    name_template: "terman_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [README.md]
+  - id: screen
+    ids: [screen]
+    name_template: "terman-screen_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - src: screen/COMPATIBILITY.md
+        strip_parent: true
+  - id: tmux
+    ids: [tmux]
+    name_template: "terman-tmux_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [README.md]
+  - id: htop
+    ids: [htop]
+    name_template: "terman-htop_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - src: htop/README.md
+        dst: docs
+        strip_parent: true
+
+nfpms:
+  - id: screen
+    ids: [screen]
+    package_name: terman-screen
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://github.com/lyonbrown4d/terman
+    maintainer: lyonbrown4d <lyonbrown4d@users.noreply.github.com>
+    description: Native Windows/Linux terminal session manager.
+    formats: [deb, rpm]
+    bindir: /usr/bin
+    contents:
+      - src: screen/COMPATIBILITY.md
+        dst: /usr/share/doc/terman-screen/COMPATIBILITY.md
+  - id: tmux
+    ids: [tmux]
+    package_name: terman-tmux
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://github.com/lyonbrown4d/terman
+    maintainer: lyonbrown4d <lyonbrown4d@users.noreply.github.com>
+    description: Native Windows/Linux terminal multiplexer.
+    formats: [deb, rpm]
+    bindir: /usr/bin
+  - id: htop
+    ids: [htop]
+    package_name: terman-htop
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://github.com/lyonbrown4d/terman
+    maintainer: lyonbrown4d <lyonbrown4d@users.noreply.github.com>
+    description: Native Windows/Linux process and system monitor.
+    formats: [deb, rpm]
+    bindir: /usr/bin
+    contents:
+      - src: htop/README.md
+        dst: /usr/share/doc/terman-htop/README.md
+
+dockers_v2:
+  - id: screen
+    ids: [screen]
+    dockerfile: docker/screen.Dockerfile
+    extra_files: [.dockerignore]
+    images: [ghcr.io/lyonbrown4d/terman-screen]
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if and (not .IsSnapshot) (not .Prerelease) }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.title: terman-screen
+      org.opencontainers.image.source: https://github.com/lyonbrown4d/terman
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+  - id: tmux
+    ids: [tmux]
+    dockerfile: docker/tmux.Dockerfile
+    extra_files: [.dockerignore]
+    images: [ghcr.io/lyonbrown4d/terman-tmux]
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if and (not .IsSnapshot) (not .Prerelease) }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.title: terman-tmux
+      org.opencontainers.image.source: https://github.com/lyonbrown4d/terman
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+  - id: htop
+    ids: [htop]
+    dockerfile: docker/htop.Dockerfile
+    extra_files: [.dockerignore]
+    images: [ghcr.io/lyonbrown4d/terman-htop]
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if and (not .IsSnapshot) (not .Prerelease) }}latest{{ end }}"
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.title: terman-htop
+      org.opencontainers.image.source: https://github.com/lyonbrown4d/terman
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+
+checksum:
+  name_template: "terman_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "0.0.0-dev-{{ .ShortCommit }}"
+
+changelog:
+  sort: asc
+
+release:
+  github:
+    owner: lyonbrown4d
+    name: terman
+  prerelease: auto
+  name_template: "terman {{ .Tag }}"

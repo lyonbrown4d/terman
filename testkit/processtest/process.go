@@ -25,6 +25,20 @@ func Build(
 	if err != nil {
 		return data, fmt.Errorf("build %s: %w", packagePath, err)
 	}
+	if os.Getenv("TERMAN_TEST_UPX") == "1" {
+		for _, flags := range [][]string{
+			{"--best", "--no-progress", output},
+			{"--test", output},
+		} {
+			compressor := exec.CommandContext(ctx, "upx", flags...)
+			compressor.Env = command.Env
+			compressed, compressErr := compressor.CombinedOutput()
+			data = append(data, compressed...)
+			if compressErr != nil {
+				return data, fmt.Errorf("UPX %s: %w", output, compressErr)
+			}
+		}
+	}
 	return data, nil
 }
 

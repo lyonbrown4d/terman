@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/arcgolabs/configx"
+	"github.com/lyonbrown4d/terman/common"
 	"github.com/lyonbrown4d/terman/htop/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,7 @@ func newRootCommand(run runFunc) *cobra.Command {
 	var loaded *app.Config
 	command := &cobra.Command{
 		Use:           "terman-htop",
+		Version:       common.Version,
 		Short:         "Native Windows/Linux process monitor",
 		Args:          cobra.NoArgs,
 		SilenceErrors: true,

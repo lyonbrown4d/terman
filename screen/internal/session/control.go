@@ -9,7 +9,7 @@ import (
 	"github.com/lyonbrown4d/terman/screen/internal/proto"
 )
 
-const Version = "0.2.0"
+var Version = common.Version
 
 func (o *Owner) control(request proto.Request) proto.Response {
 	switch request.Type {

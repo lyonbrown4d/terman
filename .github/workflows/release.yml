@@ -1,0 +1,145 @@
+name: Release packages
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - ".goreleaser.yaml"
+      - ".github/workflows/release.yml"
+      - "docker/**"
+      - ".dockerignore"
+      - "go.work*"
+      - "common/**"
+      - "screen/**"
+      - "tmux/**"
+      - "htop/**"
+      - "testkit/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, ubuntu-24.04-arm, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      TERMAN_TEST_UPX: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+          cache-dependency-path: "**/go.sum"
+      - uses: crazy-max/ghaction-upx@v4
+        if: matrix.os != 'windows-11-arm'
+        with:
+          install-only: true
+          version: latest
+      - name: Install official UPX tool on Windows ARM64
+        if: matrix.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod 'https://api.github.com/repos/upx/upx/releases/latest'
+          $asset = $release.assets | Where-Object name -like '*-win64.zip' | Select-Object -First 1
+          if (-not $asset -or $asset.digest -notlike 'sha256:*') { throw 'Missing UPX asset checksum' }
+          $zipPath = Join-Path $env:RUNNER_TEMP 'upx-win64.zip'
+          $toolPath = Join-Path $env:RUNNER_TEMP 'upx-tool'
+          Invoke-WebRequest $asset.browser_download_url -OutFile $zipPath
+          $digest = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($digest -ne $asset.digest.Substring(7)) { throw 'UPX checksum mismatch' }
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $toolPath
+          $upxExe = Get-ChildItem -LiteralPath $toolPath -Recurse -Filter upx.exe | Select-Object -First 1
+          if (-not $upxExe) { throw 'UPX executable missing' }
+          $upxExe.DirectoryName | Out-File $env:GITHUB_PATH -Append -Encoding utf8
+      - name: Test workspace and UPX-compressed real process integration
+        run: go test -tags=integration -timeout=15m ./common/... ./screen/... ./tmux/... ./htop/... ./testkit/...
+
+  packages:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+    env:
+      TERMAN_RELEASE_DIR: ${{ github.workspace }}/../terman-release
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
+          cache-dependency-path: "**/go.sum"
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: crazy-max/ghaction-upx@v4
+        with:
+          install-only: true
+          version: latest
+      - name: Authenticate GHCR for tagged releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --snapshot --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify UPX integrity before publication
+        shell: bash
+        run: |
+          count=0
+          while IFS= read -r -d '' binary; do
+            upx --test "$binary"
+            count=$((count + 1))
+          done < <(find "$TERMAN_RELEASE_DIR" -mindepth 2 -maxdepth 2 -type f -name 'terman-*' -print0)
+          test "$count" -eq 12
+      - name: Smoke test container binaries on both architectures
+        shell: bash
+        run: |
+          version=$(jq -r '.version' "$TERMAN_RELEASE_DIR/metadata.json")
+          for arch in amd64 arm64; do
+            suffix="-$arch"
+            for tool in screen tmux htop; do
+              image="ghcr.io/lyonbrown4d/terman-$tool:v$version$suffix"
+              docker run --rm --platform "linux/$arch" "$image" --version | grep -F "$version"
+            done
+            docker run --rm --init --platform "linux/$arch" --entrypoint /bin/sh \
+              "ghcr.io/lyonbrown4d/terman-screen:v$version$suffix" -ec \
+              'terman-screen -d -S release-test --command "sleep 30"; terman-screen -S release-test -X info; terman-screen -S release-test -X quit'
+            docker run --rm --init --platform "linux/$arch" --entrypoint /bin/sh \
+              "ghcr.io/lyonbrown4d/terman-tmux:v$version$suffix" -ec \
+              'terman-tmux new-session -d -s release-test "sleep 30"; terman-tmux list-sessions; terman-tmux kill-session -t release-test'
+            docker run --rm --platform "linux/$arch" \
+              "ghcr.io/lyonbrown4d/terman-htop:v$version$suffix" --once >/dev/null
+      - name: Publish verified release configuration
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: goreleaser release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: terman-packages
+          if-no-files-found: error
+          path: |
+            ${{ env.TERMAN_RELEASE_DIR }}/*.zip
+            ${{ env.TERMAN_RELEASE_DIR }}/*.tar.gz
+            ${{ env.TERMAN_RELEASE_DIR }}/*.deb
+            ${{ env.TERMAN_RELEASE_DIR }}/*.rpm
+            ${{ env.TERMAN_RELEASE_DIR }}/*checksums.txt

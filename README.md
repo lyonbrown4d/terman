@@ -50,6 +50,70 @@ go build -o bin/terman-htop ./htop/cmd/terman-htop
 
 Windows PowerShell 可将输出名改为 `.exe`。
 
+## 安装包与发布
+
+GoReleaser 开源版在根目录统一构建三个独立命令，保留 `go.work` 的本地模块解析。
+发布使用统一的 `vX.Y.Z` 标签；预发布标签（例如 `v0.3.0-rc.1`）自动标记为预发布。
+
+| 平台 | 架构 | 每个工具的安装包 |
+| --- | --- | --- |
+| Windows | amd64、arm64 | ZIP，解压后将可执行文件所在目录加入 PATH |
+| Linux | amd64、arm64 | tar.gz、DEB、RPM；DEB/RPM 安装到 `/usr/bin` |
+
+文件名包含工具名、版本、平台和架构。每个版本同时提供 SHA-256 校验文件。
+除各工具的独立包外，`terman_VERSION_OS_ARCH.zip` / `.tar.gz` 包含三个独立可执行文件。
+三个工具都支持 `--version`，正式安装包显示标签对应的版本号，普通本地构建显示 `dev`。
+本地化资源仍嵌入二进制，无需额外下载资源文件。
+
+所有发布二进制通过 UPX 5.2.1 或更新稳定版的 `--best` 压缩，随后运行 `upx --test`。
+压缩使用 GoReleaser 原生 `upx:` 配置；发布前必须通过 snapshot 的全部二进制完整性及镜像运行验证。
+Windows ARM64 使用 NRV 压缩，不传入不受支持的 LZMA 参数。
+发布 CI 在 Windows/Linux 的 amd64/arm64 原生 runner 上运行测试，并用压缩后的二进制执行真实 Screen PTY E2E。
+
+从 [GitHub Releases](https://github.com/lyonbrown4d/terman/releases) 下载对应安装包。
+Linux 可以使用 `sudo apt install ./terman-screen_*.deb` 或
+`sudo rpm -Uvh terman-screen-*.rpm` 安装；其他工具安装方式相同。
+
+本地需安装 Go、GoReleaser、UPX 和支持 buildx 的 Docker。
+试打包使用全局 Go 缓存，产物统一写入仓库外的 `../terman-release`：
+
+```powershell
+goreleaser check
+goreleaser release --snapshot --clean
+```
+
+Linux 示例：
+
+```bash
+goreleaser check
+goreleaser release --snapshot --clean
+```
+
+`--clean` 会清空 `../terman-release`，请为它保留专用目录。
+只验证二进制与安装包时可加 `--skip=docker`。
+推送 `v*` 标签时上传到 GitHub Releases，并将容器镜像发布到 GHCR；PR 和手动执行生成 snapshot。
+标签发布也先生成 snapshot，验证 12 个压缩二进制和两个架构的容器功能，再执行正式发布。
+
+## Docker 镜像
+
+三个镜像分别为 `ghcr.io/lyonbrown4d/terman-screen`、`ghcr.io/lyonbrown4d/terman-tmux`、
+`ghcr.io/lyonbrown4d/terman-htop`，每个支持 `linux/amd64` 和 `linux/arm64`。
+版本标签为 `vX.Y.Z`；仅正式版本更新 `latest`，预发布不覆盖它。
+镜像直接打包同一批 UPX 二进制，包含原生 shell 和终端数据，默认以 UID/GID 10001 运行。
+发布使用仓库的 `GITHUB_TOKEN`，需要启用 Actions 的 `packages: write` 权限。
+
+```bash
+docker run --rm --init -it ghcr.io/lyonbrown4d/terman-screen:latest
+docker run --rm --init -it ghcr.io/lyonbrown4d/terman-tmux:latest
+docker run --rm -it ghcr.io/lyonbrown4d/terman-htop:latest
+```
+
+直接以 detached 客户端作为容器主进程时，客户端退出会让容器停止。
+需要保留会话时，启动持续运行的容器后用 `docker exec -it` 操作，并确保挂载目录允许 UID 10001 写入。
+htop 默认观察容器中的进程；查看宿主机 PID 可显式加 `--pid=host`，操作权限仍受用户权限限制。
+Snapshot 不上传镜像，buildx 将每个架构的镜像加载到本地，标签为 `v0.0.0-dev-COMMIT-amd64` / `-arm64`。
+CI 对两个架构运行版本查询、Screen/tmux 会话创建与 IPC 查询、htop 单次采样。
+
 ## 使用
 
 ```bash

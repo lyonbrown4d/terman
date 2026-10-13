@@ -1,0 +1,14 @@
+# Package only staged Linux release binaries and Docker build definitions.
+**
+!Dockerfile
+!docker/
+!docker/*.Dockerfile
+!linux/
+!linux/amd64/
+!linux/arm64/
+!linux/amd64/terman-screen
+!linux/amd64/terman-tmux
+!linux/amd64/terman-htop
+!linux/arm64/terman-screen
+!linux/arm64/terman-tmux
+!linux/arm64/terman-htop
