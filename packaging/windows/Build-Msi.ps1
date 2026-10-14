@@ -41,7 +41,7 @@ try {
         & $WixPath build @eulaArguments -arch $wixArch -ext WixToolset.Util.wixext/7.0.0 `
             -d "Version=$Version" -d "UpgradeCode=$upgrade" -d "Payload=$payload" `
             -intermediateFolder (Join-Path $work "$arch-obj") `
-            -o $msi (Join-Path $PSScriptRoot 'terman.wxs') (Join-Path $PSScriptRoot 'ui.wxs')
+            -o $msi (Join-Path $PSScriptRoot 'terman.wxs') (Join-Path $PSScriptRoot 'ui.wxs') (Join-Path $PSScriptRoot 'path.wxs')
         if ($LASTEXITCODE -ne 0) { throw "WiX failed: $arch" }
         & (Join-Path $PSScriptRoot 'Test-Msi.ps1') -Path $msi
         $hash = (Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash.ToLowerInvariant()

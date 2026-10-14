@@ -223,3 +223,14 @@ before enabling MSI builds. `Build-Msi.ps1 -AcceptWixEula` is an explicit accept
 option; CI uses the repository variable `TERMAN_ACCEPT_WIX_EULA=true` only after
 the responsible person has accepted the terms. The default must not accept them
 on a user's behalf.
+
+### Windows command lookup
+
+MSI installation appends the selected install directory (normally
+`C:\Program Files\Terman`) to the system `PATH` using native Windows Installer
+handling. Installing any one tool enables this shared entry. Upgrades keep one
+entry; uninstall removes the Terman directory without replacing other PATH values.
+Fully exit and reopen Windows Terminal after installation, then run
+`terman-screen`, `terman-tmux`, or `terman-htop` for the tools you selected.
+Existing terminals inherit an older environment; opening just another tab may not
+refresh it. ZIP extraction remains portable and does not change `PATH`.

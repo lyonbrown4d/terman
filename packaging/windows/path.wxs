@@ -1,0 +1,11 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <Component Id="InstallDirectoryPath" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue Root="HKLM" Key="Software\Terman\Installer" Name="PathDirectory"
+                     Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+      <Environment Id="InstallDirectoryPathEntry" Name="PATH" Action="set"
+                   Value="[INSTALLFOLDER]" Part="last" System="yes" Permanent="no" />
+    </Component>
+    <!-- One component shared by all tools, rather than three competing PATH rows. -->
+  </Fragment>
+</Wix>

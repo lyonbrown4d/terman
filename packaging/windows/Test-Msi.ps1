@@ -51,4 +51,26 @@ foreach ($row in $permissions) {
         throw 'Service account permissions must allow start/stop/query without configuration changes'
     }
 }
+$environment = @(Read-Rows 'SELECT `Environment`, `Name`, `Value`, `Component_` FROM `Environment`')
+if ($environment.Count -ne 1) { throw 'Expected one shared PATH entry' }
+$row = $environment[0]
+$name = $row[1]
+if (-not $name.EndsWith('PATH') -or $name.Length -ne 7 -or
+    -not $name.Contains('=') -or -not $name.Contains('-') -or -not $name.Contains('*') -or
+    $row[0] -ne 'InstallDirectoryPathEntry' -or $row[2] -ne '[~];[INSTALLFOLDER]' -or
+    $row[3] -ne 'InstallDirectoryPath') {
+    throw 'PATH must append the install directory system-wide and remove only its own entry on uninstall'
+}
+$pathFeatures = @(Read-Rows 'SELECT `Feature_` FROM `FeatureComponents` WHERE `Component_` = ''InstallDirectoryPath''')
+if ($pathFeatures.Count -ne 3) { throw 'PATH must be shared by all three independent tool features' }
+foreach ($feature in @('Screen', 'Tmux', 'Htop')) {
+    if (-not ($pathFeatures | Where-Object { $_[0] -eq $feature })) { throw "PATH is missing from $feature" }
+}
+$pathComponent = @(Read-Rows 'SELECT `Directory_`, `Attributes` FROM `Component` WHERE `Component` = ''InstallDirectoryPath''')
+if ($pathComponent.Count -ne 1 -or $pathComponent[0][0] -ne 'INSTALLFOLDER' -or
+    ([int]$pathComponent[0][1] -band 16) -ne 0) { throw 'PATH component must not survive uninstall' }
+$environmentActions = @(Read-Rows 'SELECT `Action`, `Sequence` FROM `InstallExecuteSequence` WHERE `Action` = ''WriteEnvironmentStrings'' OR `Action` = ''RemoveEnvironmentStrings''')
+if ($environmentActions.Count -ne 2 -or ($environmentActions | Where-Object { [int]$_[1] -le 0 })) {
+    throw 'Native environment install/uninstall actions must be scheduled'
+}
 Write-Host "Validated MSI tables: $Path"

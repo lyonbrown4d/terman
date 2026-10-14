@@ -42,6 +42,8 @@ if ([version](Get-MsiProperty $PreviousMsi 'ProductVersion') -ge [version](Get-M
 $installed = $null
 $accountCreated = $false
 $userSid = $null
+. (Join-Path $PSScriptRoot 'windows-path.ps1')
+$originalMachinePath = Get-InstallerMachinePath
 function Install-Package([string]$Package, [string]$Features) {
     $options = "ADDLOCAL=$Features INSTALLFOLDER=`"$target`" SCREEN_SERVICE_NAME=$screenName TMUX_SERVICE_NAME=$tmuxName"
     if ($Features -like '*Service*') {
@@ -89,10 +91,13 @@ New-Item -ItemType Directory -Path `$data | Out-Null
     $sentinel = Join-Path $dataPath 'sentinel.txt'
     $originalHash = (Get-FileHash -LiteralPath $sentinel).Hash
     Install-Package $PreviousMsi 'Htop'
+    Assert-InstallerPath -Baseline $originalMachinePath -InstallDirectory $target -Present $true
+    Run-AsTestUser (Get-InstallerCommandCheck -InstallDirectory $target)
     if (-not (Test-Path (Join-Path $target 'terman-htop.exe')) -or
         (Test-Path (Join-Path $target 'terman-screen.exe')) -or
         (Get-Service -Name $screenName, $tmuxName -ErrorAction SilentlyContinue)) { throw 'Independent Htop feature failed' }
     Install-Package $PreviousMsi 'Screen,Tmux,Htop,ScreenService,TmuxService'
+    Assert-InstallerPath -Baseline $originalMachinePath -InstallDirectory $target -Present $true
     Assert-Services
     Run-AsTestUser @"
 & '$target/terman-screen.exe' -d -S installer-test --command 'ping -t 127.0.0.1'
@@ -107,12 +112,15 @@ if (`$LASTEXITCODE -ne 0) { throw 'Tmux broker IPC failed' }
 & '$target/terman-tmux.exe' kill-session -t installer-test
 "@
     Install-Package $Msi 'Screen,Tmux,Htop,ScreenService,TmuxService'
+    Assert-InstallerPath -Baseline $originalMachinePath -InstallDirectory $target -Present $true
+    Run-AsTestUser (Get-InstallerCommandCheck -InstallDirectory $target)
     Assert-Services
     $oldCode = Get-MsiProperty $PreviousMsi 'ProductCode'
     if ($installer.ProductState($oldCode) -eq 5) { throw 'Major upgrade left the previous product installed' }
     if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash) { throw 'Upgrade modified user data' }
     [void]$installer.InstallProduct($Msi, 'REMOVE=ALL')
     $installed = $null
+    Assert-InstallerPath -Baseline $originalMachinePath -InstallDirectory $target -Present $false
     if (Get-Service -Name $screenName, $tmuxName -ErrorAction SilentlyContinue) { throw 'Uninstall left broker services' }
     if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $originalHash) { throw 'Uninstall modified user data' }
     if (Test-Path (Join-Path $target 'terman-htop.exe')) { throw 'Uninstall left packaged files' }

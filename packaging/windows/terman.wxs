@@ -78,6 +78,7 @@
     </StandardDirectory>
     <Feature Id="Screen" Title="Screen" Description="Terminal session manager" Level="1">
       <ComponentRef Id="ScreenBinary" />
+      <ComponentRef Id="InstallDirectoryPath" />
       <Feature Id="ScreenService" Title="Screen broker service (optional)" Level="2">
         <ComponentRef Id="ScreenBroker" />
         <ComponentRef Id="ServiceAccountRight" />
@@ -85,6 +86,7 @@
     </Feature>
     <Feature Id="Tmux" Title="Tmux" Description="Terminal multiplexer" Level="1">
       <ComponentRef Id="TmuxBinary" />
+      <ComponentRef Id="InstallDirectoryPath" />
       <Feature Id="TmuxService" Title="Tmux broker service (optional)" Level="2">
         <ComponentRef Id="TmuxBroker" />
         <ComponentRef Id="ServiceAccountRight" />
@@ -92,6 +94,7 @@
     </Feature>
     <Feature Id="Htop" Title="Htop" Description="Process and system monitor" Level="1">
       <ComponentRef Id="HtopBinary" />
+      <ComponentRef Id="InstallDirectoryPath" />
     </Feature>
     <UIRef Id="TermanUI" />
   </Package>
